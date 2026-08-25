@@ -2,7 +2,7 @@
 
 # scott1976
 
-Lean 4 formalization of Dana Scott's **1976** *Data Types as Lattices*
+Partial Lean 4 formalization of Dana Scott's **1976** *Data Types as Lattices*
 (Technical Monograph PRG-5; SIAM J. Comput. 5 (1976), 522–587).
 
 Standalone package — no dependency on the 1972/1980/1982 formalizations.
@@ -23,7 +23,7 @@ Original Lean and author-written docs are Apache-2.0. Scott's monograph PDF
 |---|---|
 | `arxiv.md` | Formalization narrative and theorem inventory |
 | `sources/Data_Types_as_Lattices.pdf` | Primary source PDF (Scott 1976) |
-| `Scott1976/` | Sorry-free formalization of the paper |
+| `Scott1976/` | Sorry-free core development and partial later sections |
 | `Challenge.lean` | Palomar statement of record |
 | `Solution.lean` | Palomar solution module: imports `Scott1976/*` proofs |
 | `comparator.json` | Comparator config for the compared theorem and definitions |
@@ -56,6 +56,7 @@ bash scripts/ocr_pdf_pipeline.sh --status
 
 See `sources/README.md`. Page PNGs and `.venv-ocr/` are gitignored.
 
-`Challenge.lean` imports only Mathlib and states the compared claim with a
-deliberate `sorry`. The proof lives in `Scott1976/DataTypesAsLattices/*`,
-imported by `Solution.lean`.
+`Challenge.lean` imports only Mathlib and states the six compared results
+with deliberate `sorry`s. Their proofs live in
+`Scott1976/DataTypesAsLattices/*`, imported by `Solution.lean`. See
+`arxiv.md` for the exact theorem inventory and known gaps.

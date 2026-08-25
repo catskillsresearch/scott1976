@@ -424,9 +424,18 @@ def omegaComb (u : Pomega) : Pomega :=
 def Ycomb : Pomega :=
   graph (fun u => funOf (omegaComb u) (omegaComb u))
 
+theorem omegaComb_isScottContinuous : IsScottContinuous omegaComb :=
+  graph_const_isScottContinuous
+    (fun u x => funOf u (funOf x x))
+    (fun x => funOf_isScottContinuous_left (funOf x x))
+
 theorem omegaComb_app (u x : Pomega) :
     funOf (omegaComb u) x = funOf u (funOf x x) :=
   beta (theorem_1_3 (funOf_isScottContinuous u) diagApp_isScottContinuous) x
+
+theorem Ycomb_app (u : Pomega) :
+    funOf Ycomb u = funOf (omegaComb u) (omegaComb u) :=
+  beta (theorem_1_3 diagApp_isScottContinuous omegaComb_isScottContinuous) u
 
 theorem lt_two_pow' (k : ℕ) : k < 2 ^ k := by
   induction k with
@@ -452,8 +461,9 @@ theorem funOf_diag_iUnion (d : Pomega) :
     (fun u => funOf_isScottContinuous u)
   exact h
 
-/-- **Scott 1976, Theorem 2.5 (The first recursion theorem).** -/
-theorem theorem_2_5 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
+/-- Scott's core induction proving that `ω(graph f)(ω(graph f))` is the
+least fixed point of `f`. -/
+theorem omega_first_recursion {f : Pomega → Pomega} (hf : IsScottContinuous f) :
     funOf (omegaComb (graph f)) (omegaComb (graph f)) = fix f := by
   let d := omegaComb (graph f)
   have hd : ∀ x, funOf d x = f (funOf x x) := by
@@ -483,6 +493,13 @@ theorem theorem_2_5 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
   rw [funOf_diag_iUnion] at hm
   obtain ⟨l, hl, hml⟩ := Set.mem_iUnion.mp hm
   exact key l hl hml
+
+/-- **Scott 1976, Theorem 2.5 (The first recursion theorem).**
+If `u` is the graph of a continuous `f`, then `Y(u) = fix(f)`. -/
+theorem theorem_2_5 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
+    funOf Ycomb (graph f) = fix f := by
+  rw [Ycomb_app]
+  exact omega_first_recursion hf
 
 /-- **Scott 1976, (2.9).** Application distributes over unions. -/
 theorem eq_2_9 (f g x : Pomega) :

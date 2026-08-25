@@ -8,6 +8,7 @@ import Scott1976.DataTypesAsLattices.Basic
 /-!
 # Solution to the Challenge
 
-Imports the sorry-free `Scott1976` development so Comparator can match
-declarations named in `Challenge.lean` / `comparator.json`.
+Imports the sorry-free core development so Comparator can match the six
+fully faithful source theorems named in `Challenge.lean` and
+`comparator.json`.
 -/

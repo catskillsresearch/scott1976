@@ -4,10 +4,11 @@ version: "v0.4"
 project:
   name: "Scott 1976 Data Types as Lattices"
   description: >-
-    A Lean 4 / mathlib formalization of Dana Scott's 1976 paper *Data Types as
-    Lattices* (Technical Monograph PRG-5; SIAM J. Comput. 5 (1976), 522–587).
-    The Palomar compared result is Theorem 1.4 (the fixed-point theorem).
-    Lean is written by AI agents under the
+    A partial Lean 4 / mathlib formalization of Dana Scott's 1976 paper *Data
+    Types as Lattices* (Technical Monograph PRG-5; SIAM J. Comput. 5 (1976),
+    522–587). Comparator selects the six source theorems classified as fully
+    faithful by the project audit: 1.1, 1.2, 1.4, 2.5, 4.2, and 6.1. Lean is
+    written by AI agents under the
     direction and review of the author. Dana Scott did not participate in or
     endorse this formalization. There is no sorry outside the deliberate holes
     in Challenge.lean, no project-defined axiom, and Mathlib is the only Lake
@@ -27,17 +28,49 @@ classification:
 
 status:
   scope: >-
-    Compared claim is Theorem 1.4 (the fixed-point theorem). Numbered
-    results from §§1–7 are developed under Scott1976/DataTypesAsLattices/.
-    See Challenge.lean and arxiv.md.
+    The completed core formalizes continuity, graph representation, internal
+    recursion, the retract order, and the open-set characterization in Scott's
+    Pomega model. Comparator selects Theorems 1.1, 1.2, 1.4, 2.5, 4.2, and
+    6.1. Other numbered declarations may be partial or schematic; this is not
+    a complete formalization of §§1–7. See the pinned inventory in arxiv.md.
   sorry_count: 0
   sorry_in_definitions: 0
   axioms: ["propext", "Classical.choice", "Quot.sound"]
   main_results:
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_1_1"
+      file: "Scott1976/DataTypesAsLattices/Continuous.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_1_2"
+      file: "Scott1976/DataTypesAsLattices/Graph.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_1_4"
       file: "Scott1976/DataTypesAsLattices/FixedPoint.lean"
       sorry_count: 0
-      axioms: []
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_2_5"
+      file: "Scott1976/DataTypesAsLattices/Lambda.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_4_2"
+      file: "Scott1976/DataTypesAsLattices/Retracts.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_6_1"
+      file: "Scott1976/DataTypesAsLattices/Classification.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
 
@@ -45,8 +78,9 @@ fidelity:
   divergences: >-
     Working source: sources/Data_Types_as_Lattices_vision.md
     (transcription of sources/Data_Types_as_Lattices.pdf). Compared
-    claim is Theorem 1.4. Some later numbered results are formalized
-    in schematic or partial form (see known_gaps).
+    claims are Theorems 1.1, 1.2, 1.4, 2.5, 4.2, and 6.1. The repository is
+    a partial formalization; exact divergences are listed in known_gaps and
+    in arxiv.md.
 
 sources:
   - title: "Data Types as Lattices"
@@ -122,12 +156,43 @@ review:
     the Lean source, and no review or endorsement by Dana Scott. Every proof
     step is checked by the Lean kernel.
 
-known_gaps: []
+known_gaps:
+  - >-
+    Theorem 1.3 is binary/unary rather than general finite-arity. Theorem 1.5
+    does not connect the hand-defined Scott-open basis with the generated
+    topology, and Theorem 1.6 is not packaged as a TopologicalEmbedding.
+  - >-
+    Theorem 2.1 is stated one free variable at a time. Theorems 2.2 and 2.3
+    are formalized only in selected-rule or binary forms; alpha-conversion and
+    the general finite-arity formulations are not packaged.
+  - >-
+    Theorem 2.4 does not prove reduction of every LAMBDA term to the six
+    generators. Theorem 2.6 omits the equivalence with LAMBDA-definability.
+  - >-
+    Theorems 3.1-3.3 and 3.5-3.7 are schematic or definitional fragments.
+    Theorem 3.4 proves the diagonal contradiction under hypotheses, not the
+    non-r.e. conclusion from the repository's computability definitions.
+  - >-
+    Section 4 lacks the full complete/continuous-lattice structure,
+    product/sum/function-space functoriality, the limit retract, and the
+    inverse-limit homeomorphism. Only stated local components are proved.
+  - >-
+    Section 5 lacks the algebraicity and representation isomorphism theorems,
+    closure of products and sums, the full universe closure theorem, and the
+    limit theorem. Existing declarations prove value-level fragments.
+  - >-
+    The converse representation and descriptive-class arguments in
+    Theorems 6.2-6.7 are incomplete. Theorem 6.1 is complete in the
+    equivalent membership-characteristic formulation.
+  - >-
+    Section 7 lacks the isomorphisms of Theorem 7.2, full K/S functionality
+    and uniqueness in Theorem 7.3, and Plotkin's iterator characterization
+    and uniqueness in Theorem 7.4.
 
 limitations:
   - >-
-    Comparator compares Theorem 1.4 only; later sections are in the
-    library but not the Palomar statement of record.
+    Comparator compares only the six results classified as fully faithful:
+    Theorems 1.1, 1.2, 1.4, 2.5, 4.2, and 6.1.
   - >-
     Challenge.lean may contain deliberate sorries; Solution.lean and
     Scott1976/DataTypesAsLattices/* must not.
@@ -135,8 +200,33 @@ limitations:
 alignment:
   namespace: "Scott1976.DataTypesAsLattices"
   statements:
+    - source: "Theorem 1.1 (The characterization theorem)"
+      lean: "theorem_1_1"
+      module: "Challenge (statement), Continuous.lean (proof)"
+      status: proved
+      note: "Finite-piece characterization of Scott continuity."
+    - source: "Theorem 1.2 (The graph theorem)"
+      lean: "theorem_1_2"
+      module: "Challenge (statement), Graph.lean (proof)"
+      status: proved
+      note: "Graph representation and canonical graph-element characterization."
     - source: "Theorem 1.4 (The fixed-point theorem)"
       lean: "theorem_1_4"
       module: "Challenge (statement), FixedPoint.lean (proof)"
       status: proved
       note: "Least fixed point fix(f) = ⋃_n fⁿ(∅)."
+    - source: "Theorem 2.5 (The first recursion theorem)"
+      lean: "theorem_2_5"
+      module: "Challenge (statement), Lambda.lean (proof)"
+      status: proved
+      note: "Scott's internal omega/Y construction denotes fix(f)."
+    - source: "Theorem 4.2 (The partial ordering theorem)"
+      lean: "theorem_4_2"
+      module: "Challenge (statement), Retracts.lean (proof)"
+      status: proved
+      note: "Retracts are partially ordered by retractLe."
+    - source: "Theorem 6.1 (The G theorem)"
+      lean: "theorem_6_1"
+      module: "Challenge (statement), Classification.lean (proof)"
+      status: proved
+      note: "Scott-open sets are exactly continuous membership-characteristic preimages."

@@ -2,7 +2,12 @@
   "challenge_module": "Challenge",
   "solution_module": "Solution",
   "theorem_names": [
-    "Scott1976.DataTypesAsLattices.theorem_1_4"
+    "Scott1976.DataTypesAsLattices.theorem_1_1",
+    "Scott1976.DataTypesAsLattices.theorem_1_2",
+    "Scott1976.DataTypesAsLattices.theorem_1_4",
+    "Scott1976.DataTypesAsLattices.theorem_2_5",
+    "Scott1976.DataTypesAsLattices.theorem_4_2",
+    "Scott1976.DataTypesAsLattices.theorem_6_1"
   ],
   "definition_names": [],
   "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"]
