@@ -44,6 +44,18 @@ Palomar submission, run:
 bash scripts/palomar_preflight.sh
 ```
 
+## Source OCR
+
+Triple-pass Cursor vision OCR (from [`scott_models`](../scott_models)):
+
+```bash
+bash scripts/ocr_pdf_pipeline.sh                 # sources/Data_Types_as_Lattices.pdf
+bash scripts/ocr_pdf_pipeline.sh --pages 1-3     # smoke test
+bash scripts/ocr_pdf_pipeline.sh --status
+```
+
+See `sources/README.md`. Page PNGs and `.venv-ocr/` are gitignored.
+
 `Challenge.lean` imports only Mathlib and states the compared claim with a
 deliberate `sorry`. The proof lives in `Scott1976/DataTypesAsLattices/*`,
 imported by `Solution.lean`.
