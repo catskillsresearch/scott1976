@@ -6,8 +6,8 @@ project:
   description: >-
     A Lean 4 / mathlib formalization of Dana Scott's 1976 paper *Data Types as
     Lattices* (Technical Monograph PRG-5; SIAM J. Comput. 5 (1976), 522–587).
-    The Palomar compared result will be fixed in Challenge.lean once the
-    statement of record is chosen. Lean is written by AI agents under the
+    The Palomar compared result is Theorem 1.4 (the fixed-point theorem).
+    Lean is written by AI agents under the
     direction and review of the author. Dana Scott did not participate in or
     endorse this formalization. There is no sorry outside the deliberate holes
     in Challenge.lean, no project-defined axiom, and Mathlib is the only Lake
@@ -27,14 +27,15 @@ classification:
 
 status:
   scope: >-
-    Scaffold only. The compared claim and full inventory will be filled in as
-    the formalization progresses. See arxiv.md and Challenge.lean.
+    Compared claim is Theorem 1.4 (the fixed-point theorem). Numbered
+    results from §§1–7 are developed under Scott1976/DataTypesAsLattices/.
+    See Challenge.lean and arxiv.md.
   sorry_count: 0
   sorry_in_definitions: 0
   axioms: ["propext", "Classical.choice", "Quot.sound"]
   main_results:
-    - declaration: "Scott1976.DataTypesAsLattices.scaffold_placeholder"
-      file: "Scott1976/DataTypesAsLattices/Basic.lean"
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_1_4"
+      file: "Scott1976/DataTypesAsLattices/FixedPoint.lean"
       sorry_count: 0
       axioms: []
       comparator_config: "comparator.json"
@@ -42,8 +43,10 @@ status:
 
 fidelity:
   divergences: >-
-    Working source: sources/Data_Types_as_Lattices.pdf (transcription TBD).
-    Scaffold placeholder only; replace when the compared claim is chosen.
+    Working source: sources/Data_Types_as_Lattices_vision.md
+    (transcription of sources/Data_Types_as_Lattices.pdf). Compared
+    claim is Theorem 1.4. Some later numbered results are formalized
+    in schematic or partial form (see known_gaps).
 
 sources:
   - title: "Data Types as Lattices"
@@ -123,7 +126,8 @@ known_gaps: []
 
 limitations:
   - >-
-    Scaffold stage: the Comparator-compared family has not been fixed yet.
+    Comparator compares Theorem 1.4 only; later sections are in the
+    library but not the Palomar statement of record.
   - >-
     Challenge.lean may contain deliberate sorries; Solution.lean and
     Scott1976/DataTypesAsLattices/* must not.
@@ -131,8 +135,8 @@ limitations:
 alignment:
   namespace: "Scott1976.DataTypesAsLattices"
   statements:
-    - source: "Scaffold placeholder (replace with paper claim)"
-      lean: "scaffold_placeholder"
-      module: "Challenge (statement), Basic.lean (proof)"
+    - source: "Theorem 1.4 (The fixed-point theorem)"
+      lean: "theorem_1_4"
+      module: "Challenge (statement), FixedPoint.lean (proof)"
       status: proved
-      note: "Temporary packaging stub."
+      note: "Least fixed point fix(f) = ⋃_n fⁿ(∅)."

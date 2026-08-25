@@ -2,7 +2,7 @@
   "challenge_module": "Challenge",
   "solution_module": "Solution",
   "theorem_names": [
-    "Scott1976.DataTypesAsLattices.scaffold_placeholder"
+    "Scott1976.DataTypesAsLattices.theorem_1_4"
   ],
   "definition_names": [],
   "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"]

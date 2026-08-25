@@ -43,7 +43,7 @@ def fix (f : Pomega → Pomega) : Pomega :=
   ⋃ n, iterateBot f n
 
 /-- **Scott 1976, Theorem 1.4 (The fixed-point theorem).** -/
-theorem scaffold_placeholder {f : Pomega → Pomega} (hf : IsScottContinuous f) :
+theorem theorem_1_4 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
     f (fix f) = fix f ∧ ∀ x, f x = x → fix f ⊆ x := by
   sorry
 
