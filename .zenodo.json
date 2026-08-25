@@ -1,0 +1,58 @@
+{
+  "title": "A Lean 4 Formalization of Scott's Data Types as Lattices (1976)",
+  "upload_type": "software",
+  "access_right": "open",
+  "language": "eng",
+  "version": "0.1.0",
+  "description": "Machine-checked Lean 4 formalization of Dana Scott's 1976 paper Data Types as Lattices (Technical Monograph PRG-5, September 1976; reprinted SIAM J. Comput. 5 (1976), 522–587). Dana Scott was not contacted and did not participate in, review, or endorse this formalization. Primary readable artifact: arxiv.pdf (when published). Source repository: https://github.com/catskillsresearch/scott1976.",
+  "creators": [
+    {
+      "name": "Ericson, Lars Warren",
+      "affiliation": "Catskills Research Company",
+      "orcid": "0000-0001-8299-9361"
+    }
+  ],
+  "keywords": [
+    "Lean 4",
+    "mathlib",
+    "formal verification",
+    "data types as lattices",
+    "domain theory",
+    "Scott topology",
+    "lambda calculus",
+    "denotational semantics",
+    "Dana Scott"
+  ],
+  "subjects": [
+    {
+      "term": "Lambda calculus",
+      "identifier": "http://id.loc.gov/authorities/subjects/sh85074216",
+      "scheme": "url"
+    },
+    {
+      "term": "Lattice theory",
+      "identifier": "http://id.loc.gov/authorities/subjects/sh85074991",
+      "scheme": "url"
+    },
+    {
+      "term": "Denotational semantics",
+      "identifier": "http://id.loc.gov/authorities/subjects/sh85036781",
+      "scheme": "url"
+    },
+    {
+      "term": "Automatic theorem proving",
+      "identifier": "http://id.loc.gov/authorities/subjects/sh85010112",
+      "scheme": "url"
+    }
+  ],
+  "license": "Apache-2.0",
+  "notes": "Software and Lean sources are Apache-2.0 (see LICENSE). Scott's source PDF in sources/ is not Apache-2.0 (see NOTICE). Readable paper PDF is arxiv.pdf in this deposit when present. Prepared with LLM assistance; all Lean proofs are machine-checked.",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/catskillsresearch/scott1976",
+      "relation": "isSupplementTo",
+      "scheme": "url",
+      "resource_type": "software"
+    }
+  ]
+}

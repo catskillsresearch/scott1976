@@ -1,0 +1,138 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+version: "v0.4"
+
+project:
+  name: "Scott 1976 Data Types as Lattices"
+  description: >-
+    A Lean 4 / mathlib formalization of Dana Scott's 1976 paper *Data Types as
+    Lattices* (Technical Monograph PRG-5; SIAM J. Comput. 5 (1976), 522–587).
+    The Palomar compared result will be fixed in Challenge.lean once the
+    statement of record is chosen. Lean is written by AI agents under the
+    direction and review of the author. Dana Scott did not participate in or
+    endorse this formalization. There is no sorry outside the deliberate holes
+    in Challenge.lean, no project-defined axiom, and Mathlib is the only Lake
+    dependency.
+  authors:
+    - "Lars Warren Ericson"
+  license: "Apache-2.0"
+  responsible_maintainers:
+    - "Lars Warren Ericson"
+
+repository:
+  role: substantive-development
+
+classification:
+  arxiv: [math.LO, cs.LO]
+  msc2020: ["06B35", "68Q55", "03B70"]
+
+status:
+  scope: >-
+    Scaffold only. The compared claim and full inventory will be filled in as
+    the formalization progresses. See arxiv.md and Challenge.lean.
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms: ["propext", "Classical.choice", "Quot.sound"]
+  main_results:
+    - declaration: "Scott1976.DataTypesAsLattices.scaffold_placeholder"
+      file: "Scott1976/DataTypesAsLattices/Basic.lean"
+      sorry_count: 0
+      axioms: []
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+
+fidelity:
+  divergences: >-
+    Working source: sources/Data_Types_as_Lattices.pdf (transcription TBD).
+    Scaffold placeholder only; replace when the compared claim is chosen.
+
+sources:
+  - title: "Data Types as Lattices"
+    authors: ["Dana S. Scott"]
+    type: "article"
+    location: >-
+      Technical Monograph PRG-5, Oxford University Computing Laboratory,
+      Programming Research Group, September 1976; reprinted SIAM Journal on
+      Computing, Volume 5, 1976, pages 522–587.
+    relationship: formalizes
+    author_endorsement: not-contacted
+    note: >-
+      Primary source. Dana Scott was not contacted and did not participate
+      in or endorse this formalization. Working PDF:
+      sources/Data_Types_as_Lattices.pdf.
+
+related_formalizations:
+  - id: "https://github.com/catskillsresearch/scott1972"
+    relationship: other
+    note: "Same-author formalization of Scott Continuous Lattices (1972); not imported here."
+
+  - id: "https://github.com/catskillsresearch/scott1980"
+    relationship: other
+    note: "Same-author formalization of Scott PRG-19 (1980); not imported here."
+
+  - id: "https://github.com/catskillsresearch/scott1982"
+    relationship: other
+    note: "Same-author formalization of Scott 1982 information systems; not imported here."
+
+  - id: "https://github.com/catskillsresearch/scott_models"
+    relationship: other
+    note: >-
+      Same-author sibling with cross-presentation equivalence theorems.
+      This repository is an independent Palomar submission for the 1976 paper
+      alone. See PROVENANCE.md.
+
+automation:
+  methods:
+    - method: agent
+      models: ["Cursor Grok 4.6 High Fast (SpaceXAI / Cursor)"]
+      framework: "Cursor"
+      role: >-
+        Primary agent for Lean 4 / mathlib formalization, lake build repair,
+        vision-OCR transcription, and arxiv.md drafting.
+    - method: agent
+      models: ["Cursor Composer 2.5 Fast"]
+      framework: "Cursor"
+      role: "Routine scaffolding and medium-complexity proof obligations."
+    - method: agent
+      models: ["Anthropic Claude Sonnet 5 (medium reasoning)"]
+      framework: "Cursor"
+      role: "Day-to-day formalization and proof-engineering."
+    - method: agent
+      models: ["Anthropic Claude Opus 4.8 (high reasoning)"]
+      framework: "Cursor"
+      role: "Heaviest proof work."
+    - method: manual
+      models: []
+      role: >-
+        The author chose the formalization route, reviewed every definition
+        and claim, and takes sole responsibility for the mathematical content.
+        Dana Scott was not consulted.
+  notes: >-
+    Palomar Challenge / Solution / comparator / formalization.yaml packaging
+    follows the scott1972 / cardb template.
+
+review:
+  status: self-assessed
+  reviewers:
+    - "Lars Warren Ericson"
+  notes: >-
+    The author directed and reviewed the development. No external review of
+    the Lean source, and no review or endorsement by Dana Scott. Every proof
+    step is checked by the Lean kernel.
+
+known_gaps: []
+
+limitations:
+  - >-
+    Scaffold stage: the Comparator-compared family has not been fixed yet.
+  - >-
+    Challenge.lean may contain deliberate sorries; Solution.lean and
+    Scott1976/DataTypesAsLattices/* must not.
+
+alignment:
+  namespace: "Scott1976.DataTypesAsLattices"
+  statements:
+    - source: "Scaffold placeholder (replace with paper claim)"
+      lean: "scaffold_placeholder"
+      module: "Challenge (statement), Basic.lean (proof)"
+      status: proved
+      note: "Temporary packaging stub."

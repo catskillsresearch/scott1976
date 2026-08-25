@@ -1,0 +1,20 @@
+This repository's original Lean, scripts, and author-written documentation
+are licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party source material (not Apache-2.0)
+--------------------------------------------
+
+sources/Data_Types_as_Lattices.pdf is Dana S. Scott, Data Types as Lattices,
+Technical Monograph PRG-5, Oxford University Computing Laboratory,
+Programming Research Group, September 1976; reprinted from the SIAM Journal
+on Computing, Volume 5, 1976, pages 522–587. Copyright 1976 by Society for
+Industrial and Applied Mathematics. It is included only as the cited primary
+source for this formalization. Palomar and other redistributors must not
+treat it as licensed under Apache-2.0.
+
+A working Markdown transcription (when present as
+sources/Data_Types_as_Lattices.md) retains Scott's wording under Scott's /
+SIAM's copyright. YAML headers, page markers, and editorial notes are part
+of this repository's documentation.
+
+See sources/README.md.
