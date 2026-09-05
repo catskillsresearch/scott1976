@@ -1,5 +1,5 @@
 [![Lean 4](https://img.shields.io/github/actions/workflow/status/catskillsresearch/scott1976/build.yml?label=Lean%204)](https://github.com/catskillsresearch/scott1976/actions/workflows/build.yml)
-[![Palomar](https://img.shields.io/badge/Palomar-2026--08--25--000004-0f766e.svg)](https://palomar-registry.org/entry.html?id=PALOMAR-2026-08-25-000004&version=1)
+[![Palomar](https://img.shields.io/badge/Palomar-2026--08--25--000004-0f766e.svg)](https://palomar-registry.org/entry?id=PALOMAR-2026-08-25-000004&version=1)
 
 # scott1976
 
@@ -8,8 +8,10 @@ Partial Lean 4 formalization of Dana Scott's **1976** *Data Types as Lattices*
 
 Standalone package — no dependency on the 1972/1980/1982 formalizations.
 Cross-presentation equivalence theorems live in [`scott_models`](../scott_models);
-this repo is submitted to [Palomar](https://palomar-registry.org/about) on its
-own (see `PROVENANCE.md`).
+this repo is registered with [Palomar](https://palomar-registry.org/about) on its
+own as
+[PALOMAR-2026-08-25-000004](https://palomar-registry.org/entry?id=PALOMAR-2026-08-25-000004&version=1)
+(see `PROVENANCE.md`).
 
 The pin is `leanprover/lean4:v4.33.0` (same as [`qlambda`](../qlambda) /
 [`scott1972`](../scott1972)).

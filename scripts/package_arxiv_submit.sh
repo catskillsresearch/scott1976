@@ -32,8 +32,8 @@ if [[ "$lean_count" -eq 0 ]]; then
 fi
 fig_count="$(find "$FIGURES_DIR" -maxdepth 1 -name '*.pdf' 2>/dev/null | wc -l)"
 if [[ "$fig_count" -eq 0 ]]; then
-  echo "error: no mermaid figure PDFs in $FIGURES_DIR" >&2
-  missing=1
+  echo "note: no mermaid figure PDFs in $FIGURES_DIR (ok if the paper has none)"
+  mkdir -p "$FIGURES_DIR"
 fi
 if [[ "$missing" -ne 0 ]]; then
   exit 1
