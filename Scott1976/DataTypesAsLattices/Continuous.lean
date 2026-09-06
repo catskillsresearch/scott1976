@@ -3,6 +3,7 @@ Copyright (c) 2026  Lars Warren Ericson.  All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Lars Warren Ericson.
 -/
+import Mathlib.Topology.Bases
 import Mathlib.Topology.Order
 import Scott1976.DataTypesAsLattices.Pomega
 
@@ -14,6 +15,8 @@ plus Theorem 1.1 (characterization).
 -/
 
 namespace Scott1976.DataTypesAsLattices
+
+open TopologicalSpace
 
 /-- **Scott 1976, §1, Definition.** A basic neighbourhood is
 `{x ∈ Pω | e n ⊆ x}` for some finite code `n`. -/
@@ -139,5 +142,126 @@ instance : TopologicalSpace Pomega :=
 
 theorem isOpen_memOpen (k : ℕ) : IsOpen (memOpen k) :=
   TopologicalSpace.isOpen_generateFrom_of_mem ⟨k, rfl⟩
+
+/-- A basic neighbourhood is a finite intersection of subbasic opens. -/
+theorem basicNhhd_eq_iInter (n : ℕ) :
+    basicNhhd n = ⋂ k ∈ e n, memOpen k := by
+  ext x
+  simp [basicNhhd, memOpen, Set.subset_def]
+
+theorem isOpen_basicNhhd (n : ℕ) : IsOpen (basicNhhd n) := by
+  obtain ⟨s, hs⟩ := (e_finite n).exists_finset_coe
+  have h : basicNhhd n = ⋂ k ∈ s, memOpen k := by
+    ext x
+    constructor
+    · intro hx
+      refine Set.mem_iInter₂.mpr ?_
+      intro k hk
+      have : k ∈ e n := by
+        have : k ∈ (s : Set ℕ) := hk
+        rwa [hs] at this
+      exact hx this
+    · intro hx k hk
+      have : k ∈ s := by
+        have : k ∈ e n := hk
+        rwa [← hs] at this
+      exact Set.mem_iInter₂.mp hx k this
+  rw [h]
+  exact isOpen_biInter_finset fun _ _ => isOpen_memOpen _
+
+theorem basicNhhd_inter (n m : ℕ) :
+    basicNhhd n ∩ basicNhhd m = basicNhhd (n ||| m) := by
+  ext x
+  simp [basicNhhd, e_or, Set.union_subset_iff]
+
+theorem basicNhhd_zero : basicNhhd 0 = Set.univ := by
+  ext x
+  simp [basicNhhd, e_zero]
+
+theorem memOpen_eq_basicNhhd (k : ℕ) : memOpen k = basicNhhd (2 ^ k) := by
+  ext x
+  simp [memOpen, basicNhhd, e_pow2, Set.singleton_subset_iff]
+
+/-- Every open neighbourhood of `x` contains a basic neighbourhood of `x`. -/
+theorem exists_basicNhhd_subset_of_generateOpen {U : Set Pomega}
+    (hU : GenerateOpen (Set.range memOpen) U) {x : Pomega} (hx : x ∈ U) :
+    ∃ n, e n ⊆ x ∧ basicNhhd n ⊆ U := by
+  induction hU generalizing x with
+  | basic s hs =>
+    obtain ⟨k, rfl⟩ := hs
+    refine ⟨2 ^ k, ?_, ?_⟩
+    · simpa [memOpen, e_pow2, Set.singleton_subset_iff] using hx
+    · rw [← memOpen_eq_basicNhhd]
+  | univ =>
+    exact ⟨0, by simp [e_zero], by simp [basicNhhd_zero]⟩
+  | inter _s _t _hs _ht ihs iht =>
+    obtain ⟨n, hn, hnU⟩ := ihs hx.1
+    obtain ⟨m, hm, hmU⟩ := iht hx.2
+    refine ⟨n ||| m, e_or_of_subset hn hm, ?_⟩
+    rw [← basicNhhd_inter]
+    exact Set.inter_subset_inter hnU hmU
+  | sUnion S _hS ih =>
+    obtain ⟨V, hV, hxV⟩ := hx
+    obtain ⟨n, hn, hnV⟩ := ih V hV hxV
+    exact ⟨n, hn, hnV.trans (Set.subset_sUnion_of_mem hV)⟩
+
+/-- **Scott 1976, §1.** Scott-open sets are exactly the opens of the
+positive information topology. -/
+theorem isScottOpen_iff_isOpen (U : Set Pomega) : IsScottOpen U ↔ IsOpen U := by
+  constructor
+  · intro ⟨B, hU⟩
+    rw [hU]
+    exact isOpen_biUnion fun n _ => isOpen_basicNhhd n
+  · intro hU
+    refine ⟨{n | basicNhhd n ⊆ U}, ?_⟩
+    ext x
+    constructor
+    · intro hx
+      have hgen : GenerateOpen (Set.range memOpen) U := hU
+      obtain ⟨n, hn, hsub⟩ := exists_basicNhhd_subset_of_generateOpen hgen hx
+      exact Set.mem_iUnion₂.mpr ⟨n, hsub, hn⟩
+    · intro hx
+      obtain ⟨n, hn, hxn⟩ := Set.mem_iUnion₂.mp hx
+      exact hn hxn
+
+/-- Scott continuity coincides with topological continuity `Pω → Pω`. -/
+theorem isScottContinuous_iff_continuous (f : Pomega → Pomega) :
+    IsScottContinuous f ↔ Continuous f := by
+  constructor
+  · intro hf
+    refine continuous_generateFrom_iff.2 ?_
+    rintro _ ⟨k, rfl⟩
+    rw [← isScottOpen_iff_isOpen]
+    refine ⟨{n | k ∈ f (e n)}, ?_⟩
+    ext x
+    constructor
+    · intro hx
+      have : k ∈ scottUnion f x := by rwa [← hf x]
+      obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp this
+      exact Set.mem_iUnion₂.mpr ⟨n, hkn, hn⟩
+    · intro hx
+      obtain ⟨n, hkn, hn⟩ := Set.mem_iUnion₂.mp hx
+      exact isScottContinuous_monotone hf hn hkn
+  · intro hfcont x
+    ext k
+    have hopen : IsScottOpen (f ⁻¹' memOpen k) :=
+      (isScottOpen_iff_isOpen _).mpr (IsOpen.preimage hfcont (isOpen_memOpen k))
+    constructor
+    · intro hk
+      obtain ⟨B, hB⟩ := hopen
+      have hx : x ∈ ⋃ n ∈ B, basicNhhd n := by
+        have : x ∈ f ⁻¹' memOpen k := hk
+        rwa [hB] at this
+      obtain ⟨n, hn, hxn⟩ := Set.mem_iUnion₂.mp hx
+      have hen : k ∈ f (e n) := by
+        have : e n ∈ f ⁻¹' memOpen k := by
+          rw [hB]
+          exact Set.mem_iUnion₂.mpr ⟨n, hn, (subset_rfl : e n ⊆ e n)⟩
+        exact this
+      exact mem_scottUnion.mpr ⟨n, hxn, hen⟩
+    · intro hk
+      obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp hk
+      have : e n ∈ f ⁻¹' memOpen k := hkn
+      exact isScottOpen_isUpper hopen this hn
 
 end Scott1976.DataTypesAsLattices

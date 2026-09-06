@@ -53,8 +53,32 @@ theorem le_two_pow (k : ℕ) : k ≤ 2 ^ k := by
       _ = 2 ^ k * 2 := (Nat.mul_two (2 ^ k)).symm
       _ = 2 ^ (k + 1) := (Nat.pow_succ 2 k).symm
 
+theorem lt_two_pow' (k : ℕ) : k < 2 ^ k := by
+  induction k with
+  | zero => decide
+  | succ k ih =>
+    calc
+      k + 1 ≤ 2 ^ k := Nat.succ_le_of_lt ih
+      _ < 2 ^ k + 2 ^ k := Nat.lt_add_of_pos_right (Nat.two_pow_pos k)
+      _ = 2 ^ (k + 1) := by rw [← Nat.two_mul, Nat.mul_comm, Nat.pow_succ]
+
 theorem mem_e_le {n k : ℕ} (h : k ∈ e n) : k ≤ n :=
   (le_two_pow k).trans (two_pow_le_of_testBit h)
+
+/-- **Scott 1976, §1.** `k ∈ e_n` implies `k < n`. -/
+theorem mem_e_lt {n k : ℕ} (h : k ∈ e n) : k < n := by
+  have hle := mem_e_le h
+  rcases eq_or_lt_of_le hle with rfl | hlt
+  · exact (lt_irrefl k ((lt_two_pow' k).trans_le (two_pow_le_of_testBit h))).elim
+  · exact hlt
+
+instance (n k : ℕ) : Decidable (k ∈ e n) :=
+  inferInstanceAs (Decidable (n.testBit k))
+
+instance (n m : ℕ) : Decidable (e n ⊆ e m) :=
+  decidable_of_iff (∀ k ≤ n, k ∈ e n → k ∈ e m) ⟨
+    fun h k hk => h k (mem_e_le hk) hk,
+    fun h _k _ hk => h hk⟩
 
 theorem e_finite (n : ℕ) : (e n).Finite :=
   (Finset.range (n + 1)).finite_toSet.subset fun _k hk =>
@@ -92,6 +116,32 @@ theorem e_or_of_subset {n m : ℕ} {x : Pomega} (hn : e n ⊆ x) (hm : e m ⊆ x
     e (n ||| m) ⊆ x := by
   rw [e_or]
   exact Set.union_subset hn hm
+
+/-- Bit-mask code of a finite list of naturals. -/
+def codeList : List ℕ → ℕ
+  | [] => 0
+  | k :: ks => 2 ^ k ||| codeList ks
+
+theorem e_codeList (ks : List ℕ) : e (codeList ks) = {k | k ∈ ks} := by
+  induction ks with
+  | nil => simp [codeList, e_zero]
+  | cons k ks ih =>
+    ext i
+    simp [codeList, e_or, e_pow2, ih]
+
+noncomputable def codeFinset (s : Finset ℕ) : ℕ := codeList s.val.toList
+
+theorem e_codeFinset (s : Finset ℕ) : e (codeFinset s) = (s : Set ℕ) := by
+  ext k
+  simp [codeFinset, e_codeList]
+
+theorem exists_code (s : Finset ℕ) : ∃ n, e n = (s : Set ℕ) :=
+  ⟨codeFinset s, e_codeFinset s⟩
+
+theorem exists_code_of_finite {s : Pomega} (hs : s.Finite) :
+    ∃ n, e n = s := by
+  obtain ⟨t, ht⟩ := hs.exists_finset_coe
+  exact ⟨codeFinset t, ht ▸ e_codeFinset t⟩
 
 /-- **Scott 1976, §1.** Diagonal pairing `(n, m) = ½(n+m)(n+m+1) + m`. -/
 def pair (n m : ℕ) : ℕ := (n + m) * (n + m + 1) / 2 + m
@@ -205,5 +255,22 @@ theorem exists_pair (k : ℕ) : ∃ n m, pair n m = k := by
     omega
   have : w - (k - triangle w) + (k - triangle w) = w := Nat.sub_add_cancel hm
   simp [pair_eq_triangle, this, Nat.add_sub_of_le hle]
+
+/-- Inverse of Cantor pairing. -/
+noncomputable def unpair (k : ℕ) : ℕ × ℕ :=
+  ((exists_pair k).choose, (exists_pair k).choose_spec.choose)
+
+theorem pair_unpair (k : ℕ) : pair (unpair k).1 (unpair k).2 = k :=
+  (exists_pair k).choose_spec.choose_spec
+
+theorem unpair_pair (n m : ℕ) : unpair (pair n m) = (n, m) := by
+  have h := pair_unpair (pair n m)
+  exact Prod.ext (pair_inj h).1 (pair_inj h).2
+
+theorem pair_lt_left (n m : ℕ) : n < pair n m + 1 :=
+  Nat.lt_succ_of_le (pair_le_left n m)
+
+theorem pair_lt_right (n m : ℕ) : m < pair n m + 1 :=
+  Nat.lt_succ_of_le (pair_le_right n m)
 
 end Scott1976.DataTypesAsLattices

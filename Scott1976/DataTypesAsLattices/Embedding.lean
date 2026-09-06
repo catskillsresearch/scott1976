@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Lars Warren Ericson.
 -/
 import Mathlib.Topology.Bases
+import Mathlib.Topology.Defs.Induced
 import Mathlib.Topology.Order
 import Mathlib.Topology.Separation.Basic
 import Scott1976.DataTypesAsLattices.FixedPoint
@@ -16,7 +17,7 @@ Theorems 1.5 and 1.6.
 
 namespace Scott1976.DataTypesAsLattices
 
-open TopologicalSpace
+open TopologicalSpace Topology Function
 
 /-- **Scott 1976, Theorem 1.5.** Maximal continuous extension of
 `f : X → Pω` along a subspace inclusion `X ⊆ Y`:
@@ -89,30 +90,60 @@ theorem theorem_1_5_extends {Y : Type*} [TopologicalSpace Y] {X : Set Y}
 def embed {X : Type*} (U : ℕ → Set X) (x : X) : Pomega :=
   {n | x ∈ U n}
 
-/-- **Scott 1976, Theorem 1.6 (The embedding theorem).** -/
+theorem embed_inducing {X : Type*} [TopologicalSpace X]
+    (U : ℕ → Set X) (hbasis : IsTopologicalBasis (Set.range U)) :
+    IsInducing (embed U) := by
+  refine ⟨?_⟩
+  rw [hbasis.eq_generateFrom]
+  change generateFrom (Set.range U) =
+    (generateFrom (Set.range memOpen)).induced (embed U)
+  rw [induced_generateFrom_eq]
+  congr 1
+  ext V
+  constructor
+  · rintro ⟨n, rfl⟩
+    exact ⟨memOpen n, ⟨n, rfl⟩, rfl⟩
+  · rintro ⟨_, ⟨n, rfl⟩, rfl⟩
+    exact ⟨n, rfl⟩
+
+theorem embed_injective {X : Type*} [TopologicalSpace X] [T0Space X]
+    (U : ℕ → Set X) (hbasis : IsTopologicalBasis (Set.range U)) :
+    Injective (embed U) := by
+  intro x y hxy
+  have hmem : ∀ n, x ∈ U n ↔ y ∈ U n := fun n =>
+    show n ∈ embed U x ↔ n ∈ embed U y by rw [hxy]
+  refine Inseparable.eq ?_
+  refine inseparable_iff_forall_isOpen.mpr ?_
+  intro V hV
+  constructor
+  · intro hx
+    obtain ⟨t, ⟨n, rfl⟩, hxt, htV⟩ :=
+      hbasis.mem_nhds_iff.mp (hV.mem_nhds hx)
+    exact htV ((hmem n).mp hxt)
+  · intro hy
+    obtain ⟨t, ⟨n, rfl⟩, hyt, htV⟩ :=
+      hbasis.mem_nhds_iff.mp (hV.mem_nhds hy)
+    exact htV ((hmem n).mpr hyt)
+
+theorem embed_continuous {X : Type*} [TopologicalSpace X]
+    (U : ℕ → Set X) (hbasis : IsTopologicalBasis (Set.range U)) :
+    Continuous (embed U) :=
+  continuous_generateFrom_iff.2 fun t ⟨n, hn⟩ => by
+    subst hn
+    change IsOpen (U n)
+    exact hbasis.isOpen ⟨n, rfl⟩
+
+/-- **Scott 1976, Theorem 1.6 (The embedding theorem).**
+Every T₀ space with a countable basis embeds in `Pω`. -/
 theorem theorem_1_6 {X : Type*} [TopologicalSpace X] [T0Space X]
     (U : ℕ → Set X) (hbasis : IsTopologicalBasis (Set.range U)) :
-    Function.Injective (embed U) ∧ Continuous (embed U) := by
-  constructor
-  · intro x y hxy
-    have hmem : ∀ n, x ∈ U n ↔ y ∈ U n := fun n =>
-      show n ∈ embed U x ↔ n ∈ embed U y by rw [hxy]
-    refine Inseparable.eq ?_
-    refine inseparable_iff_forall_isOpen.mpr ?_
-    intro V hV
-    constructor
-    · intro hx
-      obtain ⟨t, ⟨n, rfl⟩, hxt, htV⟩ :=
-        hbasis.mem_nhds_iff.mp (hV.mem_nhds hx)
-      exact htV ((hmem n).mp hxt)
-    · intro hy
-      obtain ⟨t, ⟨n, rfl⟩, hyt, htV⟩ :=
-        hbasis.mem_nhds_iff.mp (hV.mem_nhds hy)
-      exact htV ((hmem n).mpr hyt)
-  · refine continuous_generateFrom_iff.2 ?_
-    rintro _ ⟨n, rfl⟩
-    have : embed U ⁻¹' memOpen n = U n := rfl
-    rw [this]
-    exact hbasis.isOpen ⟨n, rfl⟩
+    IsEmbedding (embed U) where
+  toIsInducing := embed_inducing U hbasis
+  injective := embed_injective U hbasis
+
+theorem theorem_1_6_injective_continuous {X : Type*} [TopologicalSpace X]
+    [T0Space X] (U : ℕ → Set X) (hbasis : IsTopologicalBasis (Set.range U)) :
+    Injective (embed U) ∧ Continuous (embed U) :=
+  ⟨embed_injective U hbasis, embed_continuous U hbasis⟩
 
 end Scott1976.DataTypesAsLattices

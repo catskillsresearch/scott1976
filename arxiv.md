@@ -10,101 +10,147 @@ September 1976; reprinted SIAM J. Comput. 5 (1976), 522–587.
 
 ## Abstract
 
-This note records a partial Lean 4 / mathlib formalization of Dana Scott's
-1976 paper *Data Types as Lattices*. The completed core develops Scott's
-universal domain `Pω`, represents continuous maps by graph elements, proves
-the least-fixed-point theorem, and internalizes that construction through
-Scott's first recursion theorem. Later sections currently contain definitions,
-supporting lemmas, and partial or schematic versions of the paper's results;
-they are not claimed as complete formalizations. The development is packaged for
-[Palomar](https://palomar-registry.org/about) with a Challenge / Solution pair
-and `formalization.yaml` metadata. Dana Scott was not contacted and did not
-participate in, review, or endorse this formalization.
+This note records a Lean 4 / mathlib formalization of Dana Scott's 1976 paper
+*Data Types as Lattices*. The development targets every numbered theorem,
+definition, displayed equation used as a definition or example, and Tables 1–3.
+The Palomar Comparator selects the six source theorems classified as fully
+faithful in the original audit (`1.1`, `1.2`, `1.4`, `2.5`, `4.2`, `6.1`).
+Dana Scott was not contacted and did not participate in, review, or endorse
+this formalization.
 
 <!-- AI_MODEL_TOOL_BULLETS -->
 <!-- /AI_MODEL_TOOL_BULLETS -->
 
 ## 1. Scope
 
-The Palomar Comparator selects every source theorem that the current audit
-classifies as fully faithful:
+The Palomar Comparator selects:
 
 - `theorem_1_1`, the finite-piece characterization of Scott continuity.
-- `theorem_1_2`, Scott's graph theorem: continuous maps `Pω → Pω` are
-  represented by elements of `Pω`, with a characterization of canonical graph
-  elements.
-- `theorem_1_4`, the least-fixed-point theorem used by the recursion proof.
-- `theorem_2_5`, Scott's first recursion theorem: the internal `ω`/`Y`
-  construction applied to the graph of a continuous map denotes its least
-  fixed point.
+- `theorem_1_2`, Scott's graph theorem.
+- `theorem_1_4`, the least-fixed-point theorem.
+- `theorem_2_5`, the first recursion theorem (`Y(graph f) = fix f`).
 - `theorem_4_2`, the partial order on retracts.
-- `theorem_6_1`, the characterization of Scott-open sets by continuous
-  characteristic maps.
+- `theorem_6_1`, Scott-open sets via continuous characteristic maps.
 
-The research-interest claim is this combined development of continuity,
-graph representation, internal recursion, retract structure, and open-set
-classification—not the standard fixed-point theorem in isolation.
+The living inventory in §2 tracks every numbered source item. Status words:
 
-## 2. Theorem inventory
+- `faithful` — Lean statement matches Scott; library proof is sorry-free.
+- `partial` — a named Lean declaration exists but is weaker than the source.
+- `missing` — no faithful Lean declaration yet.
 
-This is the scope inventory for the current source tree.
+## 2. Living inventory
 
-Fully faithful source theorems:
+### §1 Continuous functions
 
-- §1: Theorem 1.1 (finite-piece characterization), Theorem 1.2 (graph
-  theorem), and Theorem 1.4 (least fixed point).
-- §2: Theorem 2.5 (first recursion theorem), stated literally with the
-  encoded `Y` combinator.
-- §4: Theorem 4.2 (partial order on retracts).
-- §6: Theorem 6.1 (the `𝔊` theorem), in the equivalent `0 ∈ f(x)` form.
+| Item | Lean | Status |
+|---|---|---|
+| Def. `Pω`, `e_n`, `⊥`, `⊤`, `pair` | `Pomega`, `e`, `botElem`, `topElem`, `pair` | faithful |
+| Def. basic neighbourhood / Scott-open | `basicNhhd`, `IsScottOpen` | faithful |
+| Def. continuity `f(x)=⋃ f(e_n)` | `IsScottContinuous` | faithful |
+| Def. `graph`, `fun` | `graph`, `funOf` | faithful |
+| Theorem 1.1 | `theorem_1_1` | faithful |
+| Theorem 1.2 | `theorem_1_2` | faithful |
+| Theorem 1.3 | `theorem_1_3`, `theorem_1_3_nary` | faithful |
+| Theorem 1.4 | `theorem_1_4` | faithful |
+| Theorem 1.5 | `theorem_1_5`, `theorem_1_5_extends` | faithful |
+| Theorem 1.6 | `theorem_1_6` | faithful |
 
-Substantial components proved without claiming the whole source theorem:
+### §2 LAMBDA
 
-- §1: continuity and the extension property of `extend` for Theorem 1.5,
-  and the injective continuous basis map for Theorem 1.6.
-- §2: one-variable continuity of term interpretation for Theorem 2.1,
-  the β and ξ components of Theorem 2.2, and the binary case of Theorem 2.3.
-- §3: the diagonal contradiction used in Theorem 3.4 is proved under its
-  enumeration hypotheses.
-- §§4–7: numerous definitions and local algebraic consequences are
-  kernel-checked, but no whole section is claimed complete.
+| Item | Lean | Status |
+|---|---|---|
+| Table 1 `(α)(β)(ξ)` | `theorem_2_2_alpha`, `theorem_2_2_beta`, `theorem_2_2_xi` | faithful |
+| Table 1 `(η)` fails | `eta_fails` | faithful |
+| Table 1 `(ξ*)(μ)` | `xi_star`, `table1_mu` / `mu_law` | faithful |
+| Table 2 syntax/semantics | `Term`, `interp` | faithful |
+| (2.1)(2.2) max/min extension | `maxExtend`, `minExtend` | partial — no standalone `eq_2_1` |
+| (2.3)(2.4) relation/sum | `relComp`, `setSum` | faithful |
+| (2.5)(2.6)(2.7) examples | `eq_2_5`, `eq_2_6`, `eq_2_7_bot`/`_zero`/`_succ` | partial — mixed `0∈z≠0` case of (2.7) omitted |
+| (2.8) `Y` | `Ycomb` | faithful |
+| (2.9)–(2.13) distribution | `eq_2_9` … `eq_2_13` | partial — (2.11) is one inclusion unless both arguments are graphs |
+| (2.14)–(2.16) | `eq_2_14`, `eq_2_15`, `eq_2_16` | faithful |
+| (2.17) intersection encoding | — | missing |
+| (2.18) `K`-fixed points | `eq_2_18_bot`, `eq_2_18_top` | partial — not the full iff |
+| (2.19)–(2.23) sequences | `seq0`, `seq1`, `seq2`, `seqCons`, `eq_2_22`, `eq_2_23_*` | faithful |
+| (2.24)–(2.27) `$`, primrec | — | missing |
+| (2.28) `Y` commuting | `eq_2_28` | partial — unfolding only, not `Y(λfλx. g(x)(f(x))) = λx. Y(g(x))` |
+| Theorem 2.1 | `theorem_2_1` | faithful |
+| Theorem 2.2 | `theorem_2_2` | faithful |
+| Theorem 2.3 | `theorem_2_3`, `_unary`, `_ternary` | partial — packaged for `k≤3`, not a single finite-arity statement |
+| Theorem 2.4 | `theorem_2_4`, `theorem_2_4_complete`, `erase` | faithful |
+| Theorem 2.5 | `theorem_2_5` | faithful |
+| Def. computable | `IsComputable` | faithful |
+| Theorem 2.6 | `theorem_2_6` | partial — `(i)↔(ii)` and `(iii)↔` combinatory; mathlib `IsRE` is not identified with LAMBDA-definability |
 
-Partial, schematic, or missing source claims:
+### §3 Enumeration
 
-- Theorem 1.3 is represented by composition and binary diagonal-substitution
-  lemmas rather than a general finite-arity theorem. Theorem 1.5 does not
-  connect the hand-defined Scott-open basis with the generated topology.
-  Theorem 1.6 does not package the result as a `TopologicalEmbedding`.
-- Theorem 2.1 is stated one free variable at a time.
-- Theorem 2.2 does not separately formalize α-conversion; Theorem 2.3 is only
-  binary. Theorem 2.4 merely records closure of the six generators and does
-  not prove reduction of every LAMBDA term to them. Theorem 2.6 proves only
-  the graph-r.e./computability clauses and omits equivalence with
-  LAMBDA-definability.
-- Theorems 3.1–3.3 and 3.5–3.7 are schematic or definitional fragments:
-  enumeration by `val`, the second recursion theorem, Myhill–Shepherdson
-  completeness, the finitely generated subalgebra characterization, and the
-  finite-generation theorem for `RE ∩ FUN` remain unproved. Theorem 3.4 does
-  not derive non-r.e.-ness from the repository's computability definitions.
-- Theorem 4.1 does not construct the complete-lattice and continuous-lattice
-  structures stated in the paper. Theorem 4.3 contains the retract and
-  value-mapping components only.
-  Theorems 4.4 and 4.5 contain projection/strictness fragments. Theorem 4.6
-  proves that finite iterates are retracts, but not that the limit is a
-  retract or the inverse-limit homeomorphism.
-- Theorems 5.1–5.6 are fragments: fixed images, an idempotent representation
-  map, function-space retractness, product shape, and value-level properties
-  of `V`. Algebraicity, representation up to isomorphism, closure of product
-  and sum, the universe closure theorem, and the full limit theorem remain.
-- Theorems 6.2–6.7 contain characteristic-map and set-theoretic directions,
-  but the converse representation directions and descriptive-set-class
-  closure arguments remain.
-- Theorem 7.1 contains restricted-equivalence constructors and some
-  membership consequences. Theorem 7.2's isomorphisms are missing.
-  Theorem 7.3 proves the identity case and records only weak/definitional
-  `K` and `S` fragments; functionality and uniqueness are missing.
-  Theorem 7.4 proves preservation for the explicit iterators, not Plotkin's
-  characterization or uniqueness theorem.
+| Item | Lean | Status |
+|---|---|---|
+| `G` | `Gcomb`, `Gcomb_app` | partial — missing `G(⊥)(⊥)=0` exception |
+| Theorem 3.1 | `theorem_3_1` | partial — restates combinatory closure, not generation from `G` |
+| `apply`, `val`, `fin` | `applyNat`, `valNat`, `combNat`, `fin`, `valC` | partial — `val(fin j)=e j` not proved |
+| Theorem 3.2 | `theorem_3_2` | partial — every `val n` is combinatory; converse `RE ⊆ range val` omitted |
+| `num` | `num` | faithful |
+| Theorem 3.3 | `theorem_3_3` | partial — packing identity, not `val(v(n))=val(n)(v(n))` |
+| Theorem 3.4 | `theorem_3_4`, `theorem_3_4_re` | partial — diagonal contradiction under hypotheses, not `¬IsRE {n | val n = ⊥}` |
+| Theorem 3.5 | `theorem_3_5`, `theorem_3_5_unique`, `myhillQ` | partial — `q` is defined; uniqueness of continuous realizers; not the full completeness calculation |
+| Theorem 3.6 | `theorem_3_6` | partial — generation of `Deg a`, not the finitely-generated-subalgebra characterization |
+| `R`,`L` | `Rcomb`, `Lcomb`, `Rcomb_app`, `Lcomb_app` | faithful |
+| Theorem 3.7 | `theorem_3_7` | partial — `L` unfolding, not finite generation of `RE ∩ FUN` |
+
+### §4 Retracts
+
+| Item | Lean | Status |
+|---|---|---|
+| Def. retract, `u:a`, `⊑` | `IsRetract`, `typed`, `retractLe` | faithful |
+| (4.1)–(4.10) combinators | `funRetract`, `arrowR`, `tensorR`, `plusR`, … | faithful |
+| Theorem 4.1 | `theorem_4_1`, `theorem_4_1_complete` | partial — complete-lattice fragment on `Fixpoints`; continuous-lattice claim for retract ranges not fully packaged |
+| Theorem 4.2 | `theorem_4_2` | faithful |
+| Theorem 4.3 | `theorem_4_3`, `arrowR_isRetract` | partial — core function-space identities; not every numbered functoriality clause |
+| Theorem 4.4 | `theorem_4_4` | partial — pairing projections; not full product functoriality |
+| Theorem 4.5 | `theorem_4_5` | partial — strictness at `⊥`; not the non-unique-coproduct remark |
+| Theorem 4.6 | `theorem_4_6` | partial — `Y(F)` is a retract; inverse-limit homeomorphism omitted |
+| (4.38) `tree` | `treeR` | partial — definition only |
+
+### §5 Closures
+
+| Item | Lean | Status |
+|---|---|---|
+| Def. closure `I ⊆ a = a∘a` | `IsClosure` | faithful |
+| (5.1)–(5.13) pairing/box | `eq_5_1`, `squarePair`, `boxTensor`, `boxPlus` | faithful |
+| Theorem 5.1 | `theorem_5_1` | partial — `a(e n)` is a typed fixed point, not “isolated iff image of finite” |
+| Theorem 5.2 | `theorem_5_2` | partial — `representClosure` is idempotent, not an isomorphism onto every countable algebraic lattice |
+| Theorem 5.3 | `theorem_5_3` | partial — `a∘→b` is a retract, not proved a closure |
+| Theorem 5.4 | `theorem_5_4` | partial — definitional unfolding of `⊠` |
+| Theorem 5.5 | `theorem_5_5` | partial — `V` values on a closure; not `V(a)=a ↔ IsClosure a` |
+| Theorem 5.6 | `theorem_5_6` | partial — prefixpoint form, not `λf:V∘→V. Y(f)` |
+| (5.25) `d = d∘→d` | — | missing |
+
+### §6 Classification
+
+| Item | Lean | Status |
+|---|---|---|
+| Def. `𝔊`,`𝔉`,`𝔅` | `ScottG`, `ScottF`, `ScottB` | faithful |
+| Theorem 6.1 | `theorem_6_1` | faithful |
+| Theorem 6.2 | `theorem_6_2` | faithful |
+| Theorem 6.3 | `theorem_6_3` | faithful |
+| Theorem 6.4 | `theorem_6_4` | faithful |
+| Theorem 6.5 | `theorem_6_5` | faithful |
+| Theorem 6.6 | `theorem_6_6` | faithful |
+| Theorem 6.7 | `theorem_6_7` | partial — equalizers are `B_δ`; converse packing omitted |
+| Table 3 typical sets | `typicalG` … `typicalPi11` | partial — named typical sets; not every Table 3 closure remark |
+
+### §7 Functionality
+
+| Item | Lean | Status |
+|---|---|---|
+| Def. restricted equivalence | `RestrictedEquiv` | faithful |
+| (7.4)–(7.8) `E_a`, `→`, `×`, `+` | `Ea`, `arrowE`, `prodE`, `sumE` | faithful |
+| Theorem 7.1 | `theorem_7_1` | faithful |
+| Theorem 7.2 | `theorem_7_2` | partial — retract/iso identities; uniqueness of `+` mediators not fully recorded |
+| Theorem 7.3 | `theorem_7_3` | faithful |
+| Theorem 7.4 | `theorem_7_4`, `theorem_7_4_plotkin` | partial — iterators `Z_n`; Plotkin uniform-`n` uniqueness may be weaker than the paper |
+| (7.15)–(7.19) iterators | `Z`, `Zcomb`, `sigmaJ`, `eq_7_18_*` | faithful |
 
 ## 3. Source materials
 
