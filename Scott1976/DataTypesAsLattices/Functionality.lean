@@ -373,6 +373,16 @@ theorem plusR_typed_inr {a b y : Pomega} (hy : typed y b) :
   rw [typed, plusR_app, pairSeq_app_zero, pairSeq_app_one, condSet_ofNat_one,
     ← hy]
 
+/-- **Scott 1976, Theorem 4.4.** Products of retracts are retracts. -/
+theorem tensorR_isRetract {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    IsRetract (tensorR a b) := by
+  change tensorR a b =
+    graph (fun u => funOf (tensorR a b) (funOf (tensorR a b) u))
+  apply graph_ext
+  intro u
+  rw [tensorR_app, tensorR_app, pairSeq_app_zero, pairSeq_app_one,
+    retract_app ha, retract_app hb]
+
 theorem graph_funOf_ext {f g : Pomega}
     (hf : f = graph (fun x => funOf f x))
     (hg : g = graph (fun x => funOf g x))

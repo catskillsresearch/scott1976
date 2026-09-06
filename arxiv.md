@@ -63,17 +63,17 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Table 1 `(η)` fails | `eta_fails` | faithful |
 | Table 1 `(ξ*)(μ)` | `xi_star`, `table1_mu` / `mu_law` | faithful |
 | Table 2 syntax/semantics | `Term`, `interp` | faithful |
-| (2.1)(2.2) max/min extension | `maxExtend`, `minExtend` | partial — no standalone `eq_2_1` |
+| (2.1)(2.2) max/min extension | `maxExtend`, `minExtend`, `eq_2_1_empty`/`_singleton`/`_else` | faithful |
 | (2.3)(2.4) relation/sum | `relComp`, `setSum` | faithful |
-| (2.5)(2.6)(2.7) examples | `eq_2_5`, `eq_2_6`, `eq_2_7_bot`/`_zero`/`_succ` | partial — mixed `0∈z≠0` case of (2.7) omitted |
-| (2.8) `Y` | `Ycomb` | faithful |
-| (2.9)–(2.13) distribution | `eq_2_9` … `eq_2_13` | partial — (2.11) is one inclusion unless both arguments are graphs |
+| (2.5)(2.6)(2.7) examples | `eq_2_5`, `eq_2_6`, `eq_2_7_bot`/`_zero`/`_succ`/`_pos`/`_mix` | faithful |
+| (2.8) `Y` | `Ycomb`, `Ycomb_unfold` | faithful |
+| (2.9)–(2.13) distribution | `eq_2_9` … `eq_2_13`, `eq_2_11_graphs` | faithful — (2.11) equality when both arguments are graphs |
 | (2.14)–(2.16) | `eq_2_14`, `eq_2_15`, `eq_2_16` | faithful |
-| (2.17) intersection encoding | — | missing |
-| (2.18) `K`-fixed points | `eq_2_18_bot`, `eq_2_18_top` | partial — not the full iff |
+| (2.17) intersection encoding | `eq_2_17_step`, `interC` | partial — fundamental equation; `interC = ∩` not proved |
+| (2.18) `K`-fixed points | `eq_2_18` | faithful |
 | (2.19)–(2.23) sequences | `seq0`, `seq1`, `seq2`, `seqCons`, `eq_2_22`, `eq_2_23_*` | faithful |
-| (2.24)–(2.27) `$`, primrec | — | missing |
-| (2.28) `Y` commuting | `eq_2_28` | partial — unfolding only, not `Y(λfλx. g(x)(f(x))) = λx. Y(g(x))` |
+| (2.24)–(2.27) `$`, primrec | `dollarC`, `eq_2_25`, `lamOmega`, `primRecVal`/`Hat`/`Step` | partial — `$` and primrec operators; `$ = Y(step)` not proved |
+| (2.28) `Y` commuting | `eq_2_28`, `eq_2_28_commute` | faithful |
 | Theorem 2.1 | `theorem_2_1` | faithful |
 | Theorem 2.2 | `theorem_2_2` | faithful |
 | Theorem 2.3 | `theorem_2_3`, `_unary`, `_ternary` | partial — packaged for `k≤3`, not a single finite-arity statement |
@@ -86,12 +86,12 @@ The living inventory in §2 tracks every numbered source item. Status words:
 
 | Item | Lean | Status |
 |---|---|---|
-| `G` | `Gcomb`, `Gcomb_app` | partial — missing `G(⊥)(⊥)=0` exception |
-| Theorem 3.1 | `theorem_3_1` | partial — restates combinatory closure, not generation from `G` |
-| `apply`, `val`, `fin` | `applyNat`, `valNat`, `combNat`, `fin`, `valC` | partial — `val(fin j)=e j` not proved |
-| Theorem 3.2 | `theorem_3_2` | partial — every `val n` is combinatory; converse `RE ⊆ range val` omitted |
+| `G` | `Gcomb`, `Gcomb_app`, `Gcomb_bot`, `*_from_G` | partial — projections from `G`; `G(⊥)=⊥` rather than Scott's `G(⊥)(⊥)=0` exception |
+| Theorem 3.1 | `theorem_3_1`, `GeneratedFromG` | faithful — combinatory iff generated from `{G,0}` |
+| `apply`, `val`, `fin` | `applyCode`, `valNat`, `combNat`, `fin`, `valNat_fin` | partial — `val(fin j)={j}`; not `e j` |
+| Theorem 3.2 | `theorem_3_2`, `theorem_3_2_range` | faithful — `RE = range val` |
 | `num` | `num` | faithful |
-| Theorem 3.3 | `theorem_3_3` | partial — packing identity, not `val(v(n))=val(n)(v(n))` |
+| Theorem 3.3 | `theorem_3_3`, `theorem_3_3_val`, `recCode` | faithful — `val(v n)=val n (val(v n))` |
 | Theorem 3.4 | `theorem_3_4`, `theorem_3_4_re` | partial — diagonal contradiction under hypotheses, not `¬IsRE {n | val n = ⊥}` |
 | Theorem 3.5 | `theorem_3_5`, `theorem_3_5_unique`, `myhillQ` | partial — `q` is defined; uniqueness of continuous realizers; not the full completeness calculation |
 | Theorem 3.6 | `theorem_3_6` | partial — generation of `Deg a`, not the finitely-generated-subalgebra characterization |
@@ -107,7 +107,7 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 4.1 | `theorem_4_1`, `theorem_4_1_complete` | partial — complete-lattice fragment on `Fixpoints`; continuous-lattice claim for retract ranges not fully packaged |
 | Theorem 4.2 | `theorem_4_2` | faithful |
 | Theorem 4.3 | `theorem_4_3`, `arrowR_isRetract` | partial — core function-space identities; not every numbered functoriality clause |
-| Theorem 4.4 | `theorem_4_4` | partial — pairing projections; not full product functoriality |
+| Theorem 4.4 | `theorem_4_4`, `tensorR_isRetract` | partial — pairing projections and product retract; not full product functoriality |
 | Theorem 4.5 | `theorem_4_5` | partial — strictness at `⊥`; not the non-unique-coproduct remark |
 | Theorem 4.6 | `theorem_4_6` | partial — `Y(F)` is a retract; inverse-limit homeomorphism omitted |
 | (4.38) `tree` | `treeR` | partial — definition only |
@@ -118,11 +118,11 @@ The living inventory in §2 tracks every numbered source item. Status words:
 |---|---|---|
 | Def. closure `I ⊆ a = a∘a` | `IsClosure` | faithful |
 | (5.1)–(5.13) pairing/box | `eq_5_1`, `squarePair`, `boxTensor`, `boxPlus` | faithful |
-| Theorem 5.1 | `theorem_5_1` | partial — `a(e n)` is a typed fixed point, not “isolated iff image of finite” |
+| Theorem 5.1 | `theorem_5_1`, `theorem_5_1_isolated` | partial — typed fixed points; isolated points are `a(e n)` one way |
 | Theorem 5.2 | `theorem_5_2` | partial — `representClosure` is idempotent, not an isomorphism onto every countable algebraic lattice |
-| Theorem 5.3 | `theorem_5_3` | partial — `a∘→b` is a retract, not proved a closure |
+| Theorem 5.3 | `theorem_5_3`, `theorem_5_3_closure` | partial — `a∘→b` is a retract, not proved `I ⊆ a∘→b` |
 | Theorem 5.4 | `theorem_5_4` | partial — definitional unfolding of `⊠` |
-| Theorem 5.5 | `theorem_5_5` | partial — `V` values on a closure; not `V(a)=a ↔ IsClosure a` |
+| Theorem 5.5 | `theorem_5_5`, `eq_5_18_eq` | partial — `V(a)(x)=a(x)` on closures; not combinator-level `V(a)=a ↔ IsClosure a` |
 | Theorem 5.6 | `theorem_5_6` | partial — prefixpoint form, not `λf:V∘→V. Y(f)` |
 | (5.25) `d = d∘→d` | — | missing |
 
@@ -137,7 +137,7 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 6.4 | `theorem_6_4` | faithful |
 | Theorem 6.5 | `theorem_6_5` | faithful |
 | Theorem 6.6 | `theorem_6_6` | faithful |
-| Theorem 6.7 | `theorem_6_7` | partial — equalizers are `B_δ`; converse packing omitted |
+| Theorem 6.7 | `theorem_6_7`, `theorem_6_7_iInter_equalizer` | partial — equalizers are `B_δ`; countable intersections of equalizers are equalizers; full `B_δ →` equalizer omitted |
 | Table 3 typical sets | `typicalG` … `typicalPi11` | partial — named typical sets; not every Table 3 closure remark |
 
 ### §7 Functionality

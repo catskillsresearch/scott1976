@@ -158,26 +158,26 @@ review:
 
 known_gaps:
   - >-
-    Section 2: (2.17) and (2.24)–(2.27) are missing; (2.11) and (2.28) are
-    one-sided; Theorem 2.3 is packaged only for arity ≤ 3; Theorem 2.6
-    identifies LAMBDA-definability with combinatory closure, not with
-    mathlib `IsRE`.
+    Section 2: `interC = ∩` is open; `$ = Y(step)` and the primrec
+    fixed-point equation are open; Theorem 2.3 is packaged only for arity
+    ≤ 3; Theorem 2.6 identifies LAMBDA-definability with combinatory
+    closure, not with mathlib `IsRE`.
   - >-
-    Section 3: `valNat` enumerates combinatory elements, but the converse
-    `RE ⊆ range val`, `val(fin j) = e j`, the second recursion theorem,
-    `¬IsRE {n | val n = ⊥}`, Myhill–Shepherdson completeness, and finite
-    generation of `RE ∩ FUN` remain partial.
+    Section 3: `val(fin j) = {j}` rather than `e j`; `¬IsRE {n | val n = ⊥}`,
+    Myhill–Shepherdson completeness, and finite generation of `RE ∩ FUN`
+    remain partial. `G(⊥)=⊥` rather than Scott's `G(⊥)(⊥)=0` exception.
   - >-
     Section 4: Theorem 4.1 is a complete-lattice fragment; 4.3–4.5 omit full
     functoriality / non-unique coproducts; 4.6 proves `Y(F)` is a retract
     but not the inverse-limit homeomorphism.
   - >-
-    Section 5: algebraicity, the representation isomorphism, `a∘→b` as a
-    closure, `V(a)=a ↔ IsClosure a`, (5.25), and the η-model sketch are
-    unfinished.
+    Section 5: algebraicity, the representation isomorphism, `I ⊆ a∘→b`,
+    combinator-level `V(a)=a ↔ IsClosure a`, (5.25), and the η-model
+    sketch are unfinished.
   - >-
-    Theorem 6.7 proves only that equalizers are `B_δ`. Table 3 is a list of
-    typical sets, not the effective-closure remarks.
+    Theorem 6.7 proves equalizers are `B_δ` and that countable intersections
+    of equalizers are equalizers. The full `B_δ →` equalizer direction and
+    Table 3 effective-closure remarks remain open.
   - >-
     Theorem 7.2 omits uniqueness of sum mediators; Theorem 7.4's Plotkin
     uniform-`n` uniqueness may be weaker than the paper.

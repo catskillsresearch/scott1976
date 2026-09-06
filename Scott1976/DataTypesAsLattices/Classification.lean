@@ -853,6 +853,51 @@ theorem theorem_6_7 :
         · exact (hng hgx).elim
 
 /-- **Scott 1976, Theorem 6.7, converse packing.**
+A countable intersection of equalizers is again an equalizer, via
+`pairIndexed`. -/
+theorem theorem_6_7_iInter_equalizer (f g : ℕ → Pomega → Pomega)
+    (hf : ∀ n, IsScottContinuous (f n)) (hg : ∀ n, IsScottContinuous (g n)) :
+    ∃ F G, IsScottContinuous F ∧ IsScottContinuous G ∧
+      {x | ∀ n, f n x = g n x} = {x | F x = G x} :=
+  ⟨pairIndexed f, pairIndexed g,
+    pairIndexed_isScottContinuous f hf, pairIndexed_isScottContinuous g hg, by
+    ext x
+    constructor
+    · intro h
+      ext k
+      constructor
+      · intro ⟨n, m, hk, hm⟩
+        exact ⟨n, m, hk, by rwa [← h n]⟩
+      · intro ⟨n, m, hk, hm⟩
+        exact ⟨n, m, hk, by rwa [h n]⟩
+    · intro h n
+      ext m
+      constructor
+      · intro hm
+        have : pair n m ∈ pairIndexed g x := by
+          have : pair n m ∈ pairIndexed f x := ⟨n, m, rfl, hm⟩
+          rwa [h] at this
+        obtain ⟨n', m', heq, hm'⟩ := this
+        obtain ⟨rfl, rfl⟩ := pair_inj heq
+        exact hm'
+      · intro hm
+        have : pair n m ∈ pairIndexed f x := by
+          have : pair n m ∈ pairIndexed g x := ⟨n, m, rfl, hm⟩
+          rwa [← h] at this
+        obtain ⟨n', m', heq, hm'⟩ := this
+        obtain ⟨rfl, rfl⟩ := pair_inj heq
+        exact hm'⟩
+
+/-- Every `B_δ` written as a countable intersection of equalizers is itself
+an equalizer of continuous maps. -/
+theorem theorem_6_7_converse_of_equalizers (f g : ℕ → Pomega → Pomega)
+    (hf : ∀ n, IsScottContinuous (f n)) (hg : ∀ n, IsScottContinuous (g n))
+    {U : Set Pomega} (hU : U = {x | ∀ n, f n x = g n x}) :
+    ∃ F G, IsScottContinuous F ∧ IsScottContinuous G ∧ U = {x | F x = G x} := by
+  obtain ⟨F, G, hF, hG, h⟩ := theorem_6_7_iInter_equalizer f g hf hg
+  exact ⟨F, G, hF, hG, hU.trans h⟩
+
+/-- **Scott 1976, Theorem 6.7, converse packing.**
 A countable intersection of `{f ∈ E}` sets (the 6.6 form) is the equalizer
 of the pair-indexed family `F n` against itself on those slices where
 `F n x ∈ E n`, implemented by tagging with `pair`. -/

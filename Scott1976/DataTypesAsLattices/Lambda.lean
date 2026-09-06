@@ -1099,4 +1099,440 @@ theorem eq_2_23_ge (x y : Pomega) (n : ℕ) :
   ext k
   simp [condSet, predSet, ofNat, botElem]
 
+/-- **Scott 1976, (2.1).** Maximal extension by cases. -/
+theorem eq_2_1_empty (p : ℕ → Pomega) :
+    maxExtend p botElem = ⋂ n, p n := by
+  ext k
+  constructor
+  · intro hk
+    rcases hk with ⟨_, hall⟩ | h | h
+    · exact Set.mem_iInter.mpr hall
+    · rcases h with ⟨n, hn, _⟩
+      have : n ∈ (∅ : Pomega) := by
+        have : (∅ : Pomega) = ofNat n := hn
+        rw [this]; simp [ofNat]
+      exact this.elim
+    · exact (h.1 rfl).elim
+  · intro hk
+    exact Or.inl ⟨rfl, fun n => Set.mem_iInter.mp hk n⟩
+
+theorem eq_2_1_singleton (p : ℕ → Pomega) (n : ℕ) :
+    maxExtend p (ofNat n) = p n := by
+  ext k
+  constructor
+  · intro hk
+    rcases hk with ⟨he, _⟩ | ⟨m, hm, hkm⟩ | ⟨_, hall⟩
+    · have hne : ofNat n ≠ ∅ := Set.Nonempty.ne_empty ⟨n, (rfl : n ∈ ofNat n)⟩
+      exact (hne he).elim
+    · have : n = m := by
+        have hn : n ∈ ofNat m := hm ▸ (rfl : n ∈ ofNat n)
+        simpa [ofNat] using hn
+      subst this; exact hkm
+    · exact (hall n rfl).elim
+  · intro hk
+    exact Or.inr (Or.inl ⟨n, rfl, hk⟩)
+
+theorem eq_2_1_else (p : ℕ → Pomega) {x : Pomega}
+    (hne : x ≠ botElem) (hsing : ∀ n, x ≠ ofNat n) :
+    maxExtend p x = topElem := by
+  ext k
+  constructor
+  · intro; trivial
+  · intro
+    exact Or.inr (Or.inr ⟨hne, hsing⟩)
+
+/-- **Scott 1976, (2.7), remaining cases.** -/
+theorem eq_2_7_pos (x y z : Pomega) (h0 : 0 ∉ z) (hne : z ≠ botElem) :
+    condSet z x y = y := by
+  have hpos : ∃ t, t + 1 ∈ z := by
+    obtain ⟨k, hk⟩ := Set.nonempty_iff_ne_empty.mpr hne
+    have : k ≠ 0 := fun h => h0 (h ▸ hk)
+    exact ⟨k - 1, by
+      have : k = (k - 1) + 1 := (Nat.succ_pred_eq_of_ne_zero this).symm
+      rwa [← this]⟩
+  ext n
+  constructor
+  · intro hn
+    rcases hn with ⟨_, hz⟩ | ⟨hny, _⟩
+    · exact (h0 hz).elim
+    · exact hny
+  · intro hny
+    exact Or.inr ⟨hny, hpos⟩
+
+theorem eq_2_7_mix (x y z : Pomega) (h0 : 0 ∈ z) (hne : z ≠ ofNat 0) :
+    condSet z x y = x ∪ y := by
+  have hpos : ∃ t, t + 1 ∈ z := by
+    by_contra h
+    apply hne
+    ext k
+    constructor
+    · intro hk
+      have : k = 0 := by
+        by_contra hk0
+        exact h ⟨k - 1, by
+          have : k = (k - 1) + 1 := (Nat.succ_pred_eq_of_ne_zero hk0).symm
+          rwa [← this]⟩
+      simpa [this, ofNat]
+    · intro hk
+      simp [ofNat] at hk
+      subst hk
+      exact h0
+  ext n
+  constructor
+  · intro hn
+    rcases hn with ⟨hnx, _⟩ | ⟨hny, _⟩
+    · exact Or.inl hnx
+    · exact Or.inr hny
+  · intro hn
+    rcases hn with hnx | hny
+    · exact Or.inl ⟨hnx, h0⟩
+    · exact Or.inr ⟨hny, hpos⟩
+
+/-- **Scott 1976, (2.11).** Equality when both arguments are graphs. -/
+theorem eq_2_11_graphs {f g : Pomega} (hf : IsGraph f) (hg : IsGraph g)
+    (x : Pomega) : funOf (f ∩ g) x = funOf f x ∩ funOf g x := by
+  apply subset_antisymm (eq_2_11 f g x)
+  intro m ⟨hf', hg'⟩
+  obtain ⟨k, hk, hfk⟩ := hf'
+  obtain ⟨l, hl, hgl⟩ := hg'
+  refine ⟨k ||| l, e_or_of_subset hk hl, ⟨?_, ?_⟩⟩
+  · exact hf hfk (by rw [e_or]; exact Set.subset_union_left)
+  · exact hg hgl (by rw [e_or]; exact Set.subset_union_right)
+
+/-- **Scott 1976, (2.17), fundamental equation.** -/
+theorem eq_2_17_step (x y : Pomega) :
+    x ∩ y =
+      condSet x (condSet y (ofNat 0) botElem)
+        (succSet (predSet x ∩ predSet y)) := by
+  ext n
+  constructor
+  · intro ⟨hnx, hny⟩
+    cases n with
+    | zero =>
+      exact Or.inl ⟨Or.inl ⟨rfl, hny⟩, hnx⟩
+    | succ n =>
+      refine Or.inr ⟨⟨n, ⟨hnx, hny⟩, rfl⟩, n, hnx⟩
+  · intro hn
+    rcases hn with ⟨hL, h0x⟩ | ⟨⟨k, hk, rfl⟩, _t, _ht⟩
+    · rcases hL with ⟨hk0, h0y⟩ | ⟨hbot, _⟩
+      · simp [ofNat] at hk0; subst hk0
+        exact ⟨h0x, h0y⟩
+      · simp [botElem] at hbot
+    · exact ⟨hk.1, hk.2⟩
+
+/-- Least operator solving the (2.17) recursion. -/
+def interStep (f : Pomega) : Pomega :=
+  graph (fun x => graph (fun y =>
+    condSet x (condSet y (ofNat 0) botElem)
+      (succSet (funOf (funOf f (predSet x)) (predSet y)))))
+
+theorem interStep_isScottContinuous :
+    IsScottContinuous interStep := by
+  refine graph_const_isScottContinuous
+    (fun f x => graph (fun y =>
+      condSet x (condSet y (ofNat 0) botElem)
+        (succSet (funOf (funOf f (predSet x)) (predSet y))))) ?_
+  intro x
+  refine graph_const_isScottContinuous
+    (fun f y =>
+      condSet x (condSet y (ofNat 0) botElem)
+        (succSet (funOf (funOf f (predSet x)) (predSet y)))) ?_
+  intro y
+  refine theorem_1_3
+    (condSet_isScottContinuous_right x (condSet y (ofNat 0) botElem)) ?_
+  refine theorem_1_3 succSet_isScottContinuous ?_
+  exact theorem_1_3
+    (f := fun t => funOf t (predSet y))
+    (g := fun f => funOf f (predSet x))
+    (funOf_isScottContinuous_left (predSet y))
+    (funOf_isScottContinuous_left (predSet x))
+
+def interC : Pomega := fix interStep
+
+
+theorem triangle_eq_zero {w : ℕ} (h : triangle w = 0) : w = 0 := by
+  match w with
+  | 0 => rfl
+  | n + 1 =>
+    have h1 : 1 ≤ n + 1 := Nat.succ_le_succ (Nat.zero_le _)
+    have h2 : 2 ≤ (n + 1) * (n + 2) :=
+      calc 2 ≤ 1 * 2 := by decide
+           _ ≤ (n + 1) * (n + 2) := Nat.mul_le_mul h1 (Nat.succ_le_succ h1)
+    have : 0 < (n + 1) * (n + 2) / 2 := Nat.div_pos h2 (by decide)
+    exact (Nat.ne_of_gt this h).elim
+
+theorem pair_eq_right {n m : ℕ} (h : pair n m = m) : n = 0 ∧ m = 0 := by
+  have : triangle (n + m) = 0 := by
+    have h' : triangle (n + m) + m = m := by simpa [pair_eq_triangle] using h
+    omega
+  have : n + m = 0 := triangle_eq_zero this
+  omega
+
+lemma exists_least_not_mem {a : Pomega} (hex : ∃ k, k ∉ a) :
+    ∃ k, k ∉ a ∧ ∀ i < k, i ∈ a := by
+  have : ∀ n, n ∉ a → ∃ k ≤ n, k ∉ a ∧ ∀ i < k, i ∈ a := by
+    intro n
+    induction n using Nat.strong_induction_on with
+    | h n ih =>
+      intro hn
+      rcases Classical.em (∀ i < n, i ∈ a) with hmin | hmin
+      · exact ⟨n, le_rfl, hn, hmin⟩
+      · obtain ⟨i, hi⟩ := not_forall.mp hmin
+        have hi' : i < n := (Classical.not_imp.mp hi).1
+        have hia : i ∉ a := (Classical.not_imp.mp hi).2
+        obtain ⟨k, hki, hk, hall⟩ := ih i hi' hia
+        exact ⟨k, hki.trans hi'.le, hk, hall⟩
+  obtain ⟨n, hn⟩ := hex
+  obtain ⟨k, _, hk, hall⟩ := this n hn
+  exact ⟨k, hk, hall⟩
+
+lemma exists_least_mem {a : Pomega} (hex : ∃ k, k ∈ a) :
+    ∃ k, k ∈ a ∧ ∀ i < k, i ∉ a := by
+  have : ∀ n, n ∈ a → ∃ k ≤ n, k ∈ a ∧ ∀ i < k, i ∉ a := by
+    intro n
+    induction n using Nat.strong_induction_on with
+    | h n ih =>
+      intro hn
+      rcases Classical.em (∀ i < n, i ∉ a) with hmin | hmin
+      · exact ⟨n, le_rfl, hn, hmin⟩
+      · obtain ⟨i, hi⟩ := not_forall.mp hmin
+        have hi' : i < n := (Classical.not_imp.mp hi).1
+        have hia : i ∈ a := not_not.mp (Classical.not_imp.mp hi).2
+        obtain ⟨k, hki, hk, hall⟩ := ih i hi' hia
+        exact ⟨k, hki.trans hi'.le, hk, hall⟩
+  obtain ⟨n, hn⟩ := hex
+  obtain ⟨k, _, hk, hall⟩ := this n hn
+  exact ⟨k, hk, hall⟩
+
+/-- **Scott 1976, (2.18).** `a = λx. a` iff `a = ⊥` or `a = ⊤`. -/
+theorem eq_2_18 (a : Pomega) :
+    a = graph (fun _ => a) ↔ a = botElem ∨ a = topElem := by
+  constructor
+  · intro ha
+    by_cases htop : a = topElem
+    · exact Or.inr htop
+    · have hex : ∃ k, k ∉ a := by
+        by_contra h
+        apply htop
+        ext k
+        constructor
+        · intro; trivial
+        · intro
+          exact not_not.mp (not_exists.mp h k)
+      obtain ⟨k, hk, hmin⟩ := exists_least_not_mem hex
+      obtain ⟨n, m, hnm⟩ := exists_pair k
+      have hm : m ∉ a := by
+        intro hma
+        have : pair n m ∈ a :=
+          ha.symm ▸ (⟨n, m, rfl, hma⟩ : pair n m ∈ graph (fun _ => a))
+        exact hk (by rwa [hnm] at this)
+      have : m = k :=
+        le_antisymm (by rw [← hnm]; exact pair_le_right n m)
+          (le_of_not_gt fun hlt => hm (hmin m hlt))
+      have hnmk : pair n k = k := by simpa [this] using hnm
+      have ⟨_, hk0⟩ := pair_eq_right hnmk
+      have h0 : 0 ∉ a := by simpa [hk0] using hk
+      by_cases hbot : a = botElem
+      · exact Or.inl hbot
+      · obtain ⟨l, hl, hlmin⟩ := exists_least_mem (Set.nonempty_iff_ne_empty.mpr hbot)
+        obtain ⟨i, j, hij⟩ := exists_pair l
+        have hj : j ∈ a := by
+          have : pair i j ∈ graph (fun _ => a) :=
+            ha ▸ (by rwa [hij] : pair i j ∈ a)
+          rcases this with ⟨i', j', hp, hj'⟩
+          obtain ⟨rfl, rfl⟩ := pair_inj hp
+          exact hj'
+        have : j = l :=
+          le_antisymm (by rw [← hij]; exact pair_le_right i j)
+            (le_of_not_gt fun hlt => hlmin j hlt hj)
+        have hil : pair i l = l := by simpa [this] using hij
+        have ⟨_, hl0⟩ := pair_eq_right hil
+        exact (h0 (by simpa [hl0] using hl)).elim
+  · intro h
+    rcases h with rfl | rfl
+    · exact eq_2_18_bot
+    · exact eq_2_18_top
+
+/-- **Scott 1976, (2.24)–(2.25).** Revaluation as a distributive sequence. -/
+def seqFun (u x : Pomega) : Pomega :=
+  ⋃ i ∈ x, funOf u (ofNat i)
+
+def dollarC : Pomega :=
+  graph (fun u => graph (fun x => seqFun u x))
+
+theorem seqFun_right_isScottContinuous (u : Pomega) :
+    IsScottContinuous (fun x => seqFun u x) := by
+  intro x
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨i, hi, hki⟩ := Set.mem_iUnion₂.mp hk
+    exact mem_scottUnion.mpr ⟨2 ^ i, by simp [e_pow2, Set.singleton_subset_iff, hi],
+      Set.mem_iUnion₂.mpr ⟨i, by simp [e_pow2], hki⟩⟩
+  · intro hk
+    obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp hk
+    obtain ⟨i, hi, hki⟩ := Set.mem_iUnion₂.mp hkn
+    exact Set.mem_iUnion₂.mpr ⟨i, hn hi, hki⟩
+
+theorem seqFun_left_isScottContinuous (x : Pomega) :
+    IsScottContinuous (fun u => seqFun u x) := by
+  intro u
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨i, hi, hki⟩ := Set.mem_iUnion₂.mp hk
+    have : k ∈ scottUnion (fun v => funOf v (ofNat i)) u := by
+      rw [← funOf_isScottContinuous_left (ofNat i) u]; exact hki
+    obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp this
+    exact mem_scottUnion.mpr ⟨n, hn, Set.mem_iUnion₂.mpr ⟨i, hi, hkn⟩⟩
+  · intro hk
+    obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp hk
+    obtain ⟨i, hi, hki⟩ := Set.mem_iUnion₂.mp hkn
+    exact Set.mem_iUnion₂.mpr ⟨i, hi,
+      isScottContinuous_monotone (funOf_isScottContinuous_left (ofNat i)) hn hki⟩
+
+theorem dollarC_app (u : Pomega) :
+    funOf dollarC u = graph (fun x => seqFun u x) :=
+  beta (graph_const_isScottContinuous (fun u x => seqFun u x)
+    (fun x => seqFun_left_isScottContinuous x)) u
+
+/-- **Scott 1976, (2.25).** `$ (u) = λx. ⋃ {u_i | i ∈ x}`. -/
+theorem eq_2_25 (u x : Pomega) :
+    funOf (funOf dollarC u) x = seqFun u x := by
+  rw [dollarC_app]
+  exact beta (seqFun_right_isScottContinuous u) x
+
+/-- **Scott 1976, (2.26).** `λn∈ω. τ` is `$` applied to a graph. -/
+def lamOmega (τ : ℕ → Pomega) : Pomega :=
+  funOf dollarC (graph (fun z => ⋃ n ∈ z, τ n))
+
+/-- **Scott 1976, (2.27).** Primitive recursion as a distributive function. -/
+def primRecVal (a f : Pomega) : ℕ → Pomega
+  | 0 => a
+  | n + 1 => funOf (funOf f (ofNat n)) (primRecVal a f n)
+
+def primRecHat (a f x : Pomega) : Pomega :=
+  ⋃ n ∈ x, primRecVal a f n
+
+def primRecStep (a f u : Pomega) : Pomega :=
+  graph (fun n => condSet n a (funOf (funOf f (predSet n)) (funOf u (predSet n))))
+
+theorem primRecHat_zero (a f : Pomega) : primRecHat a f (ofNat 0) = a := by
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨n, hn, hkn⟩ := Set.mem_iUnion₂.mp hk
+    simp [ofNat] at hn; subst hn; simpa [primRecVal] using hkn
+  · intro hk
+    exact Set.mem_iUnion₂.mpr ⟨0, rfl, hk⟩
+
+theorem iterateBot_param_isScottContinuous
+    {g : Pomega → Pomega → Pomega}
+    (hgx : ∀ y, IsScottContinuous (fun x => g x y))
+    (hgy : ∀ x, IsScottContinuous (fun y => g x y)) :
+    ∀ n, IsScottContinuous (fun x => iterateBot (g x) n)
+  | 0 => const_isScottContinuous botElem
+  | n + 1 =>
+    theorem_1_3_tuple (hgx) (hgy) id_isScottContinuous
+      (iterateBot_param_isScottContinuous hgx hgy n)
+
+theorem fix_param_isScottContinuous
+    {g : Pomega → Pomega → Pomega}
+    (hgx : ∀ y, IsScottContinuous (fun x => g x y))
+    (hgy : ∀ x, IsScottContinuous (fun y => g x y)) :
+    IsScottContinuous (fun x => fix (g x)) := by
+  intro x
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨n, hkn⟩ := Set.mem_iUnion.mp hk
+    have := iterateBot_param_isScottContinuous hgx hgy n x
+    have : k ∈ scottUnion (fun z => iterateBot (g z) n) x := by
+      rwa [← this]
+    obtain ⟨m, hm, hkm⟩ := mem_scottUnion.mp this
+    exact mem_scottUnion.mpr ⟨m, hm, Set.mem_iUnion.mpr ⟨n, hkm⟩⟩
+  · intro hk
+    obtain ⟨m, hm, hkm⟩ := mem_scottUnion.mp hk
+    obtain ⟨n, hkn⟩ := Set.mem_iUnion.mp hkm
+    exact Set.mem_iUnion.mpr ⟨n,
+      isScottContinuous_monotone (iterateBot_param_isScottContinuous hgx hgy n) hm hkn⟩
+
+def Ymap (g : Pomega → Pomega → Pomega) : Pomega :=
+  graph (fun x => fix (g x))
+
+def Fofg (g : Pomega → Pomega → Pomega) (f : Pomega) : Pomega :=
+  graph (fun x => g x (funOf f x))
+
+theorem Ymap_app {g : Pomega → Pomega → Pomega}
+    (hgx : ∀ y, IsScottContinuous (fun x => g x y))
+    (hgy : ∀ x, IsScottContinuous (fun y => g x y)) (x : Pomega) :
+    funOf (Ymap g) x = fix (g x) :=
+  beta (fix_param_isScottContinuous hgx hgy) x
+
+/-- **Scott 1976, (2.28).** `Y(λf λx. g(x)(f(x))) = λx. Y(g(x))`. -/
+theorem eq_2_28_commute {g : Pomega → Pomega → Pomega}
+    (hgx : ∀ y, IsScottContinuous (fun x => g x y))
+    (hgy : ∀ x, IsScottContinuous (fun y => g x y)) :
+    fix (Fofg g) = Ymap g := by
+  have hF : IsScottContinuous (Fofg g) :=
+    graph_const_isScottContinuous (fun f x => g x (funOf f x))
+      (fun x => theorem_1_3 (hgy x) (funOf_isScottContinuous_left x))
+  have hfix : Fofg g (Ymap g) = Ymap g := by
+    apply congrArg graph
+    funext x
+    rw [Ymap_app hgx hgy]
+    exact (theorem_1_4 (hgy x)).1
+  have hle : fix (Fofg g) ⊆ Ymap g := (theorem_1_4 hF).2 (Ymap g) hfix
+  refine subset_antisymm hle ?_
+  have hiter : ∀ n x, funOf (iterateBot (Fofg g) n) x = iterateBot (g x) n := by
+    intro n
+    induction n with
+    | zero =>
+      intro x
+      ext m
+      simp [iterateBot, funOf, botElem]
+    | succ n ih =>
+      intro x
+      have hcont : IsScottContinuous
+          (fun z => g z (funOf (iterateBot (Fofg g) n) z)) :=
+        theorem_1_3_tuple hgx hgy id_isScottContinuous
+          (funOf_isScottContinuous (iterateBot (Fofg g) n))
+      change funOf (lam (fun z => g z (funOf (iterateBot (Fofg g) n) z))) x =
+        g x (iterateBot (g x) n)
+      rw [beta hcont, ih]
+  intro p hp
+  rcases hp with ⟨n, m, rfl, hm⟩
+  obtain ⟨k, hkm⟩ := Set.mem_iUnion.mp hm
+  cases k with
+  | zero =>
+    simp [iterateBot, botElem] at hkm
+  | succ k =>
+    have : pair n m ∈ iterateBot (Fofg g) (k + 1) :=
+      ⟨n, m, rfl, by
+        change m ∈ g (e n) (funOf (iterateBot (Fofg g) k) (e n))
+        rw [hiter]
+        exact hkm⟩
+    exact Set.mem_iUnion.mpr ⟨k + 1, this⟩
+
+/-- Closed term for `Y`. -/
+def Yterm : Term :=
+  .lam 0 (.app
+    (.lam 1 (.app (.var 0) (.app (.var 1) (.var 1))))
+    (.lam 1 (.app (.var 0) (.app (.var 1) (.var 1)))))
+
+theorem Yterm_interp : interp Yterm (fun _ => botElem) = Ycomb := by
+  simp [Yterm, interp, Ycomb, omegaComb, envSet, Function.update]
+
+theorem Ycomb_combinatory : IsCombinatory Ycomb := by
+  simpa [Yterm_interp] using theorem_2_4_closed Yterm
+
+/-- **Scott 1976, (2.8) unfolding.** `Y(u) = u(Y(u))`. -/
+theorem Ycomb_unfold (u : Pomega) :
+    funOf Ycomb u = funOf u (funOf Ycomb u) := by
+  calc
+    funOf Ycomb u = funOf (omegaComb u) (omegaComb u) := Ycomb_app u
+    _ = funOf u (funOf (omegaComb u) (omegaComb u)) :=
+      omegaComb_app u (omegaComb u)
+    _ = funOf u (funOf Ycomb u) := by rw [Ycomb_app]
+
 end Scott1976.DataTypesAsLattices

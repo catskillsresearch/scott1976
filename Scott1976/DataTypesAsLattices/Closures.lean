@@ -117,7 +117,7 @@ theorem theorem_5_5_values (a x : Pomega) :
     x ⊆ Vapply a x ∧ Vapply a (Vapply a x) = Vapply a x :=
   ⟨eq_5_16 a x, eq_5_17 a x⟩
 
-/-- **Scott 1976, (5.18).** If `a` is already a closure, then `V(a)(x) = a(x)`. -/
+/-- **Scott 1976, (5.18).** If `a` is already a closure, then `V(a)(x) ⊆ a(x)`. -/
 theorem eq_5_18 {a : Pomega} (ha : IsClosure a) (x : Pomega) :
     Vapply a x ⊆ funOf a x := by
   intro k hk
@@ -127,6 +127,31 @@ theorem eq_5_18 {a : Pomega} (ha : IsClosure a) (x : Pomega) :
   have haa : funOf a (funOf a x) ⊆ funOf a x := by
     simp [retract_app ha.2]
   exact hk (funOf a x) ⟨hx, haa⟩
+
+/-- The missing inclusion of (5.18): if `x ⊆ y` and `a(y) ⊆ y` then `a(x) ⊆ y`. -/
+theorem eq_5_18_rev (a x : Pomega) :
+    funOf a x ⊆ Vapply a x := by
+  intro k hk y hy
+  exact hy.2 (funOf_monotone_right a hy.1 hk)
+
+/-- **Scott 1976, (5.18).** Closures are fixed by `V` on values. -/
+theorem eq_5_18_eq {a : Pomega} (ha : IsClosure a) (x : Pomega) :
+    Vapply a x = funOf a x :=
+  subset_antisymm (eq_5_18 ha x) (eq_5_18_rev a x)
+
+/-- **Scott 1976, Theorem 5.5.** `V(a)(x) = a(x)` for every `x` implies
+`a` is expansive and idempotent on values, hence a closure once `a` is
+already a graph retract. -/
+theorem Vapply_eq_imp_expansive {a : Pomega}
+    (h : ∀ x, Vapply a x = funOf a x) (x : Pomega) :
+    x ⊆ funOf a x :=
+  (h x) ▸ eq_5_16 a x
+
+theorem Vapply_eq_imp_idem {a : Pomega}
+    (h : ∀ x, Vapply a x = funOf a x) (x : Pomega) :
+    funOf a (funOf a x) = funOf a x := by
+  have := eq_5_17 a x
+  rwa [h (Vapply a x), h x] at this
 
 /-- **Scott 1976, Theorem 5.1.** Images `a(e n)` are isolated fixed points
 of a closure (they are fixed because `a` is a retract). -/
@@ -196,8 +221,24 @@ theorem theorem_5_4 {a b : Pomega} (_ha : IsClosure a) (_hb : IsClosure b) :
 
 /-- **Scott 1976, Theorem 5.5 / (5.18).** `V` fixes closures on values. -/
 theorem theorem_5_5 {a : Pomega} (ha : IsClosure a) (x : Pomega) :
-    Vapply a x ⊆ funOf a x ∧ Vapply a (Vapply a x) = Vapply a x :=
-  ⟨eq_5_18 ha x, eq_5_17 a x⟩
+    Vapply a x = funOf a x ∧ Vapply a (Vapply a x) = Vapply a x :=
+  ⟨eq_5_18_eq ha x, eq_5_17 a x⟩
+
+/-- Isolated points of a closure are its values on finite sets, and
+conversely every `a(e n)` is a typed point. -/
+theorem theorem_5_1_isolated {a : Pomega} (_ha : IsClosure a) {x : Pomega}
+    (hx : typed x a) :
+    IsIsolated x → ∃ n, x = funOf a (e n) := by
+  intro ⟨n, hn⟩
+  refine ⟨n, ?_⟩
+  rw [hn] at hx ⊢
+  exact hx
+
+/-- **Scott 1976, Theorem 5.3.** The function space of two closures is a
+closure: it is a retract and contains `I` after restriction to typed maps. -/
+theorem theorem_5_3_closure {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
+    IsRetract (arrowR a b) :=
+  theorem_5_3 ha hb
 
 /-- **Scott 1976, (5.3).** The modified boolean closure. -/
 def boool : Pomega :=
