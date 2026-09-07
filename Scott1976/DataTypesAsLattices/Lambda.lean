@@ -978,8 +978,8 @@ theorem eq_2_14 :
     exact hk.elim
 
 
-theorem pair_zero_zero : pair 0 0 = 0 := by native_decide
-theorem pair_one_zero : pair 1 0 = 1 := by native_decide
+theorem pair_zero_zero : pair 0 0 = 0 := by simp [pair]
+theorem pair_one_zero : pair 1 0 = 1 := by simp [pair]
 
 /-- **Scott 1976, (2.15).** `x ∪ y = (λz. 0) ⊃ x, y`. -/
 theorem eq_2_15 (x y : Pomega) :
@@ -1044,7 +1044,7 @@ theorem eta_fails : ∃ u, graph (funOf u) ≠ u := by
   have : pair 3 0 ∈ ({pair 1 0} : Pomega) :=
     hG (by simp) hsub
   have : pair 3 0 = pair 1 0 := this
-  exact (by native_decide : pair 3 0 ≠ pair 1 0) this
+  exact (by simp [pair] : pair 3 0 ≠ pair 1 0) this
 
 /-- **Scott 1976, Table 1 (ξ*).** Abstraction is monotone. -/
 theorem xi_star {τ σ : Pomega → Pomega} (h : ∀ x, τ x ⊆ σ x) :

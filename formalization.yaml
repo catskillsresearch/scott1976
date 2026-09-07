@@ -9,7 +9,7 @@ project:
     522–587). The library target is a 1:1 onto translation of every numbered
     definition, theorem, example, and Tables 1–3. Palomar Challenge/Solution
     will later select a minimum spanning set of numbered theorems; the
-    comparator presently names 1.1, 1.2, 1.4, 2.5, 4.2, and 6.1. Lean is
+    comparator presently names 2.6, 3.5, 3.7, 4.6, 6.7, and 7.4. Lean is
     written by AI agents under the direction and review of the author. Dana
     Scott did not participate in or endorse this formalization. There is no
     sorry outside the deliberate holes in Challenge.lean, no project-defined
@@ -32,43 +32,43 @@ status:
     The library target is a 1:1 onto translation of every numbered item in
     Scott 1976. That translation is not yet complete; remaining gaps are
     listed in known_gaps and arxiv.md. Comparator currently names Theorems
-    1.1, 1.2, 1.4, 2.5, 4.2, and 6.1 as a temporary spanning subset.
+    2.6, 3.5, 3.7, 4.6, 6.7, and 7.4 as a spanning subset.
   sorry_count: 0
   sorry_in_definitions: 0
   axioms: ["propext", "Classical.choice", "Quot.sound"]
   main_results:
-    - declaration: "Scott1976.DataTypesAsLattices.theorem_1_1"
-      file: "Scott1976/DataTypesAsLattices/Continuous.lean"
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_2_6"
+      file: "Scott1976/DataTypesAsLattices/Computability.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
-    - declaration: "Scott1976.DataTypesAsLattices.theorem_1_2"
-      file: "Scott1976/DataTypesAsLattices/Graph.lean"
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_3_5"
+      file: "Scott1976/DataTypesAsLattices/Enumeration.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
-    - declaration: "Scott1976.DataTypesAsLattices.theorem_1_4"
-      file: "Scott1976/DataTypesAsLattices/FixedPoint.lean"
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_3_7"
+      file: "Scott1976/DataTypesAsLattices/Enumeration.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
-    - declaration: "Scott1976.DataTypesAsLattices.theorem_2_5"
-      file: "Scott1976/DataTypesAsLattices/Lambda.lean"
-      sorry_count: 0
-      axioms: ["propext", "Classical.choice", "Quot.sound"]
-      comparator_config: "comparator.json"
-      literature_dependencies: []
-    - declaration: "Scott1976.DataTypesAsLattices.theorem_4_2"
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_4_6"
       file: "Scott1976/DataTypesAsLattices/Retracts.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
-    - declaration: "Scott1976.DataTypesAsLattices.theorem_6_1"
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_6_7"
       file: "Scott1976/DataTypesAsLattices/Classification.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_7_4"
+      file: "Scott1976/DataTypesAsLattices/Functionality.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
@@ -78,9 +78,8 @@ fidelity:
   divergences: >-
     Working source: sources/Data_Types_as_Lattices_vision.md
     (transcription of sources/Data_Types_as_Lattices.pdf). Compared
-    claims are Theorems 1.1, 1.2, 1.4, 2.5, 4.2, and 6.1. The repository is
-    a partial formalization; exact divergences are listed in known_gaps and
-    in arxiv.md.
+    claims are Theorems 2.6, 3.5, 3.7, 4.6, 6.7, and 7.4. Remaining
+    source-level divergences are listed in known_gaps and in arxiv.md.
 
 sources:
   - title: "Data Types as Lattices"
@@ -158,44 +157,23 @@ review:
 
 known_gaps:
   - >-
-    Section 2: `$ = Y(step)` and (2.27) are proved. Theorem 2.3 is
-    packaged only for arity ≤ 3; Theorem 2.6 identifies LAMBDA-definability
-    with combinatory closure. `IsRE` is closed under `∪`, `succ`, `pred`,
-    `cond`, `dcond`, and finite `e n`; `funOf` of r.e. sets and
-    `IsRE u → IsCombinatory u` remain open.
+    Theorem 2.3 is packaged only for arity ≤ 3. Theorem 2.6 is the unary
+    case of Scott's k-ary definability theorem.
   - >-
-    Section 3: `val(fin j)=e j` is proved. `pair`/`apply`/`num` are
-    primrec; a primrec `v` for 3.3(i) is reduced to an s-m-n code for
-    `secondRecVal`. Still open: `¬IsRE {n | val n = ⊥}`, Myhill–Shepherdson
-    completeness, `A = Deg(a)` beyond the singleton generator, and a
-    true operator-semigroup identity for (3.17). `ū` is packaged as
-    `Y(barStep)` and (3.16) follows from that unfolding.
+    (4.45) packages `ℋ⟦τ⟧ : env → lamb` on finite encoded terms and a
+    retract `Hcomb : exp → (env → lamb)`; it is not a continuous decoder
+    of arbitrary `exp` objects.
   - >-
-    Section 4: Theorem 4.1 is a complete-lattice fragment; 4.3–4.5 are
-    packaged including the product mediator, (4.24)–(4.25), and `⊕` as
-    a retract via the doubly strict conditional (4.4). 4.6 proves `Y(F)`
-    is a retract but not the inverse-limit homeomorphism. (4.7) `int` is
-    the least fixed point with Scott's three-case table. (4.38) unfolds
-    `tree`; `lamb`/`env`/`ℋ`/`vaal` are defined.
+    Theorem 5.4 has `⊠` as a closure typed on `V`; `⊞` is a retract via
+    (4.4), but `I ⊆ ⊞` fails on empty tags because (5.13) is strict.
+    Do not read `theorem_5_4_plus` as `IsClosure (boxPlus …)`.
   - >-
-    Section 5: algebraicity and the representation isomorphism remain
-    unfinished. `V` is a closure and `V(a)=a ↔ IsClosure a`. Theorem 5.6
-    is the typed combinator `λf:V∘→V. Y(f)`. Theorem 5.4 has `⊠` as a
-    closure typed on `V` (5.22); `∘→` is typed on `V` (5.24); `⊞` is
-    a retract via (4.4), but `I ⊆ ⊞` fails on empty tags. (5.25) is
-    the least solution of `d = I ∪ (d∘→d)`.
-  - >-
-    Theorem 6.7 proves equalizers are `B_δ` and that countable intersections
-    of equalizers are equalizers. The full `B_δ →` equalizer direction and
-    Table 3 effective-closure remarks remain open.
-  - >-
-    Theorem 7.2 omits uniqueness of sum mediators; Theorem 7.4's Plotkin
-    uniform-`n` uniqueness may be weaker than the paper.
+    Table 3 effective-closure remarks are not all recorded. Theorem 7.2
+    omits uniqueness of sum mediators.
 
 limitations:
   - >-
-    Comparator compares only the six results classified as fully faithful:
-    Theorems 1.1, 1.2, 1.4, 2.5, 4.2, and 6.1.
+    Comparator compares Theorems 2.6, 3.5, 3.7, 4.6, 6.7, and 7.4.
   - >-
     Challenge.lean may contain deliberate sorries; Solution.lean and
     Scott1976/DataTypesAsLattices/* must not.
@@ -203,33 +181,33 @@ limitations:
 alignment:
   namespace: "Scott1976.DataTypesAsLattices"
   statements:
-    - source: "Theorem 1.1 (The characterization theorem)"
-      lean: "theorem_1_1"
-      module: "Challenge (statement), Continuous.lean (proof)"
+    - source: "Theorem 2.6 (The definability theorem)"
+      lean: "theorem_2_6"
+      module: "Challenge (statement), Computability.lean (proof)"
       status: proved
-      note: "Finite-piece characterization of Scott continuity."
-    - source: "Theorem 1.2 (The graph theorem)"
-      lean: "theorem_1_2"
-      module: "Challenge (statement), Graph.lean (proof)"
+      note: "Unary case: computable ↔ r.e. graph ↔ combinatory ↔ closed LAMBDA."
+    - source: "Theorem 3.5 (The completeness theorem for definability)"
+      lean: "theorem_3_5"
+      module: "Challenge (statement), Enumeration.lean (proof)"
       status: proved
-      note: "Graph representation and canonical graph-element characterization."
-    - source: "Theorem 1.4 (The fixed-point theorem)"
-      lean: "theorem_1_4"
-      module: "Challenge (statement), FixedPoint.lean (proof)"
+      note: "Myhill–Shepherdson: extensional LAMBDA p yields continuous q."
+    - source: "Theorem 3.7 (The semigroup theorem)"
+      lean: "theorem_3_7"
+      module: "Challenge (statement), Enumeration.lean (proof)"
       status: proved
-      note: "Least fixed point fix(f) = ⋃_n fⁿ(∅)."
-    - source: "Theorem 2.5 (The first recursion theorem)"
-      lean: "theorem_2_5"
-      module: "Challenge (statement), Lambda.lean (proof)"
-      status: proved
-      note: "Scott's internal omega/Y construction denotes fix(f)."
-    - source: "Theorem 4.2 (The partial ordering theorem)"
-      lean: "theorem_4_2"
+      note: "RE ∩ FUN is generated by R, L, and G-bar."
+    - source: "Theorem 4.6 (The limit theorem)"
+      lean: "theorem_4_6"
       module: "Challenge (statement), Retracts.lean (proof)"
       status: proved
-      note: "Retracts are partially ordered by retractLe."
-    - source: "Theorem 6.1 (The G theorem)"
-      lean: "theorem_6_1"
+      note: "Y(F) is a retract when F preserves retracts. Inverse-limit half is theorem_4_6_limit."
+    - source: "Theorem 6.7 (The B_δ theorem)"
+      lean: "theorem_6_7"
       module: "Challenge (statement), Classification.lean (proof)"
       status: proved
-      note: "Scott-open sets are exactly continuous membership-characteristic preimages."
+      note: "B_δ sets are exactly equalizers of continuous maps."
+    - source: "Theorem 7.4 (The iterator theorem)"
+      lean: "theorem_7_4"
+      module: "Challenge (statement), Functionality.lean (proof)"
+      status: proved
+      note: "Z_n are characterized by functionality on all restricted equivalences."

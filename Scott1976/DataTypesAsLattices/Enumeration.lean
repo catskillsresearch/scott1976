@@ -3,6 +3,7 @@ Copyright (c) 2026  Lars Warren Ericson.  All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Lars Warren Ericson.
 -/
+import Mathlib.Computability.Halting
 import Scott1976.DataTypesAsLattices.Computability
 import Scott1976.DataTypesAsLattices.Functionality
 
@@ -11,6 +12,8 @@ import Scott1976.DataTypesAsLattices.Functionality
 
 Theorems 3.1–3.7.
 -/
+
+set_option maxHeartbeats 2000000
 
 namespace Scott1976.DataTypesAsLattices
 
@@ -405,14 +408,14 @@ theorem valNat_apply (n m : ℕ) :
   simp [applyNat, valNat, unpair_pair]
 
 /-- **Scott 1976, (3.8).** `apply(0)(0) = 1` and `val(1) = 0`. -/
-theorem eq_3_8_apply : applyNat 0 0 = 1 := by native_decide
+theorem eq_3_8_apply : applyNat 0 0 = 1 := by simp [applyNat, pair]
 
 theorem eq_3_8_val : valNat 1 = zeroC := by
   have : valNat 1 = valNat (applyNat 0 0) := by simp [eq_3_8_apply]
   rw [this, valNat_apply, valNat_zero, Gcomb_app_self]
 
 /-- **Scott 1976, (3.9).** `apply(0)(1) = 3` and `val(3) = ⟨suc,…⟩`. -/
-theorem eq_3_9_apply : applyNat 0 1 = 3 := by native_decide
+theorem eq_3_9_apply : applyNat 0 1 = 3 := by simp [applyNat, pair]
 
 theorem eq_3_9_val : valNat 3 = Gpack := by
   have : valNat 3 = valNat (applyNat 0 1) := by simp [eq_3_9_apply]
@@ -421,7 +424,7 @@ theorem eq_3_9_val : valNat 3 = Gpack := by
   simpa [this] using Gcomb_zero
 
 /-- **Scott 1976, (3.10).** `apply(3)(1) = 12` and `val(12) = suc`. -/
-theorem eq_3_10_apply : applyNat 3 1 = 12 := by native_decide
+theorem eq_3_10_apply : applyNat 3 1 = 12 := by simp [applyNat, pair]
 
 theorem eq_3_10_val : valNat 12 = sucC := by
   have : valNat 12 = valNat (applyNat 3 1) := by simp [eq_3_10_apply]
@@ -1106,11 +1109,987 @@ theorem myhillRealizer_isScottContinuous (p : ℕ → ℕ) :
     IsScottContinuous (myhillRealizer p) :=
   funOf_isScottContinuous _
 
-/- Completing Theorem 3.5 from `myhillQ_app` requires proving the two
-nontrivial continuity inclusions in the paper.  Their contradiction argument
-uses Theorem 3.4's unqualified non-r.e. result, which in turn currently stops
-at the missing `IsRE → IsCombinatory` direction.  Consequently no declaration
-named `theorem_3_5` is made for the weaker realizer hypothesis above. -/
+open Encodable
+open Nat.Partrec (Code)
+open Nat.Partrec.Code
+
+theorem Gcomb_isRE : IsRE Gcomb :=
+  combinatory_isRE Gcomb_combinatory
+
+theorem exists_triangle_succ (k : ℕ) : ∃ w, k < triangle (w + 1) :=
+  ⟨k, by
+    change k < triangle (k + 1)
+    rw [triangle_succ]
+    exact lt_of_lt_of_le (Nat.lt_succ_self k) (Nat.le_add_left (k + 1) _)⟩
+
+/-- Computable inverse of Scott pairing, equal to `unpair`. -/
+def unpairComp (k : ℕ) : ℕ × ℕ :=
+  let w := Nat.find (exists_triangle_succ k)
+  let m := k - triangle w
+  (w - m, m)
+
+theorem unpairComp_eq (k : ℕ) : unpairComp k = unpair k := by
+  unfold unpairComp
+  set w := Nat.find (exists_triangle_succ k) with hw
+  have hlt : k < triangle (w + 1) := by
+    simpa [hw] using Nat.find_spec (exists_triangle_succ k)
+  have hle : triangle w ≤ k := by
+    cases hwc : w with
+    | zero => simp [triangle]
+    | succ w' =>
+      have hlt' : w' < Nat.find (exists_triangle_succ k) := by
+        rw [← hw, hwc]
+        exact Nat.lt_succ_self w'
+      exact Nat.le_of_not_gt (Nat.find_min (exists_triangle_succ k) hlt')
+  have hm : k - triangle w ≤ w := by
+    have : k < triangle w + (w + 1) := by
+      rwa [triangle_succ] at hlt
+    omega
+  have hpair : pair (w - (k - triangle w)) (k - triangle w) = k := by
+    have : w - (k - triangle w) + (k - triangle w) = w := Nat.sub_add_cancel hm
+    simp [pair_eq_triangle, this, Nat.add_sub_of_le hle]
+  rw [← unpair_pair (w - (k - triangle w)) (k - triangle w), hpair]
+
+/-- Finite derivation that `member ∈ valNat code`, with the application
+witness `t` stored on positive codes. -/
+abbrev ValTrace := List (ℕ × ℕ × ℕ)
+
+def valTraceHas (tr : ValTrace) (code member : ℕ) : Prop :=
+  ∃ t, (code, member, t) ∈ tr
+
+def valEntryJustified (tr : ValTrace) (e : ℕ × ℕ × ℕ) : Prop :=
+  e.1 = 0 ∨
+    (valTraceHas tr (unpairComp e.1.pred).1 (pair e.2.2 e.2.1) ∧
+      ∀ i < e.2.2 + 1,
+        e.2.2.testBit i = false ∨ valTraceHas tr (unpairComp e.1.pred).2 i)
+
+def valTraceStruct (tr : ValTrace) : Prop :=
+  ∀ e ∈ tr, valEntryJustified tr e
+
+def valTraceG (tr : ValTrace) : Prop :=
+  ∀ e ∈ tr, e.1 = 0 → e.2.1 ∈ Gcomb
+
+def valTraceOk (tr : ValTrace) : Prop :=
+  valTraceStruct tr ∧ valTraceG tr
+
+theorem valTraceOk_zero (m : ℕ) (hm : m ∈ Gcomb) :
+    valTraceOk [(0, m, 0)] ∧ valTraceHas [(0, m, 0)] 0 m := by
+  refine ⟨⟨?_, ?_⟩, ⟨0, by simp⟩⟩
+  · intro e he
+    simp at he
+    subst e
+    exact Or.inl rfl
+  · intro e he he0
+    simp at he
+    subst e
+    exact hm
+
+theorem valTraceHas_append_left {tr₁ tr₂ : ValTrace} {c m : ℕ}
+    (h : valTraceHas tr₁ c m) : valTraceHas (tr₁ ++ tr₂) c m := by
+  obtain ⟨t, ht⟩ := h
+  exact ⟨t, List.mem_append.mpr (Or.inl ht)⟩
+
+theorem valTraceHas_append_right {tr₁ tr₂ : ValTrace} {c m : ℕ}
+    (h : valTraceHas tr₂ c m) : valTraceHas (tr₁ ++ tr₂) c m := by
+  obtain ⟨t, ht⟩ := h
+  exact ⟨t, List.mem_append.mpr (Or.inr ht)⟩
+
+theorem valEntryJustified_mono {tr₁ tr₂ : ValTrace} {e : ℕ × ℕ × ℕ}
+    (hsub : ∀ c m, valTraceHas tr₁ c m → valTraceHas tr₂ c m)
+    (h : valEntryJustified tr₁ e) : valEntryJustified tr₂ e := by
+  rcases h with h | ⟨hop, hbits⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨hsub _ _ hop, fun i hi => (hbits i hi).imp_right (hsub _ _)⟩
+
+theorem valTraceOk_append {tr₁ tr₂ : ValTrace}
+    (h₁ : valTraceOk tr₁) (h₂ : valTraceOk tr₂) :
+    valTraceOk (tr₁ ++ tr₂) := by
+  constructor
+  · intro e he
+    rcases List.mem_append.mp he with he | he
+    · exact valEntryJustified_mono (fun _ _ => valTraceHas_append_left) (h₁.1 e he)
+    · exact valEntryJustified_mono (fun _ _ => valTraceHas_append_right) (h₂.1 e he)
+  · intro e he he0
+    rcases List.mem_append.mp he with he | he
+    · exact h₁.2 e he he0
+    · exact h₂.2 e he he0
+
+theorem valTraceOk_cons {tr : ValTrace} {e : ℕ × ℕ × ℕ}
+    (htr : valTraceOk tr) (hjust : valEntryJustified (e :: tr) e)
+    (hg : e.1 = 0 → e.2.1 ∈ Gcomb) :
+    valTraceOk (e :: tr) := by
+  constructor
+  · intro e' he'
+    rcases List.mem_cons.mp he' with rfl | he'
+    · exact hjust
+    · exact valEntryJustified_mono
+        (fun c m ⟨t, ht⟩ => ⟨t, List.mem_cons.mpr (Or.inr ht)⟩) (htr.1 e' he')
+  · intro e' he' he0
+    rcases List.mem_cons.mp he' with rfl | he'
+    · exact hg he0
+    · exact htr.2 e' he' he0
+
+theorem valTraceOk_sound {tr : ValTrace} (hok : valTraceOk tr) :
+    ∀ {code member t}, (code, member, t) ∈ tr → member ∈ valNat code := by
+  intro code member t hmem
+  induction code using Nat.strongRecOn generalizing member t with
+  | ind code ih =>
+    have hjust := hok.1 (code, member, t) hmem
+    cases code with
+    | zero =>
+      simpa [valNat] using hok.2 (0, member, t) hmem rfl
+    | succ p =>
+      rcases hjust with h0 | ⟨hop, hbits⟩
+      · exact (Nat.succ_ne_zero p h0).elim
+      · simp only [Nat.pred_succ, unpairComp_eq] at hop hbits
+        have hop' : (unpair p).1 < p + 1 :=
+          (pair_lt_left (unpair p).1 (unpair p).2).trans_le (by
+            have := pair_unpair p
+            omega)
+        have harg : (unpair p).2 < p + 1 :=
+          (pair_lt_right (unpair p).1 (unpair p).2).trans_le (by
+            have := pair_unpair p
+            omega)
+        obtain ⟨tOp, htOp⟩ := hop
+        have hopMem : pair t member ∈ valNat (unpair p).1 :=
+          ih _ hop' htOp
+        have hargMem : e t ⊆ valNat (unpair p).2 := by
+          intro i hi
+          have hlt : i < t + 1 := Nat.lt_succ_of_le (mem_e_le hi)
+          have hbit : t.testBit i = true := mem_e.mp hi
+          have hhas := (hbits i hlt).resolve_left fun hf => by
+            simp [hbit] at hf
+          obtain ⟨ti, hti⟩ := hhas
+          exact ih _ harg hti
+        have : member ∈ valNat (unpair p).1 ⬝ valNat (unpair p).2 :=
+          ⟨t, hargMem, hopMem⟩
+        simpa [valNat] using this
+
+theorem valTraceOk_empty : valTraceOk [] := by
+  constructor
+  · intro e he
+    simp at he
+  · intro e he _
+    simp at he
+
+theorem exists_concat_traces {c : ℕ} (ks : List ℕ)
+    (h : ∀ i ∈ ks, ∃ tr, valTraceOk tr ∧ valTraceHas tr c i) :
+    ∃ tr, valTraceOk tr ∧ ∀ i ∈ ks, valTraceHas tr c i := by
+  induction ks with
+  | nil => exact ⟨[], valTraceOk_empty, fun _ hi => by simp at hi⟩
+  | cons i is ih =>
+      obtain ⟨tr₁, hok₁, hhas₁⟩ := h i (by simp)
+      obtain ⟨tr₂, hok₂, hhas₂⟩ := ih fun j hj => h j (by simp [hj])
+      refine ⟨tr₁ ++ tr₂, valTraceOk_append hok₁ hok₂, fun j hj => ?_⟩
+      rcases List.mem_cons.mp hj with rfl | hj
+      · exact valTraceHas_append_left hhas₁
+      · exact valTraceHas_append_right (hhas₂ j hj)
+
+theorem valTraceOk_complete :
+    ∀ code member, member ∈ valNat code →
+      ∃ tr, valTraceOk tr ∧ valTraceHas tr code member := by
+  intro code
+  induction code using Nat.strongRecOn with
+  | ind code ih =>
+    intro member hm
+    cases code with
+    | zero =>
+      obtain ⟨hok0, hhas0⟩ := valTraceOk_zero member (by simpa [valNat] using hm)
+      exact ⟨[(0, member, 0)], hok0, hhas0⟩
+    | succ p =>
+      have hop' : (unpair p).1 < p + 1 :=
+        (pair_lt_left (unpair p).1 (unpair p).2).trans_le (by
+          have := pair_unpair p
+          omega)
+      have harg : (unpair p).2 < p + 1 :=
+        (pair_lt_right (unpair p).1 (unpair p).2).trans_le (by
+          have := pair_unpair p
+          omega)
+      have hm' : member ∈ valNat (unpair p).1 ⬝ valNat (unpair p).2 := by
+        simpa [valNat] using hm
+      obtain ⟨t, htSub, htOp⟩ := hm'
+      obtain ⟨trOp, hokOp, hhasOp⟩ := ih _ hop' _ htOp
+      let bits := (List.range (t + 1)).filter (fun i => t.testBit i = true)
+      obtain ⟨trBits, hokBits, hhasBits⟩ :=
+        exists_concat_traces (c := (unpair p).2) bits fun i hi => by
+          have : i ∈ e t := by
+            have hmem : i ∈ List.range (t + 1) ∧ t.testBit i = true := by
+              simpa [bits, List.mem_filter] using hi
+            exact mem_e.mpr hmem.2
+          exact ih _ harg i (htSub this)
+      let trRest := trOp ++ trBits
+      have hokRest : valTraceOk trRest := valTraceOk_append hokOp hokBits
+      have hhasOp' : valTraceHas trRest (unpair p).1 (pair t member) :=
+        valTraceHas_append_left hhasOp
+      have hhasBits' : ∀ i < t + 1,
+          t.testBit i = false ∨ valTraceHas trRest (unpair p).2 i := by
+        intro i hi
+        by_cases hb : t.testBit i = true
+        · refine Or.inr (valTraceHas_append_right (hhasBits i ?_))
+          simp [bits, List.mem_filter, List.mem_range, hi, hb]
+        · exact Or.inl (Bool.eq_false_of_not_eq_true hb)
+      let e : ℕ × ℕ × ℕ := (p + 1, member, t)
+      have hcons : ∀ {c m}, valTraceHas trRest c m → valTraceHas (e :: trRest) c m :=
+        fun h => valTraceHas_append_right (tr₁ := [e]) h
+      refine ⟨e :: trRest,
+        valTraceOk_cons hokRest ?_ (fun h0 => (Nat.succ_ne_zero p h0).elim),
+        ⟨t, by simp [e]⟩⟩
+      · refine Or.inr ⟨?_, ?_⟩
+        · simpa [e, Nat.pred_succ, unpairComp_eq] using hcons hhasOp'
+        · intro i hi
+          simpa [e, Nat.pred_succ, unpairComp_eq] using
+            (hhasBits' i hi).imp_right hcons
+
+theorem valNat_mem_iff (code member : ℕ) :
+    member ∈ valNat code ↔ ∃ tr, valTraceOk tr ∧ valTraceHas tr code member :=
+  ⟨valTraceOk_complete code member, fun ⟨tr, hok, ⟨t, ht⟩⟩ =>
+    valTraceOk_sound hok ht⟩
+
+theorem valTraceHas_iff (tr : ValTrace) (c m : ℕ) :
+    valTraceHas tr c m ↔ ∃ e ∈ tr, e.1 = c ∧ e.2.1 = m := by
+  constructor
+  · intro ⟨t, ht⟩
+    exact ⟨(c, m, t), ht, rfl, rfl⟩
+  · intro ⟨e, he, hc, hm⟩
+    exact ⟨e.2.2, by cases e; cases hc; cases hm; exact he⟩
+
+theorem primrec_triangle : Primrec triangle :=
+  (Primrec.nat_div.comp
+    (Primrec.nat_mul.comp Primrec.id (Primrec.succ.comp Primrec.id))
+    (Primrec.const 2)).of_eq fun _ => rfl
+
+/-- Bounded scan for the least `w` with `k < triangle (w+1)`. -/
+def unpairWRec (k n : ℕ) : ℕ :=
+  Nat.rec 0 (fun w ih => if k < triangle (w + 1) then ih else w + 1) n
+
+/-- Least `w` with `k < triangle (w+1)`, computed by bounded recursion. -/
+def unpairW (k : ℕ) : ℕ := unpairWRec k k
+
+theorem unpairWRec_succ (k n : ℕ) :
+    unpairWRec k (n + 1) =
+      if k < triangle (n + 1) then unpairWRec k n else n + 1 :=
+  rfl
+
+theorem primrec_unpairW : Primrec unpairW :=
+  (Primrec.nat_rec' (f := id) (g := fun _ => (0 : ℕ))
+    (h := fun k (p : ℕ × ℕ) => if k < triangle (p.1 + 1) then p.2 else p.1 + 1)
+    Primrec.id (Primrec.const 0)
+    (Primrec.ite (c := fun q : ℕ × ℕ × ℕ => q.1 < triangle (q.2.1 + 1))
+      (Primrec.nat_lt.comp Primrec.fst
+        (primrec_triangle.comp (Primrec.succ.comp (Primrec.fst.comp Primrec.snd))))
+      (Primrec.snd.comp Primrec.snd)
+      (Primrec.succ.comp (Primrec.fst.comp Primrec.snd)))).of_eq fun _ => rfl
+
+theorem unpairWRec_lt (k n : ℕ) :
+    k < triangle (unpairWRec k n + 1) ∨ unpairWRec k n = n := by
+  induction n with
+  | zero =>
+    by_cases hk : k < triangle 1
+    · exact Or.inl (by simp [unpairWRec, hk])
+    · exact Or.inr (by simp [unpairWRec, hk])
+  | succ n ih =>
+    by_cases hk : k < triangle (n + 1)
+    · simp [unpairWRec_succ, hk]
+      exact ih.elim Or.inl fun heq => Or.inl (by simpa [heq] using hk)
+    · simp [unpairWRec_succ, hk]
+
+theorem unpairWRec_min (k n m : ℕ)
+    (hm : m < unpairWRec k n) : ¬k < triangle (m + 1) := by
+  induction n generalizing m with
+  | zero =>
+    simp [unpairWRec] at hm
+  | succ n ih =>
+    by_cases hk : k < triangle (n + 1)
+    · simp [unpairWRec_succ, hk] at hm
+      exact ih m hm
+    · simp [unpairWRec_succ, hk] at hm
+      intro hlt
+      have hm' : m ≤ n := Nat.lt_succ_iff.mp hm
+      exact hk (lt_of_lt_of_le hlt (triangle_le_of_le (Nat.succ_le_succ hm')))
+
+theorem unpairW_eq (k : ℕ) : unpairW k = Nat.find (exists_triangle_succ k) := by
+  refine ((Nat.find_eq_iff (exists_triangle_succ k)).mpr ⟨?_, fun m hm =>
+      unpairWRec_min k k m hm⟩).symm
+  rcases unpairWRec_lt k k with h | hrec
+  · exact h
+  · have : k + 1 ≤ triangle (k + 1) := by
+      cases k with
+      | zero => simp [triangle]
+      | succ k =>
+        rw [triangle_succ]
+        exact Nat.le_add_left _ _
+    simpa [unpairW, hrec] using lt_of_lt_of_le (Nat.lt_succ_self k) this
+
+theorem primrec_unpairComp : Primrec unpairComp := by
+  have h : Primrec fun k : ℕ =>
+      (unpairW k - (k - triangle (unpairW k)), k - triangle (unpairW k)) :=
+    Primrec.pair
+      (Primrec.nat_sub.comp primrec_unpairW
+        (Primrec.nat_sub.comp Primrec.id (primrec_triangle.comp primrec_unpairW)))
+      (Primrec.nat_sub.comp Primrec.id (primrec_triangle.comp primrec_unpairW))
+  exact h.of_eq fun k => by
+    simp [unpairComp, unpairW_eq]
+
+theorem primrecRel_valTraceHas :
+    PrimrecRel fun (tr : ValTrace) (p : ℕ × ℕ) => valTraceHas tr p.1 p.2 := by
+  have h : PrimrecRel fun (tr : ValTrace) (p : ℕ × ℕ) =>
+      ∃ e ∈ tr, e.1 = p.1 ∧ e.2.1 = p.2 :=
+    PrimrecRel.exists_mem_list
+      ((Primrec.eq.comp (Primrec.fst.comp Primrec.fst)
+          (Primrec.fst.comp Primrec.snd)).and
+        (Primrec.eq.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
+          (Primrec.snd.comp Primrec.snd)))
+  exact h.of_eq fun tr p => (valTraceHas_iff tr p.1 p.2).symm
+
+theorem primrecPred_valEntryJustified :
+    PrimrecRel fun (tr : ValTrace) (e : ℕ × ℕ × ℕ) => valEntryJustified tr e := by
+  have hzero : PrimrecRel fun (_ : ValTrace) (e : ℕ × ℕ × ℕ) => e.1 = 0 :=
+    Primrec.eq.comp (Primrec.fst.comp Primrec.snd) (Primrec.const 0)
+  have hop : PrimrecRel fun (tr : ValTrace) (e : ℕ × ℕ × ℕ) =>
+      valTraceHas tr (unpairComp e.1.pred).1 (pair e.2.2 e.2.1) :=
+    primrecRel_valTraceHas.comp Primrec.fst
+      (Primrec.pair
+        (Primrec.fst.comp (primrec_unpairComp.comp
+          (Primrec.pred.comp (Primrec.fst.comp Primrec.snd))))
+        (primrec_pair.comp
+          (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))
+          (Primrec.fst.comp (Primrec.snd.comp Primrec.snd))))
+  have hbit : PrimrecRel fun (i : ℕ) (q : ValTrace × ℕ × ℕ × ℕ) =>
+      q.2.2.2.testBit i = false ∨ valTraceHas q.1 (unpairComp q.2.1.pred).2 i :=
+    ((primrecPred_bool
+        (Primrec₂.comp primrec_testBit
+          (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)))
+          Primrec.fst)).not.or
+      (primrecRel_valTraceHas.comp (Primrec.fst.comp Primrec.snd)
+        (Primrec.pair
+          (Primrec.snd.comp (primrec_unpairComp.comp
+            (Primrec.pred.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)))))
+          Primrec.fst))).of_eq fun _ => by
+      simp [Bool.not_eq_true]
+  have hForall : PrimrecRel fun (bound : ℕ) (q : ValTrace × ℕ × ℕ × ℕ) =>
+      ∀ i < bound,
+        q.2.2.2.testBit i = false ∨ valTraceHas q.1 (unpairComp q.2.1.pred).2 i :=
+    (hbit.forall_mem_list.comp (Primrec.list_range.comp Primrec.fst) Primrec.snd).of_eq
+      fun _ => by simp
+  have hbits : PrimrecRel fun (tr : ValTrace) (e : ℕ × ℕ × ℕ) =>
+      ∀ i < e.2.2 + 1,
+        e.2.2.testBit i = false ∨ valTraceHas tr (unpairComp e.1.pred).2 i :=
+    (hForall.comp
+      (Primrec.succ.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)))
+      Primrec.id).of_eq fun q => by
+      simp
+  exact hzero.or (hop.and hbits)
+
+theorem primrecPred_valTraceStruct : PrimrecPred valTraceStruct := by
+  have h : PrimrecRel fun (tr : ValTrace) (e : ℕ × ℕ × ℕ) => valEntryJustified tr e :=
+    primrecPred_valEntryJustified
+  exact (PrimrecRel.forall_mem_list (R := fun e tr => valEntryJustified tr e)
+      (h.comp Primrec.snd Primrec.fst)).comp Primrec.id Primrec.id
+
+theorem REPred.exists_param {α} [Primcodable α] [Inhabited α] {p : α → ℕ → Prop}
+    (hp : REPred fun q : α × ℕ => p q.1 q.2) :
+    REPred fun a => ∃ n, p a n := by
+  have hN : REPred fun q : ℕ × ℕ => p ((decode q.1).getD default) q.2 :=
+    hp.comp (Computable.pair
+      (Computable.option_getD (Computable.decode.comp Computable.fst)
+        (Computable.const default))
+      Computable.snd)
+  have hex : REPred fun n : ℕ => ∃ m, p ((decode n).getD default) m :=
+    REPred.exists (p := fun n m => p ((decode n).getD default) m) hN
+  exact _root_.REPred.of_eq (hex.comp Computable.encode) fun a => by
+    simp [encodek]
+
+/-- Membership in `G` along a finite trace is r.e. via one `evaln` stage. -/
+theorem valTraceG_re : REPred valTraceG := by
+  have hf : Partrec fun k : ℕ =>
+      (Part.assert (k ∈ Gcomb) fun _ => Part.some (0 : ℕ)) :=
+    Gcomb_isRE.map (Computable.const (0 : ℕ)).to₂
+  obtain ⟨c, hc⟩ := Code.exists_code.1 (Partrec.nat_iff.1 hf)
+  have hbitP : PrimrecPred fun q : (ℕ × ℕ × ℕ) × ℕ =>
+      q.1.1 ≠ 0 ∨ (evaln q.2 c q.1.2.1).isSome = true :=
+    (Primrec.eq.comp (Primrec.fst.comp Primrec.fst) (Primrec.const 0)).not.or
+      (primrecPred_bool (Primrec.option_isSome.comp
+        (primrec_evaln.comp
+          (Primrec.pair
+            (Primrec.pair Primrec.snd (Primrec.const c))
+            (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))))))
+  have hbit : PrimrecRel fun (e : ℕ × ℕ × ℕ) (s : ℕ) =>
+      e.1 ≠ 0 ∨ (evaln s c e.2.1).isSome = true :=
+    hbitP.of_eq fun _ => Iff.rfl
+  have hall : PrimrecRel fun (tr : ValTrace) (s : ℕ) =>
+      ∀ e ∈ tr, e.1 ≠ 0 ∨ (evaln s c e.2.1).isSome = true :=
+    PrimrecRel.forall_mem_list hbit
+  have hex : REPred fun tr : ValTrace =>
+      ∃ s, ∀ e ∈ tr, e.1 ≠ 0 ∨ (evaln s c e.2.1).isSome = true :=
+    REPred.exists_param (α := ValTrace)
+      (hall.comp Primrec.fst Primrec.snd).computablePred.to_re
+  refine _root_.REPred.of_eq hex fun tr => ⟨fun ⟨s, hs⟩ e he he0 => ?_, fun hG => ?_⟩
+  · have hsome : (evaln s c e.2.1).isSome = true :=
+      (hs e he).resolve_left fun hne => hne he0
+    obtain ⟨val, hval⟩ := Option.isSome_iff_exists.mp hsome
+    have : val ∈ Code.eval c e.2.1 :=
+      evaln_sound (by simpa [Option.mem_def] using hval)
+    have : val ∈ (Part.assert (e.2.1 ∈ Gcomb) fun _ => Part.some (0 : ℕ)) := by
+      simpa [hc] using this
+    exact (Part.mem_assert_iff.mp this).1
+  · induction tr with
+    | nil => exact ⟨0, fun _ he => by cases he⟩
+    | cons e tr ih =>
+      obtain ⟨s2, hs2⟩ := ih fun e' he' h0 => hG e' (List.mem_cons_of_mem _ he') h0
+      by_cases h0 : e.1 = 0
+      · have hmem : 0 ∈ Code.eval c e.2.1 := by
+          rw [hc]
+          exact Part.mem_assert_iff.mpr ⟨hG e (List.mem_cons_self) h0,
+            Part.mem_some_iff.mpr rfl⟩
+        obtain ⟨s1, hs1⟩ := evaln_complete.mp hmem
+        refine ⟨max s1 s2, fun e' he' => ?_⟩
+        rcases List.mem_cons.mp he' with rfl | he'
+        · exact Or.inr (Option.isSome_of_mem (evaln_mono (Nat.le_max_left s1 s2) hs1))
+        · rcases hs2 e' he' with hne | hsome
+          · exact Or.inl hne
+          · obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp hsome
+            exact Or.inr (Option.isSome_of_mem (evaln_mono (Nat.le_max_right s1 s2) hv))
+      · refine ⟨s2, fun e' he' => ?_⟩
+        rcases List.mem_cons.mp he' with rfl | he'
+        · exact Or.inl h0
+        · exact hs2 e' he'
+
+theorem valTraceOk_re : REPred valTraceOk :=
+  _root_.REPred.of_eq
+    (REPred.and primrecPred_valTraceStruct.computablePred.to_re valTraceG_re)
+    fun _ => Iff.rfl
+
+/-- Uniform r.e. membership in `val`. -/
+theorem valNat_mem_re : REPred fun q : ℕ × ℕ => q.2 ∈ valNat q.1 := by
+  have htr : REPred fun q : (ℕ × ℕ) × ValTrace =>
+      valTraceOk q.2 ∧ valTraceHas q.2 q.1.1 q.1.2 :=
+    REPred.and (valTraceOk_re.comp Computable.snd)
+      ((primrecRel_valTraceHas.comp Primrec.snd Primrec.fst).computablePred.to_re)
+  have hN : REPred fun q : (ℕ × ℕ) × ℕ =>
+      valTraceOk ((decode q.2 : Option ValTrace).getD []) ∧
+        valTraceHas ((decode q.2).getD []) q.1.1 q.1.2 :=
+    htr.comp (Computable.pair Computable.fst
+      (Computable.option_getD (Computable.decode.comp Computable.snd)
+        (Computable.const [])))
+  have hex : REPred fun q : ℕ × ℕ =>
+      ∃ tr, valTraceOk tr ∧ valTraceHas tr q.1 q.2 :=
+    _root_.REPred.of_eq
+      (REPred.exists_param (α := ℕ × ℕ)
+        (p := fun q enc =>
+          valTraceOk ((decode enc : Option ValTrace).getD []) ∧
+            valTraceHas ((decode enc).getD []) q.1 q.2)
+        hN)
+      fun q =>
+      ⟨fun ⟨enc, henc⟩ => ⟨(decode enc).getD [], henc⟩, fun ⟨tr, hok⟩ =>
+        ⟨encode tr, by simpa [encodek] using hok⟩⟩
+  exact _root_.REPred.of_eq hex fun q => (valNat_mem_iff q.1 q.2).symm
+
+theorem mem_myhillQ (f : ℕ → ℕ) (k : ℕ) :
+    k ∈ myhillQ valNat f ↔
+      (unpairComp k).2 ∈ valNat (f (fin (unpairComp k).1)) := by
+  constructor
+  · intro ⟨j, m, hk, hm⟩
+    have : unpairComp k = (j, m) := by
+      rw [unpairComp_eq, hk, unpair_pair]
+    simpa [this] using hm
+  · intro hm
+    refine ⟨(unpairComp k).1, (unpairComp k).2, ?_, hm⟩
+    rw [unpairComp_eq, pair_unpair]
+
+theorem realizes_valNat_mem {u : Pomega} {p : ℕ → ℕ} (hr : Realizes u p) (n m : ℕ) :
+    m ∈ valNat (p n) ↔ ∃ c, c ∈ funOf u (ofNat n) ∧ m ∈ valNat c := by
+  rw [hr]
+  constructor
+  · intro hm
+    exact ⟨p n, rfl, hm⟩
+  · intro ⟨c, hc, hm⟩
+    simp [ofNat] at hc
+    subst hc
+    exact hm
+
+theorem e_subset_ofNat_iff (code n : ℕ) :
+    e code ⊆ ofNat n ↔ code = 0 ∨ code = 2 ^ n := by
+  constructor
+  · intro h
+    by_cases hz : code = 0
+    · exact Or.inl hz
+    · have hbit : ∀ k, code.testBit k = true → k = n := by
+        intro k hk
+        simpa [ofNat] using h (mem_e.mpr hk)
+      have hn : code.testBit n = true := by
+        have hk : code.testBit code.log2 = true := Nat.testBit_log2 hz
+        simpa [hbit _ hk] using hk
+      refine Or.inr (Nat.eq_of_testBit_eq fun k => ?_)
+      by_cases hk : k = n
+      · subst hk
+        simp [hn, Nat.testBit_two_pow]
+      · have hfalse : code.testBit k = false :=
+          Bool.eq_false_iff.mpr fun hb => hk (hbit k hb)
+        simp [Nat.testBit_two_pow, hfalse, Ne.symm hk]
+  · intro h
+    rcases h with rfl | rfl
+    · intro k hk
+      simp [e_zero] at hk
+    · intro k hk
+      simpa [e_pow2, ofNat] using hk
+
+theorem mem_funOf_ofNat (u : Pomega) (n m : ℕ) :
+    m ∈ funOf u (ofNat n) ↔ pair 0 m ∈ u ∨ pair (2 ^ n) m ∈ u := by
+  constructor
+  · intro ⟨code, hsub, hp⟩
+    rcases (e_subset_ofNat_iff code n).mp hsub with rfl | rfl
+    · exact Or.inl hp
+    · exact Or.inr hp
+  · intro h
+    rcases h with hp | hp
+    · exact ⟨0, by simp [e_zero], hp⟩
+    · exact ⟨2 ^ n, by simp [e_pow2, ofNat], hp⟩
+
+theorem funOf_ofNat_mem_re {u : Pomega} (hu : IsRE u) :
+    REPred fun q : ℕ × ℕ => q.2 ∈ funOf u (ofNat q.1) := by
+  have h0 : REPred fun q : ℕ × ℕ => pair 0 q.2 ∈ u :=
+    (IsRE.pair_mem hu).comp
+      (Primrec.pair (Primrec.const 0) Primrec.snd).to_comp
+  have hpow : REPred fun q : ℕ × ℕ => pair (2 ^ q.1) q.2 ∈ u :=
+    (IsRE.pair_mem hu).comp
+      (Primrec.pair (primrec_twoPow.comp Primrec.fst) Primrec.snd).to_comp
+  exact _root_.REPred.of_eq (REPred.or h0 hpow) fun q =>
+    (mem_funOf_ofNat u q.1 q.2).symm
+
+theorem myhillQ_isRE {u : Pomega} {p : ℕ → ℕ}
+    (hu : IsCombinatory u) (hr : Realizes u p) :
+    IsRE (myhillQ valNat p) := by
+  have hmem : REPred fun q : ℕ × ℕ =>
+      q.2 ∈ valNat (p (fin q.1)) := by
+    have hinner : REPred fun q : (ℕ × ℕ) × ℕ =>
+        q.2 ∈ funOf u (ofNat (fin q.1.1)) ∧ q.1.2 ∈ valNat q.2 :=
+      REPred.and
+        ((funOf_ofNat_mem_re (combinatory_isRE hu)).comp
+          (Primrec.pair (primrec_fin.comp (Primrec.fst.comp Primrec.fst)) Primrec.snd).to_comp)
+        (valNat_mem_re.comp (Primrec.pair Primrec.snd (Primrec.snd.comp Primrec.fst)).to_comp)
+    exact _root_.REPred.of_eq (REPred.exists_param (α := ℕ × ℕ) hinner) fun q =>
+      (realizes_valNat_mem hr (fin q.1) q.2).symm
+  exact _root_.REPred.of_eq
+    (hmem.comp (primrec_unpairComp.to_comp))
+    fun k => (mem_myhillQ p k).symm
+
+noncomputable def condCode : ℕ :=
+  (theorem_3_2_surjective IsCombinatory.cond).choose
+
+theorem valNat_condCode : valNat condCode = condC :=
+  (theorem_3_2_surjective IsCombinatory.cond).choose_spec
+
+theorem unionOperator_app (x y : Pomega) :
+    funOf (funOf (graph (fun x => graph (fun y => x ∪ y))) x) y = x ∪ y := by
+  have hx : IsScottContinuous (fun x => graph (fun y => x ∪ y)) :=
+    graph_const_isScottContinuous (fun x y => x ∪ y)
+      (fun y => enumerationUnion_left_isScottContinuous y)
+  have h1 : funOf (graph (fun x => graph (fun y => x ∪ y))) x =
+      graph (fun y => x ∪ y) :=
+    beta hx x
+  rw [h1]
+  exact beta (enumerationUnion_right_isScottContinuous x) y
+
+theorem condSet_same (z x : Pomega) (hz : z ≠ botElem) : condSet z x x = x := by
+  by_cases h0 : 0 ∈ z
+  · by_cases hsing : z = ofNat 0
+    · subst hsing
+      exact eq_2_7_zero x x
+    · rw [eq_2_7_mix x x z h0 hsing]
+      simp
+  · exact eq_2_7_pos x x z h0 hz
+
+/-- Appendix case 2: `u(m)` with `val(u m) = e_j ∪ (val m ⊃ val n, val n)`. -/
+noncomputable def myhillCase2Code (j n m : ℕ) : ℕ :=
+  applyNat (applyNat unionCode (fin j))
+    (applyNat (applyNat (applyNat condCode n) n) m)
+
+theorem primrec_myhillCase2Code (j n : ℕ) : Primrec (myhillCase2Code j n) :=
+  primrec_applyNat.comp
+    (primrec_applyNat.comp (Primrec.const unionCode) (Primrec.const (fin j)))
+    (primrec_applyNat.comp
+      (primrec_applyNat.comp
+        (primrec_applyNat.comp (Primrec.const condCode) (Primrec.const n))
+        (Primrec.const n))
+      Primrec.id)
+
+theorem valNat_myhillCase2Code (j n m : ℕ) :
+    valNat (myhillCase2Code j n m) =
+      e j ∪ condSet (valNat m) (valNat n) (valNat n) := by
+  simp only [myhillCase2Code, valNat_apply, valNat_unionCode, valNat_fin,
+    valNat_condCode, condC_beta3]
+  exact unionOperator_app _ _
+
+theorem valNat_myhillCase2Code_bot (j n : ℕ) :
+    valNat (myhillCase2Code j n botCode) = e j := by
+  rw [valNat_myhillCase2Code, valNat_botCode, eq_2_7_bot]
+  simp [botElem]
+
+theorem valNat_myhillCase2Code_ne_bot (j n m : ℕ)
+    (hj : e j ⊆ valNat n) (hm : valNat m ≠ botElem) :
+    valNat (myhillCase2Code j n m) = valNat n := by
+  rw [valNat_myhillCase2Code, condSet_same _ _ hm]
+  exact Set.union_eq_self_of_subset_left hj
+
+theorem valNat_mem_comp_primrec {u : Pomega} {p s : ℕ → ℕ} {k : ℕ}
+    (hu : IsCombinatory u) (hr : Realizes u p) (hs : Primrec s) :
+    REPred fun m => k ∈ valNat (p (s m)) := by
+  have hinner : REPred fun q : ℕ × ℕ =>
+      q.2 ∈ funOf u (ofNat (s q.1)) ∧ k ∈ valNat q.2 :=
+    REPred.and
+      ((funOf_ofNat_mem_re (combinatory_isRE hu)).comp
+        (Primrec.pair (hs.comp Primrec.fst) Primrec.snd).to_comp)
+      (valNat_mem_re.comp (Primrec.pair Primrec.snd (Primrec.const k)).to_comp)
+  exact _root_.REPred.of_eq (REPred.exists_param (α := ℕ) hinner) fun m =>
+    (realizes_valNat_mem hr (s m) k).symm
+
+theorem theorem_3_5_case2 {u : Pomega} {p : ℕ → ℕ} {n j k : ℕ}
+    (hu : IsCombinatory u) (hr : Realizes u p)
+    (hext : IsExtensional valNat p)
+    (hj : e j ⊆ valNat n)
+    (hne : e j ≠ valNat n)
+    (hkfin : k ∈ valNat (p (fin j)))
+    (hkn : k ∉ valNat (p n)) : False := by
+  have hiff : ∀ m, k ∈ valNat (p (myhillCase2Code j n m)) ↔ valNat m = botElem := by
+    intro m
+    by_cases hm : valNat m = botElem
+    · have : valNat (myhillCase2Code j n m) = e j := by
+        rw [valNat_myhillCase2Code, hm, eq_2_7_bot]
+        simp [botElem]
+      have := hext (myhillCase2Code j n m) (fin j) (by simp [this, valNat_fin])
+      simp [this, valNat_fin, hkfin, hm]
+    · have : valNat (myhillCase2Code j n m) = valNat n :=
+        valNat_myhillCase2Code_ne_bot j n m hj hm
+      have := hext (myhillCase2Code j n m) n this
+      simp [this, hkn, hm]
+  have hre : REPred fun m => valNat m = botElem :=
+    _root_.REPred.of_eq
+      (valNat_mem_comp_primrec (k := k) hu hr (primrec_myhillCase2Code j n))
+      fun m => hiff m
+  exact theorem_3_4 hre
+
+/-- Shifted enumerator of the halting set: `0` is the miss marker. -/
+def haltEnum (t : ℕ) : ℕ :=
+  bif (evaln t.unpair.2 (Denumerable.ofNat Code t.unpair.1) 0).isSome
+    then t.unpair.1 + 1 else 0
+
+theorem primrec_haltEnum : Primrec haltEnum := by
+  have heval : Primrec fun t : ℕ =>
+      evaln t.unpair.2 (Denumerable.ofNat Code t.unpair.1) 0 :=
+    primrec_evaln.comp <|
+      Primrec.pair
+        (Primrec.pair (Primrec.snd.comp Primrec.unpair)
+          ((Primrec.ofNat Code).comp (Primrec.fst.comp Primrec.unpair)))
+        (Primrec.const 0)
+  exact (Primrec.cond (Primrec.option_isSome.comp heval)
+    (Primrec.succ.comp (Primrec.fst.comp Primrec.unpair))
+    (Primrec.const 0)).of_eq fun t => by
+    simp [haltEnum]
+
+theorem haltEnum_succ_iff (m : ℕ) :
+    (∃ t, haltEnum t = m + 1) ↔ (eval (Denumerable.ofNat Code m) 0).Dom := by
+  constructor
+  · intro ⟨t, ht⟩
+    have hs : (evaln t.unpair.2 (Denumerable.ofNat Code t.unpair.1) 0).isSome = true := by
+      by_contra h
+      have : haltEnum t = 0 := by
+        simp [haltEnum, Bool.eq_false_of_not_eq_true h]
+      omega
+    have : haltEnum t = t.unpair.1 + 1 := by simp [haltEnum, hs]
+    have hm : t.unpair.1 = m := by omega
+    obtain ⟨val, hval⟩ := Option.isSome_iff_exists.mp hs
+    exact Part.dom_iff_mem.mpr ⟨val, evaln_sound (by simpa [hm] using hval)⟩
+  · intro hdom
+    obtain ⟨val, hval⟩ := Part.dom_iff_mem.mp hdom
+    obtain ⟨s, hs⟩ := evaln_complete.mp hval
+    refine ⟨Nat.pair m s, ?_⟩
+    simp [haltEnum, Nat.unpair_pair, Option.isSome_of_mem hs]
+
+theorem haltEnum_range_re : REPred fun m => ∃ t, haltEnum t = m :=
+  REPred.exists (p := fun m t => haltEnum t = m)
+    ((Primrec.eq.comp (primrec_haltEnum.comp Primrec.snd) Primrec.fst).computablePred.to_re)
+
+theorem haltEnum_range_not_computable :
+    ¬ComputablePred fun m => ∃ t, haltEnum t = m := by
+  intro hc
+  haveI := hc.choose
+  have hsucc : ComputablePred fun n : ℕ => ∃ t, haltEnum t = n + 1 :=
+    Computable.computablePred
+      ((ComputablePred.decide hc).comp Primrec.succ.to_comp)
+  have hn : ComputablePred fun n : ℕ =>
+      (eval (Denumerable.ofNat Code n) 0).Dom :=
+    hsucc.of_eq fun n => haltEnum_succ_iff n
+  haveI := hn.choose
+  haveI : DecidablePred fun c : Code => (eval c 0).Dom :=
+    fun c => decidable_of_iff
+      (eval (Denumerable.ofNat Code (encode c)) 0).Dom
+      (by simp [Denumerable.ofNat_encode])
+  exact ComputablePred.halting_problem (n := 0)
+    (Computable.computablePred
+      ((ComputablePred.decide hn).comp Computable.encode |>.of_eq fun c => by
+        simp [Denumerable.ofNat_encode]))
+
+def beforeHalt (m j : ℕ) : Prop := ∀ i < j + 1, haltEnum i ≠ m
+
+instance : DecidableRel beforeHalt :=
+  fun m j => decidable_of_iff (∀ i : Fin (j + 1), haltEnum i.val ≠ m)
+    ⟨fun h i hi => h ⟨i, hi⟩, fun h i => h i.val i.isLt⟩
+
+theorem primrecPred_beforeHalt : PrimrecRel beforeHalt := by
+  have hne : PrimrecRel fun (i m : ℕ) => haltEnum i ≠ m :=
+    (Primrec.eq.comp (primrec_haltEnum.comp Primrec.fst) Primrec.snd).not
+  exact (hne.forall_mem_list.comp (Primrec.list_range.comp
+      (Primrec.succ.comp Primrec.snd)) Primrec.fst).of_eq fun _ => by
+    simp [beforeHalt]
+
+def filterNum (q : ℕ) : ℕ :=
+  if beforeHalt q.unpair.1 q.unpair.2 then q.unpair.2 + 1 else 0
+
+theorem primrec_filterNum : Nat.Primrec filterNum := by
+  have h : Primrec filterNum :=
+    (Primrec.ite (c := fun q : ℕ => beforeHalt q.unpair.1 q.unpair.2)
+      (primrecPred_beforeHalt.comp
+        (Primrec.fst.comp Primrec.unpair) (Primrec.snd.comp Primrec.unpair))
+      (Primrec.succ.comp (Primrec.snd.comp Primrec.unpair))
+      (Primrec.const 0)).of_eq fun q => by
+      simp [filterNum]
+  exact Primrec.nat_iff.mp h
+
+noncomputable def filterRealizer : Pomega :=
+  (primrec_realized primrec_filterNum).choose
+
+theorem filterRealizer_combinatory : IsCombinatory filterRealizer :=
+  (primrec_realized primrec_filterNum).choose_spec.1
+
+theorem filterRealizer_realizes : Realizes filterRealizer filterNum :=
+  (primrec_realized primrec_filterNum).choose_spec.2
+
+def filterEnv : ℕ → Pomega
+  | 3 => filterRealizer
+  | 4 => pairComb
+  | 5 => dollarC
+  | 6 => predC
+  | 7 => topElem
+  | _ => botElem
+
+theorem filterEnv_combinatory : ∀ i, IsCombinatory (filterEnv i)
+  | 3 => filterRealizer_combinatory
+  | 4 => pairComb_combinatory
+  | 5 => dollarC_combinatory
+  | 6 => .pred
+  | 7 => topElem_combinatory
+  | 0 | 1 | 2 => botElem_combinatory
+  | _ + 8 => botElem_combinatory
+
+/-- `λm. pred($ (λj. filterRealizer(pair m j)) ⊤)`. -/
+def filterTerm : Term :=
+  .lam 0 (.pred
+    (.app (.app (.var 5)
+      (.lam 1 (.app (.var 3) (.app (.app (.var 4) (.var 0)) (.var 1)))))
+      (.var 7)))
+
+def filterC : Pomega := interp filterTerm filterEnv
+
+theorem filterC_combinatory : IsCombinatory filterC := by
+  rw [filterC, theorem_2_4_complete]
+  exact ofComb_combinatory _ _ filterEnv_combinatory
+
+theorem filterSeq_isScottContinuous :
+    IsScottContinuous fun v =>
+      graph (fun j => funOf filterRealizer (funOf (funOf pairComb v) j)) :=
+  graph_const_isScottContinuous
+    (fun v j => funOf filterRealizer (funOf (funOf pairComb v) j))
+    (fun j =>
+      theorem_1_3 (f := fun w => funOf filterRealizer w)
+        (g := fun v => funOf (funOf pairComb v) j)
+        (funOf_isScottContinuous filterRealizer)
+        (theorem_1_3 (f := fun w => funOf w j) (g := fun v => funOf pairComb v)
+          (funOf_isScottContinuous_left j)
+          (funOf_isScottContinuous pairComb)))
+
+theorem filterC_app (m : ℕ) :
+    funOf filterC (ofNat m) = {j | ∀ i ≤ j, haltEnum i ≠ m} := by
+  have hgraph :
+      filterC = graph (fun v =>
+        predSet (seqFun
+          (graph (fun j =>
+            funOf filterRealizer (funOf (funOf pairComb v) j)))
+          topElem)) := by
+    unfold filterC filterTerm
+    apply congrArg graph
+    funext v
+    simp [interp, envSet, Function.update, filterEnv, eq_2_25]
+  have hcont : IsScottContinuous fun v =>
+      predSet (seqFun
+        (graph (fun j => funOf filterRealizer (funOf (funOf pairComb v) j)))
+        topElem) :=
+    theorem_1_3 predSet_isScottContinuous
+      (theorem_1_3 (seqFun_left_isScottContinuous topElem)
+        filterSeq_isScottContinuous)
+  have hbody :
+      funOf filterC (ofNat m) =
+        predSet (seqFun
+          (graph (fun j =>
+            funOf filterRealizer (funOf (funOf pairComb (ofNat m)) j)))
+          topElem) := by
+    rw [hgraph]
+    exact beta hcont (ofNat m)
+  have hseq (i : ℕ) :
+      funOf (graph (fun j =>
+          funOf filterRealizer (funOf (funOf pairComb (ofNat m)) j)))
+        (ofNat i) =
+        ofNat (filterNum (Nat.pair m i)) := by
+    have hβ : funOf (graph (fun j =>
+        funOf filterRealizer (funOf (funOf pairComb (ofNat m)) j)))
+        (ofNat i) =
+        funOf filterRealizer (funOf (funOf pairComb (ofNat m)) (ofNat i)) :=
+      beta (theorem_1_3 (funOf_isScottContinuous filterRealizer)
+        (funOf_isScottContinuous (funOf pairComb (ofNat m)))) (ofNat i)
+    rw [hβ, pairComb_app, filterRealizer_realizes]
+  rw [hbody]
+  ext j
+  constructor
+  · intro hj
+    have : j + 1 ∈ seqFun
+        (graph (fun z =>
+          funOf filterRealizer (funOf (funOf pairComb (ofNat m)) z)))
+        topElem := hj
+    obtain ⟨i, -, hij⟩ := Set.mem_iUnion₂.mp this
+    have : filterNum (Nat.pair m i) = j + 1 := by
+      have hij' : j + 1 ∈ ofNat (filterNum (Nat.pair m i)) := by
+        rwa [← hseq i]
+      simpa [ofNat, eq_comm] using hij'
+    have hbf : beforeHalt m i := by
+      by_contra h
+      simp [filterNum, Nat.unpair_pair, h] at this
+    have hij' : i = j := by
+      simp [filterNum, Nat.unpair_pair, hbf] at this
+      omega
+    subst hij'
+    simpa [beforeHalt, Nat.lt_succ_iff] using hbf
+  · intro hj
+    have hbf : beforeHalt m j := by
+      simpa [beforeHalt, Nat.lt_succ_iff] using hj
+    have : filterNum (Nat.pair m j) = j + 1 := by
+      simp [filterNum, Nat.unpair_pair, hbf]
+    refine (show j + 1 ∈ seqFun
+        (graph (fun z =>
+          funOf filterRealizer (funOf (funOf pairComb (ofNat m)) z)))
+        topElem from ?_)
+    refine Set.mem_iUnion₂.mpr ⟨j, Set.mem_univ j, ?_⟩
+    have : j + 1 ∈ ofNat (filterNum (Nat.pair m j)) := by
+      simp [ofNat, this]
+    rwa [← hseq j] at this
+
+noncomputable def filterOp : ℕ :=
+  (theorem_3_2_surjective filterC_combinatory).choose
+
+theorem valNat_filterOp : valNat filterOp = filterC :=
+  (theorem_3_2_surjective filterC_combinatory).choose_spec
+
+noncomputable def myhillFilterCode (m : ℕ) : ℕ := applyNat filterOp (num m)
+
+theorem primrec_myhillFilterCode : Primrec myhillFilterCode :=
+  primrec_applyNat.comp (Primrec.const filterOp) primrec_num
+
+theorem valNat_myhillFilterCode (m : ℕ) :
+    valNat (myhillFilterCode m) = {j | ∀ i ≤ j, haltEnum i ≠ m} := by
+  rw [myhillFilterCode, valNat_apply, valNat_filterOp, eq_3_12, filterC_app]
+
+noncomputable def myhillCase1Code (n m : ℕ) : ℕ :=
+  applyNat (applyNat interCode n) (myhillFilterCode m)
+
+theorem primrec_myhillCase1Code (n : ℕ) : Primrec (myhillCase1Code n) :=
+  primrec_applyNat.comp
+    (primrec_applyNat.comp (Primrec.const interCode) (Primrec.const n))
+    primrec_myhillFilterCode
+
+theorem valNat_myhillCase1Code (n m : ℕ) :
+    valNat (myhillCase1Code n m) =
+      valNat n ∩ {j | ∀ i ≤ j, haltEnum i ≠ m} := by
+  rw [myhillCase1Code, valNat_apply, valNat_apply, valNat_interCode,
+    eq_2_17, valNat_myhillFilterCode]
+
+theorem theorem_3_5_case1 {u : Pomega} {p : ℕ → ℕ} {n k : ℕ}
+    (hu : IsCombinatory u) (hr : Realizes u p)
+    (hext : IsExtensional valNat p)
+    (hk : k ∈ valNat (p n))
+    (hnin : ¬∃ j, e j ⊆ valNat n ∧ k ∈ valNat (p (fin j)))
+    (hinf : ¬(valNat n).Finite) : False := by
+  have hiff : ∀ m,
+      k ∈ valNat (p (myhillCase1Code n m)) ↔ ¬∃ t, haltEnum t = m := by
+    intro m
+    by_cases hex : ∃ t, haltEnum t = m
+    · have hfin : ({j | ∀ i ≤ j, haltEnum i ≠ m} : Pomega).Finite :=
+        (Set.finite_Iio hex.choose).subset fun j hj =>
+          Nat.lt_of_not_ge fun hle => hj hex.choose hle hex.choose_spec
+      have hfins : (valNat (myhillCase1Code n m)).Finite := by
+        rw [valNat_myhillCase1Code]
+        exact hfin.inter_of_right _
+      obtain ⟨j, hj⟩ := exists_code_of_finite hfins
+      have hje : e j ⊆ valNat n := by
+        rw [hj, valNat_myhillCase1Code]
+        exact Set.inter_subset_left
+      have : k ∉ valNat (p (fin j)) := fun h => hnin ⟨j, hje, h⟩
+      have heq := hext (myhillCase1Code n m) (fin j) (by simp [hj, valNat_fin])
+      simp [heq, this, hex]
+    · have hall : {j | ∀ i ≤ j, haltEnum i ≠ m} = Set.univ := by
+        ext j
+        constructor
+        · intro _; trivial
+        · intro _ i _
+          exact fun h => hex ⟨i, h⟩
+      have : valNat (myhillCase1Code n m) = valNat n := by
+        rw [valNat_myhillCase1Code, hall]
+        simp
+      have heq := hext (myhillCase1Code n m) n this
+      simp [heq, hk, hex]
+  have hre : REPred fun m => ¬∃ t, haltEnum t = m :=
+    _root_.REPred.of_eq
+      (valNat_mem_comp_primrec (k := k) hu hr (primrec_myhillCase1Code n))
+      fun m => hiff m
+  exact haltEnum_range_not_computable
+    ((ComputablePred.computable_iff_re_compl_re').2 ⟨haltEnum_range_re, hre⟩)
+
+/-- **Scott 1976, Theorem 3.5 (The completeness theorem for definability).**
+If a total extensional mapping `p` is LAMBDA-definable, then there is a
+LAMBDA-definable `q` with `val(p n) = q(val n)`. -/
+theorem theorem_3_5 {p : ℕ → ℕ}
+    (hp : ∃ u, IsCombinatory u ∧ Realizes u p)
+    (hext : IsExtensional valNat p) :
+    ∃ q, IsCombinatory q ∧ ∀ n, valNat (p n) = funOf q (valNat n) := by
+  obtain ⟨u, hu, hr⟩ := hp
+  refine ⟨myhillQ valNat p, IsRE.combinatory (myhillQ_isRE hu hr), fun n => ?_⟩
+  rw [myhillQ_app]
+  ext k
+  constructor
+  · intro hk
+    by_contra hnin
+    have hinf : ∀ j, e j = valNat n → False := by
+      intro j hj
+      have : k ∈ valNat (p (fin j)) := by
+        have := hext n (fin j) (by simp [valNat_fin, hj])
+        simpa [this, valNat_fin] using hk
+      exact hnin (Set.mem_iUnion.mpr ⟨j,
+        Set.mem_iUnion.mpr ⟨by simp [hj], this⟩⟩)
+    -- Case 1: `val n` is infinite; finished after the filter construction.
+    have hfin : ¬(valNat n).Finite := by
+      intro hf
+      obtain ⟨j, hj⟩ := exists_code_of_finite hf
+      exact hinf j hj
+    have hnin' : ¬∃ j, e j ⊆ valNat n ∧ k ∈ valNat (p (fin j)) := by
+      intro ⟨j, hj, hkj⟩
+      exact hnin (Set.mem_iUnion.mpr ⟨j, Set.mem_iUnion.mpr ⟨hj, hkj⟩⟩)
+    exact theorem_3_5_case1 hu hr hext hk hnin' hfin
+  · intro hk
+    obtain ⟨j, hk⟩ := Set.mem_iUnion.mp hk
+    obtain ⟨hj, hk⟩ := Set.mem_iUnion.mp hk
+    by_contra hnin
+    have hne : e j ≠ valNat n := by
+      intro hj'
+      have := hext n (fin j) (by simp [valNat_fin, hj'])
+      exact hnin (by simpa [this, valNat_fin] using hk)
+    exact theorem_3_5_case2 hu hr hext hj hne hk hnin
 
 /-- **Scott 1976, Definition.** Enumeration degree of `a`. -/
 def Deg (a : Pomega) : Set Pomega :=
@@ -1604,10 +2583,75 @@ theorem theorem_3_7_generation {u : Pomega}
   rw [eq_3_16_operator] at hgen
   simpa [FUN] using huFUN ▸ hgen
 
-/- The converse inclusion needed to package Theorem 3.7 as an equality with
-`RE ∩ FUN` requires a closed-term/combinatory proof for the recursively
-defined `barComb` (equivalently the missing effective compilation result).
-Accordingly no weaker declaration is published as `theorem_3_7`. -/
+/-- Closed term for Scott's function-space retract `λu λx. u(x)`. -/
+def funRetractTerm : Term :=
+  .lam 0 (.lam 1 (.app (.var 0) (.var 1)))
+
+theorem funRetractTerm_interp :
+    interp funRetractTerm (fun _ => botElem) = funRetract := by
+  unfold funRetractTerm funRetract
+  simp [interp, envSet, Function.update]
+
+theorem funRetract_combinatory : IsCombinatory funRetract := by
+  rw [← funRetractTerm_interp]
+  exact theorem_2_4_closed funRetractTerm
+
+theorem graph_mem_FUN {f : Pomega → Pomega} (hf : IsScottContinuous f) :
+    graph f ∈ FUN := by
+  change graph f = graph (funOf (graph f))
+  rw [theorem_1_2_i hf]
+
+theorem Rcomb_mem_FUN : Rcomb ∈ FUN :=
+  graph_mem_FUN (seq2_right_isScottContinuous (ofNat 0))
+
+theorem Lcomb_mem_FUN : Lcomb ∈ FUN :=
+  graph_mem_FUN (theorem_1_3_tuple
+    (fun y => funOf_isScottContinuous_left y)
+    (fun t => funOf_isScottContinuous t)
+    (funOf_isScottContinuous_left (ofNat 1))
+    (funOf_isScottContinuous_left (ofNat 2)))
+
+theorem Gbar_combinatory : IsCombinatory Gbar :=
+  .app barComb_combinatory Gcomb_combinatory
+
+theorem Gbar_mem_FUN : Gbar ∈ FUN := by
+  change Gbar = graph (funOf Gbar)
+  have h : Gbar = graph (fun x => barStepBody barComb Gcomb x) := eq_3_15 Gcomb
+  have hf : IsScottContinuous (fun x => barStepBody barComb Gcomb x) :=
+    barStepBody_isScottContinuous_x barComb Gcomb
+  rw [h, theorem_1_2_i hf]
+
+theorem enumComp_eq_compose (u v : Pomega) :
+    enumComp u v = funOf funRetract (composeC u v) := by
+  rw [funRetract_app, composeC]
+  apply congrArg graph
+  funext x
+  exact (SK_comp u v x).symm
+
+theorem enumComp_combinatory {u v : Pomega}
+    (hu : IsCombinatory u) (hv : IsCombinatory v) :
+    IsCombinatory (enumComp u v) := by
+  rw [enumComp_eq_compose]
+  exact .app funRetract_combinatory (composeC_combinatory hu hv)
+
+theorem enumComp_mem_FUN (u v : Pomega) : enumComp u v ∈ FUN :=
+  graph_mem_FUN (theorem_1_3 (funOf_isScottContinuous u) (funOf_isScottContinuous v))
+
+theorem generatedSemigroup_mem_RE_FUN {u : Pomega} (hu : GeneratedSemigroup u) :
+    u ∈ RE ∩ FUN := by
+  induction hu with
+  | R => exact ⟨Rcomb_combinatory, Rcomb_mem_FUN⟩
+  | L => exact ⟨Lcomb_combinatory, Lcomb_mem_FUN⟩
+  | Gbar => exact ⟨Gbar_combinatory, Gbar_mem_FUN⟩
+  | comp _ _ ihu ihv =>
+      exact ⟨enumComp_combinatory ihu.1 ihv.1, enumComp_mem_FUN _ _⟩
+
+/-- **Scott 1976, Theorem 3.7 (The semigroup theorem).**
+The countable semigroup `RE ∩ FUN` of computable enumeration operators
+is finitely generated by `R`, `L` and `Ḡ`. -/
+theorem theorem_3_7 {u : Pomega} :
+    u ∈ RE ∩ FUN ↔ GeneratedSemigroup u :=
+  ⟨fun h => theorem_3_7_generation h.1 h.2, generatedSemigroup_mem_RE_FUN⟩
 
 /-- Combinatory elements lie in every enumeration degree, since `Deg a`
 contains `G` and is closed under application. -/
@@ -1818,6 +2862,126 @@ theorem vaalC_unfold (x : Pomega) :
           (funOf vaalC (funOf (funOf x (ofNat 1)) (ofNat 1)))) := by
   have h := congrArg (fun v => funOf v x) vaalC_fixedPoint
   simpa [vaalF_app] using h.symm
+
+/-- Closed terms for the five packed combinators of `G`. Binders avoid
+slot 8 so they can be placed inside `seq2Term`. -/
+def sucClosed : Term := .lam 4 (.succ (.var 4))
+def predClosed : Term := .lam 4 (.pred (.var 4))
+def condClosed : Term :=
+  .lam 4 (.lam 5 (.lam 6 (.cond (.var 6) (.var 4) (.var 5))))
+def kClosed : Term := .lam 4 (.lam 5 (.var 4))
+def sClosed : Term :=
+  .lam 4 (.lam 5 (.lam 6
+    (.app (.app (.var 4) (.var 6)) (.app (.var 5) (.var 6)))))
+
+theorem sucClosed_avoids8 : sucClosed.Avoids 8 := by
+  simp [sucClosed, Term.Avoids]
+
+theorem predClosed_avoids8 : predClosed.Avoids 8 := by
+  simp [predClosed, Term.Avoids]
+
+theorem condClosed_avoids8 : condClosed.Avoids 8 := by
+  simp [condClosed, Term.Avoids]
+
+theorem kClosed_avoids8 : kClosed.Avoids 8 := by
+  simp [kClosed, Term.Avoids]
+
+theorem sClosed_avoids8 : sClosed.Avoids 8 := by
+  simp [sClosed, Term.Avoids]
+
+theorem seq2Term_avoids8 (a b : Term) : (seq2Term a b).Avoids 8 :=
+  Or.inl rfl
+
+theorem sucClosed_interp (ρ : ℕ → Pomega) : interp sucClosed ρ = sucC := by
+  unfold sucClosed sucC
+  simp [interp, envSet, Function.update]
+
+theorem predClosed_interp (ρ : ℕ → Pomega) : interp predClosed ρ = predC := by
+  unfold predClosed predC
+  simp [interp, envSet, Function.update]
+
+theorem condClosed_interp (ρ : ℕ → Pomega) : interp condClosed ρ = condC := by
+  unfold condClosed condC
+  simp [interp, envSet, Function.update]
+
+theorem kClosed_interp (ρ : ℕ → Pomega) : interp kClosed ρ = Kcomb := by
+  unfold kClosed Kcomb
+  simp [interp, envSet, Function.update]
+
+theorem sClosed_interp (ρ : ℕ → Pomega) : interp sClosed ρ = Scomb := by
+  unfold sClosed Scomb
+  simp [interp, envSet, Function.update]
+
+def gpackClosed : Term :=
+  seq2Term sucClosed
+    (seq2Term predClosed
+      (seq2Term condClosed (seq2Term kClosed sClosed)))
+
+theorem gpackClosed_interp (ρ : ℕ → Pomega) :
+    interp gpackClosed ρ = Gpack := by
+  unfold gpackClosed Gpack
+  rw [seq2Term_interp _ _ ρ sucClosed_avoids8 (seq2Term_avoids8 _ _),
+    seq2Term_interp _ _ ρ predClosed_avoids8 (seq2Term_avoids8 _ _),
+    seq2Term_interp _ _ ρ condClosed_avoids8 (seq2Term_avoids8 _ _),
+    seq2Term_interp _ _ ρ kClosed_avoids8 sClosed_avoids8,
+    sucClosed_interp, predClosed_interp, condClosed_interp,
+    kClosed_interp, sClosed_interp]
+
+def gClosed : Term := .lam 3 (.cond (.var 3) gpackClosed .zero)
+
+theorem gClosed_interp (ρ : ℕ → Pomega) : interp gClosed ρ = Gcomb := by
+  unfold gClosed Gcomb
+  apply congrArg graph
+  funext z
+  simp only [interp]
+  rw [gpackClosed_interp]
+  simp [envSet, Function.update, zeroC]
+
+/-- Closed term for the functional whose least fixed point is `vaal`. -/
+def vaalStepTerm : Term :=
+  .lam 0 (.lam 1
+    (.cond (.app (.var 1) .zero) gClosed
+      (.app
+        (.app (.var 0) (.app (.app (.var 1) (.succ .zero)) .zero))
+        (.app (.var 0) (.app (.app (.var 1) (.succ .zero)) (.succ .zero))))))
+
+theorem vaalStepTerm_interp :
+    interp vaalStepTerm (fun _ => botElem) = graph vaalF := by
+  unfold vaalStepTerm vaalF
+  -- `interp (.lam i t)` is definitionally a graph; keep `gClosed` packed.
+  apply congrArg graph
+  funext v
+  apply congrArg graph
+  funext x
+  show condSet (interp (.app (.var 1) .zero)
+        (envSet (envSet (fun _ => botElem) 0 v) 1 x))
+      (interp gClosed (envSet (envSet (fun _ => botElem) 0 v) 1 x))
+      (interp
+        (.app
+          (.app (.var 0) (.app (.app (.var 1) (.succ .zero)) .zero))
+          (.app (.var 0) (.app (.app (.var 1) (.succ .zero)) (.succ .zero))))
+        (envSet (envSet (fun _ => botElem) 0 v) 1 x)) =
+    condSet (funOf x (ofNat 0)) Gcomb
+      (funOf (funOf v (funOf (funOf x (ofNat 1)) (ofNat 0)))
+        (funOf v (funOf (funOf x (ofNat 1)) (ofNat 1))))
+  rw [gClosed_interp]
+  simp [interp, envSet, Function.update, succSet_ofNat]
+
+theorem vaalC_combinatory : IsCombinatory vaalC := by
+  have hY : funOf Ycomb (interp vaalStepTerm (fun _ => botElem)) = vaalC := by
+    rw [vaalStepTerm_interp, theorem_2_5 vaalF_isScottContinuous]
+    rfl
+  exact hY ▸ IsCombinatory.app Ycomb_combinatory (theorem_2_4_closed vaalStepTerm)
+
+/-- **Scott 1976, (4.46).** `vaal : tree → id` as a typed map. -/
+def vaalTyped : Pomega := funOf (arrowR treeR Icomb) vaalC
+
+theorem vaalC_typed :
+    typed vaalTyped (arrowR treeR Icomb) :=
+  typed_apply_retract (arrowR_isRetract treeR_isRetract Icomb_isRetract)
+
+theorem vaalC_computable : IsRE vaalC :=
+  combinatory_isRE vaalC_combinatory
 
 /-- **Scott 1976, TOT.** Graphs of total number-theoretic functions:
 `$`-invariant and integer-valued on integers. -/

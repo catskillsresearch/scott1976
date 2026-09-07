@@ -645,12 +645,6 @@ theorem theorem_5_5 {a : Pomega} (ha : IsClosure a) (x : Pomega) :
     Vapply a x = funOf a x ∧ Vapply a (Vapply a x) = Vapply a x :=
   ⟨eq_5_18_eq ha x, eq_5_17 a x⟩
 
-theorem Icomb_isRetract : IsRetract Icomb := by
-  change Icomb = graph (fun x => funOf Icomb (funOf Icomb x))
-  apply graph_ext
-  intro x
-  simp [Icomb_app]
-
 theorem Icomb_isClosure : IsClosure Icomb :=
   ⟨subset_rfl, Icomb_isRetract⟩
 

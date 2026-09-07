@@ -145,6 +145,14 @@ def Icomb : Pomega := graph (fun x => x)
 theorem Icomb_app (x : Pomega) : funOf Icomb x = x :=
   beta id_isScottContinuous x
 
+theorem Icomb_isRetract : IsRetract Icomb := by
+  change Icomb = graph (fun x => funOf Icomb (funOf Icomb x))
+  have : (fun x => funOf Icomb (funOf Icomb x)) = fun x => x := by
+    funext x
+    simp [Icomb_app]
+  rw [this]
+  rfl
+
 theorem inter_const_isScottContinuous {f : Pomega → Pomega}
     (hf : IsScottContinuous f) (b : Pomega) :
     IsScottContinuous (fun z => f z ∩ b) := by
@@ -1356,5 +1364,70 @@ def envR : Pomega :=
 /-- **Scott 1976, (4.41).** Environment update `t[x/n]`. -/
 def updateEnv (t x : Pomega) (n : ℕ) : Pomega :=
   graph (fun m => if m = ofNat n then x else funOf t m)
+
+/-- **Scott 1976, Theorem 4.6**, inverse-limit half packaged with the
+retract half. Under the paper's extra strictness and `⊑`-monotonicity
+hypotheses, the range of `Y(F)` is order-isomorphic to the inverse
+limit of the ranges of `Fⁿ(⊥)`. -/
+theorem theorem_4_6_limit {F : Pomega → Pomega}
+    (hf : IsScottContinuous F)
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a))
+    (hmono : ∀ {a b}, IsRetract a → IsStrict a →
+      IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b)) :
+    (∀ n, IsRetract (iterateBot F n)) ∧
+      IsRetract (funOf Ycomb (graph F)) ∧
+        Nonempty (Fixpoints (funOf (fix F)) ≃o RetractInverseLimit F) :=
+  ⟨(theorem_4_6 hf hret).1, (theorem_4_6 hf hret).2,
+    ⟨theorem_4_6_inverseLimit hf hret hstrict hmono⟩⟩
+
+/-- Tag injection `⟨i, x⟩` used by the expanded n-ary sum of (4.44). -/
+def tagInj (i : ℕ) (x : Pomega) : Pomega := pairSeq (ofNat i) x
+
+/-- Four-place sequence used by the expanded product of (4.44). -/
+def seq4 (a b c d : Pomega) : Pomega :=
+  graph (fun z =>
+    condSet z a
+      (condSet (predSet z) b
+        (condSet (predSet (predSet z)) c
+          (condSet (predSet (predSet (predSet z))) d botElem))))
+
+/-- **Scott 1976, before (4.44).** Four-fold product by expanded indices,
+not iterated binary `⊗`. -/
+def tensor4 (a b c d : Pomega) : Pomega :=
+  graph (fun u =>
+    seq4 (funOf a (funOf u (ofNat 0)))
+      (funOf b (funOf u (ofNat 1)))
+      (funOf c (funOf u (ofNat 2)))
+      (funOf d (funOf u (ofNat 3))))
+
+/-- Body of the seven-way tagged sum of (4.44). -/
+def plus7Body (a0 a1 a2 a3 a4 a5 a6 u : Pomega) : Pomega :=
+  dcondSet (funOf u (ofNat 0)) (tagInj 0 (funOf a0 (funOf u (ofNat 1))))
+    (dcondSet (predSet (funOf u (ofNat 0))) (tagInj 1 (funOf a1 (funOf u (ofNat 1))))
+      (dcondSet (predSet (predSet (funOf u (ofNat 0))))
+        (tagInj 2 (funOf a2 (funOf u (ofNat 1))))
+        (dcondSet (predSet^[3] (funOf u (ofNat 0)))
+          (tagInj 3 (funOf a3 (funOf u (ofNat 1))))
+          (dcondSet (predSet^[4] (funOf u (ofNat 0)))
+            (tagInj 4 (funOf a4 (funOf u (ofNat 1))))
+            (dcondSet (predSet^[5] (funOf u (ofNat 0)))
+              (tagInj 5 (funOf a5 (funOf u (ofNat 1))))
+              (dcondSet (predSet^[6] (funOf u (ofNat 0)))
+                (tagInj 6 (funOf a6 (funOf u (ofNat 1))))
+                topElem))))))
+
+/-- Seven-way tagged sum with indices `0,...,6`, dispatching by iterated
+predecessor on the tag so mixed tags collapse to `⊤` as in (4.4). -/
+def plus7 (a0 a1 a2 a3 a4 a5 a6 : Pomega) : Pomega :=
+  graph (plus7Body a0 a1 a2 a3 a4 a5 a6)
+
+/-- **Scott 1976, (4.44).** Abstract-syntax functor. -/
+def expF (z : Pomega) : Pomega :=
+  plus7 intR botElem z z (tensor4 z z z z) (tensorR z z) (tensorR intR z)
+
+/-- **Scott 1976, (4.44).** `exp` as the least fixed point of the seven-tag
+syntax functor. -/
+def expR : Pomega := funOf Ycomb (graph expF)
 
 end Scott1976.DataTypesAsLattices

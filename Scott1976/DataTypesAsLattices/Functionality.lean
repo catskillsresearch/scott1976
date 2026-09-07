@@ -60,6 +60,11 @@ theorem condSet_ofNat_one (x y : Pomega) : condSet (ofNat 1) x y = y := by
   ext n
   simp [condSet, ofNat]
 
+theorem condSet_ofNat_succ (n : ℕ) (x y : Pomega) :
+    condSet (ofNat (n + 1)) x y = y := by
+  ext k
+  simp [condSet, ofNat]
+
 theorem funOf_top (x : Pomega) : funOf topElem x = topElem := by
   ext m
   constructor
@@ -2513,4 +2518,757 @@ theorem eq_4_39 : lambR = plusR intR (arrowR lambR lambR) := by
 theorem lambR_fixedPoint : lambF lambR = lambR := by
   simpa [lambF] using eq_4_39.symm
 
-end Scott1976.DataTypesAsLattices
+theorem tagInj_isScottContinuous (i : ℕ) :
+    IsScottContinuous (tagInj i) :=
+  pairSeq_isScottContinuous_right (ofNat i)
+
+theorem seq4_isScottContinuous_each
+    (a b c d : Pomega) :
+    (IsScottContinuous fun x => seq4 x b c d) ∧
+      (IsScottContinuous fun y => seq4 a y c d) ∧
+        (IsScottContinuous fun z => seq4 a b z d) ∧
+          IsScottContinuous fun w => seq4 a b c w := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · exact graph_const_isScottContinuous
+      (fun x z => condSet z x
+        (condSet (predSet z) b
+          (condSet (predSet (predSet z)) c
+            (condSet (predSet^[3] z) d botElem))))
+      (fun z => condSet_isScottContinuous_mid z _)
+  · exact graph_const_isScottContinuous
+      (fun y z => condSet z a
+        (condSet (predSet z) y
+          (condSet (predSet (predSet z)) c
+            (condSet (predSet^[3] z) d botElem))))
+      (fun z => theorem_1_3 (condSet_isScottContinuous_right z a)
+        (condSet_isScottContinuous_mid (predSet z) _))
+  · exact graph_const_isScottContinuous
+      (fun z' t => condSet t a
+        (condSet (predSet t) b
+          (condSet (predSet (predSet t)) z'
+            (condSet (predSet^[3] t) d botElem))))
+      (fun t => theorem_1_3 (condSet_isScottContinuous_right t a)
+        (theorem_1_3 (condSet_isScottContinuous_right (predSet t) b)
+          (condSet_isScottContinuous_mid (predSet (predSet t)) _)))
+  · exact graph_const_isScottContinuous
+      (fun w t => condSet t a
+        (condSet (predSet t) b
+          (condSet (predSet (predSet t)) c
+            (condSet (predSet^[3] t) w botElem))))
+      (fun t => theorem_1_3 (condSet_isScottContinuous_right t a)
+        (theorem_1_3 (condSet_isScottContinuous_right (predSet t) b)
+          (theorem_1_3 (condSet_isScottContinuous_right (predSet (predSet t)) c)
+            (condSet_isScottContinuous_mid (predSet^[3] t) botElem))))
+
+theorem seq4_comp_isScottContinuous
+    {f g h i : Pomega → Pomega}
+    (hf : IsScottContinuous f) (hg : IsScottContinuous g)
+    (hh : IsScottContinuous h) (hi : IsScottContinuous i) :
+    IsScottContinuous (fun u => seq4 (f u) (g u) (h u) (i u)) :=
+  graph_const_isScottContinuous
+    (fun u z =>
+      condSet z (f u)
+        (condSet (predSet z) (g u)
+          (condSet (predSet (predSet z)) (h u)
+            (condSet (predSet (predSet (predSet z))) (i u) botElem))))
+    (fun z =>
+      continuous_nary
+        (fun y t => condSet_isScottContinuous_left y t)
+        (fun x t => condSet_isScottContinuous_mid x t)
+        (fun x y => condSet_isScottContinuous_right x y)
+        (const_isScottContinuous z) hf
+        (continuous_nary
+          (fun y t => condSet_isScottContinuous_left y t)
+          (fun x t => condSet_isScottContinuous_mid x t)
+          (fun x y => condSet_isScottContinuous_right x y)
+          (const_isScottContinuous (predSet z)) hg
+          (continuous_nary
+            (fun y t => condSet_isScottContinuous_left y t)
+            (fun x t => condSet_isScottContinuous_mid x t)
+            (fun x y => condSet_isScottContinuous_right x y)
+            (const_isScottContinuous (predSet (predSet z))) hh
+            (continuous_nary
+              (fun y t => condSet_isScottContinuous_left y t)
+              (fun x t => condSet_isScottContinuous_mid x t)
+              (fun x y => condSet_isScottContinuous_right x y)
+              (const_isScottContinuous (predSet (predSet (predSet z))))
+              hi (const_isScottContinuous botElem)))))
+
+theorem tensor4_map_isScottContinuous (a b c d : Pomega) :
+    IsScottContinuous (fun u =>
+      seq4 (funOf a (funOf u (ofNat 0)))
+        (funOf b (funOf u (ofNat 1)))
+        (funOf c (funOf u (ofNat 2)))
+        (funOf d (funOf u (ofNat 3)))) :=
+  seq4_comp_isScottContinuous
+    (theorem_1_3 (funOf_isScottContinuous a) (funOf_isScottContinuous_left (ofNat 0)))
+    (theorem_1_3 (funOf_isScottContinuous b) (funOf_isScottContinuous_left (ofNat 1)))
+    (theorem_1_3 (funOf_isScottContinuous c) (funOf_isScottContinuous_left (ofNat 2)))
+    (theorem_1_3 (funOf_isScottContinuous d) (funOf_isScottContinuous_left (ofNat 3)))
+
+theorem tensor4_app (a b c d u : Pomega) :
+    funOf (tensor4 a b c d) u =
+      seq4 (funOf a (funOf u (ofNat 0)))
+        (funOf b (funOf u (ofNat 1)))
+        (funOf c (funOf u (ofNat 2)))
+        (funOf d (funOf u (ofNat 3))) :=
+  beta (tensor4_map_isScottContinuous a b c d) u
+
+theorem predSet_iterate_ofNat :
+    ∀ k i, predSet^[k] (ofNat (k + i)) = ofNat i
+  | 0, i => by
+    simp [Function.iterate_zero]
+  | k + 1, i => by
+    rw [Function.iterate_succ_apply]
+    have : k + 1 + i = k + i + 1 := by omega
+    rw [this, predSet_ofNat_succ]
+    exact predSet_iterate_ofNat k i
+
+theorem predSet_iterate_self (k : ℕ) :
+    predSet^[k] (ofNat k) = ofNat 0 := by
+  simpa using predSet_iterate_ofNat k 0
+
+theorem plus7_map_isScottContinuous (a0 a1 a2 a3 a4 a5 a6 : Pomega) :
+    IsScottContinuous (plus7Body a0 a1 a2 a3 a4 a5 a6) := by
+  have htag (i : ℕ) (a : Pomega) :
+      IsScottContinuous (fun u => tagInj i (funOf a (funOf u (ofNat 1)))) :=
+    theorem_1_3 (tagInj_isScottContinuous i)
+      (theorem_1_3 (funOf_isScottContinuous a)
+        (funOf_isScottContinuous_left (ofNat 1)))
+  have hz : IsScottContinuous (fun u => funOf u (ofNat 0)) :=
+    funOf_isScottContinuous_left (ofNat 0)
+  have hpred : ∀ k, IsScottContinuous
+      (fun u => predSet^[k] (funOf u (ofNat 0))) := by
+    intro k
+    induction k with
+    | zero => exact hz
+    | succ k ih =>
+      have h := theorem_1_3 (f := predSet)
+        (g := fun u => predSet^[k] (funOf u (ofNat 0)))
+        predSet_isScottContinuous ih
+      convert h using 1
+      funext u
+      exact Function.iterate_succ_apply' predSet k (funOf u (ofNat 0))
+  refine continuous_nary
+    (fun y z => dcondSet_isScottContinuous_left y z)
+    (fun x z => dcondSet_isScottContinuous_mid x z)
+    (fun x y => dcondSet_isScottContinuous_right x y)
+    hz (htag 0 a0)
+    (continuous_nary
+      (fun y z => dcondSet_isScottContinuous_left y z)
+      (fun x z => dcondSet_isScottContinuous_mid x z)
+      (fun x y => dcondSet_isScottContinuous_right x y)
+      (hpred 1) (htag 1 a1)
+      (continuous_nary
+        (fun y z => dcondSet_isScottContinuous_left y z)
+        (fun x z => dcondSet_isScottContinuous_mid x z)
+        (fun x y => dcondSet_isScottContinuous_right x y)
+        (hpred 2) (htag 2 a2)
+        (continuous_nary
+          (fun y z => dcondSet_isScottContinuous_left y z)
+          (fun x z => dcondSet_isScottContinuous_mid x z)
+          (fun x y => dcondSet_isScottContinuous_right x y)
+          (hpred 3) (htag 3 a3)
+          (continuous_nary
+            (fun y z => dcondSet_isScottContinuous_left y z)
+            (fun x z => dcondSet_isScottContinuous_mid x z)
+            (fun x y => dcondSet_isScottContinuous_right x y)
+            (hpred 4) (htag 4 a4)
+            (continuous_nary
+              (fun y z => dcondSet_isScottContinuous_left y z)
+              (fun x z => dcondSet_isScottContinuous_mid x z)
+              (fun x y => dcondSet_isScottContinuous_right x y)
+              (hpred 5) (htag 5 a5)
+              (continuous_nary
+                (fun y z => dcondSet_isScottContinuous_left y z)
+                (fun x z => dcondSet_isScottContinuous_mid x z)
+                (fun x y => dcondSet_isScottContinuous_right x y)
+                (hpred 6) (htag 6 a6)
+                (const_isScottContinuous topElem)))))))
+
+theorem plus7_app (a0 a1 a2 a3 a4 a5 a6 u : Pomega) :
+    funOf (plus7 a0 a1 a2 a3 a4 a5 a6) u =
+      plus7Body a0 a1 a2 a3 a4 a5 a6 u :=
+  beta (plus7_map_isScottContinuous a0 a1 a2 a3 a4 a5 a6) u
+
+theorem plus7_app_bot (a0 a1 a2 a3 a4 a5 a6 : Pomega) :
+    funOf (plus7 a0 a1 a2 a3 a4 a5 a6) botElem = botElem := by
+  rw [plus7_app, plus7Body, funOf_bot, dcondSet_bot]
+
+theorem plus7_app_top (a0 a1 a2 a3 a4 a5 a6 : Pomega) :
+    funOf (plus7 a0 a1 a2 a3 a4 a5 a6) topElem = topElem := by
+  rw [plus7_app, plus7Body, funOf_top, dcondSet_top]
+
+theorem tagInj_zero (i : ℕ) (x : Pomega) :
+    funOf (tagInj i x) (ofNat 0) = ofNat i :=
+  pairSeq_app_zero (ofNat i) x
+
+theorem tagInj_one (i : ℕ) (x : Pomega) :
+    funOf (tagInj i x) (ofNat 1) = x :=
+  pairSeq_app_one (ofNat i) x
+
+theorem plus7_app_tag0 (a0 a1 a2 a3 a4 a5 a6 x : Pomega) :
+    funOf (plus7 a0 a1 a2 a3 a4 a5 a6) (tagInj 0 x) = tagInj 0 (funOf a0 x) := by
+  rw [plus7_app, plus7Body, tagInj_zero, tagInj_one, dcondSet_ofNat_zero]
+
+theorem plus7_app_tag1 (a0 a1 a2 a3 a4 a5 a6 x : Pomega) :
+    funOf (plus7 a0 a1 a2 a3 a4 a5 a6) (tagInj 1 x) = tagInj 1 (funOf a1 x) := by
+  rw [plus7_app, plus7Body, tagInj_zero, tagInj_one, predSet_ofNat_succ,
+    dcondSet_ofNat_one, dcondSet_ofNat_zero]
+
+theorem plus7_app_tag2 (a0 a1 a2 a3 a4 a5 a6 x : Pomega) :
+    funOf (plus7 a0 a1 a2 a3 a4 a5 a6) (tagInj 2 x) = tagInj 2 (funOf a2 x) := by
+  rw [plus7_app, plus7Body, tagInj_zero, tagInj_one, predSet_ofNat_succ,
+    dcondSet_ofNat_succ, predSet_ofNat_succ, dcondSet_ofNat_one,
+    dcondSet_ofNat_zero]
+
+theorem plus7_app_tag3 (a0 a1 a2 a3 a4 a5 a6 x : Pomega) :
+    funOf (plus7 a0 a1 a2 a3 a4 a5 a6) (tagInj 3 x) = tagInj 3 (funOf a3 x) := by
+  rw [plus7_app, plus7Body, tagInj_zero, tagInj_one, dcondSet_ofNat_succ,
+    predSet_ofNat_succ, dcondSet_ofNat_succ, predSet_ofNat_succ,
+    dcondSet_ofNat_one, predSet_iterate_self, dcondSet_ofNat_zero]
+
+theorem plus7_app_tag4 (a0 a1 a2 a3 a4 a5 a6 x : Pomega) :
+    funOf (plus7 a0 a1 a2 a3 a4 a5 a6) (tagInj 4 x) = tagInj 4 (funOf a4 x) := by
+  rw [plus7_app, plus7Body, tagInj_zero, tagInj_one, dcondSet_ofNat_succ,
+    predSet_ofNat_succ, dcondSet_ofNat_succ, predSet_ofNat_succ,
+    dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 3) (i := 1),
+    dcondSet_ofNat_one, predSet_iterate_self, dcondSet_ofNat_zero]
+
+theorem plus7_app_tag5 (a0 a1 a2 a3 a4 a5 a6 x : Pomega) :
+    funOf (plus7 a0 a1 a2 a3 a4 a5 a6) (tagInj 5 x) = tagInj 5 (funOf a5 x) := by
+  rw [plus7_app, plus7Body, tagInj_zero, tagInj_one, dcondSet_ofNat_succ,
+    predSet_ofNat_succ, dcondSet_ofNat_succ, predSet_ofNat_succ,
+    dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 3) (i := 2),
+    dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 4) (i := 1),
+    dcondSet_ofNat_one, predSet_iterate_self, dcondSet_ofNat_zero]
+
+theorem plus7_app_tag6 (a0 a1 a2 a3 a4 a5 a6 x : Pomega) :
+    funOf (plus7 a0 a1 a2 a3 a4 a5 a6) (tagInj 6 x) = tagInj 6 (funOf a6 x) := by
+  rw [plus7_app, plus7Body, tagInj_zero, tagInj_one, dcondSet_ofNat_succ,
+    predSet_ofNat_succ, dcondSet_ofNat_succ, predSet_ofNat_succ,
+    dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 3) (i := 3),
+    dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 4) (i := 2),
+    dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 5) (i := 1),
+    dcondSet_ofNat_one, predSet_iterate_self, dcondSet_ofNat_zero]
+
+theorem seq4_body_isScottContinuous (a b c d : Pomega) :
+    IsScottContinuous (fun z =>
+      condSet z a
+        (condSet (predSet z) b
+          (condSet (predSet (predSet z)) c
+            (condSet (predSet^[3] z) d botElem)))) :=
+  continuous_nary
+    (fun y t => condSet_isScottContinuous_left y t)
+    (fun x t => condSet_isScottContinuous_mid x t)
+    (fun x y => condSet_isScottContinuous_right x y)
+    id_isScottContinuous (const_isScottContinuous a)
+    (continuous_nary
+      (fun y t => condSet_isScottContinuous_left y t)
+      (fun x t => condSet_isScottContinuous_mid x t)
+      (fun x y => condSet_isScottContinuous_right x y)
+      predSet_isScottContinuous (const_isScottContinuous b)
+      (continuous_nary
+        (fun y t => condSet_isScottContinuous_left y t)
+        (fun x t => condSet_isScottContinuous_mid x t)
+        (fun x y => condSet_isScottContinuous_right x y)
+        (theorem_1_3 (f := predSet) (g := predSet)
+          predSet_isScottContinuous predSet_isScottContinuous)
+        (const_isScottContinuous c)
+        (continuous_nary
+          (fun y t => condSet_isScottContinuous_left y t)
+          (fun x t => condSet_isScottContinuous_mid x t)
+          (fun x y => condSet_isScottContinuous_right x y)
+          (theorem_1_3 (f := predSet)
+            (g := fun z => predSet (predSet z))
+            predSet_isScottContinuous
+            (theorem_1_3 (f := predSet) (g := predSet)
+              predSet_isScottContinuous predSet_isScottContinuous))
+          (const_isScottContinuous d) (const_isScottContinuous botElem))))
+
+theorem seq4_app (a b c d z : Pomega) :
+    funOf (seq4 a b c d) z =
+      condSet z a
+        (condSet (predSet z) b
+          (condSet (predSet (predSet z)) c
+            (condSet (predSet^[3] z) d botElem))) :=
+  beta (seq4_body_isScottContinuous a b c d) z
+
+theorem seq4_app_zero (a b c d : Pomega) :
+    funOf (seq4 a b c d) (ofNat 0) = a := by
+  rw [seq4_app, condSet_ofNat_zero]
+
+theorem seq4_app_one (a b c d : Pomega) :
+    funOf (seq4 a b c d) (ofNat 1) = b := by
+  rw [seq4_app, condSet_ofNat_one, predSet_ofNat_succ, condSet_ofNat_zero]
+
+theorem seq4_app_two (a b c d : Pomega) :
+    funOf (seq4 a b c d) (ofNat 2) = c := by
+  rw [seq4_app, condSet_ofNat_succ, predSet_ofNat_succ, condSet_ofNat_one,
+    predSet_ofNat_succ, condSet_ofNat_zero]
+
+theorem seq4_app_three (a b c d : Pomega) :
+    funOf (seq4 a b c d) (ofNat 3) = d := by
+  rw [seq4_app, condSet_ofNat_succ, predSet_ofNat_succ, condSet_ofNat_succ,
+    predSet_ofNat_succ, condSet_ofNat_one, predSet_iterate_self,
+    condSet_ofNat_zero]
+
+theorem tensor4_isRetract {a b c d : Pomega}
+    (ha : IsRetract a) (hb : IsRetract b) (hc : IsRetract c) (hd : IsRetract d) :
+    IsRetract (tensor4 a b c d) := by
+  change tensor4 a b c d =
+    graph (fun u => funOf (tensor4 a b c d) (funOf (tensor4 a b c d) u))
+  apply graph_ext
+  intro u
+  rw [tensor4_app, tensor4_app, seq4_app_zero, seq4_app_one, seq4_app_two,
+    seq4_app_three, retract_app ha, retract_app hb, retract_app hc, retract_app hd]
+
+theorem plus7_isRetract {a0 a1 a2 a3 a4 a5 a6 : Pomega}
+    (h0 : IsRetract a0) (h1 : IsRetract a1) (h2 : IsRetract a2)
+    (h3 : IsRetract a3) (h4 : IsRetract a4) (h5 : IsRetract a5)
+    (h6 : IsRetract a6) :
+    IsRetract (plus7 a0 a1 a2 a3 a4 a5 a6) := by
+  change plus7 a0 a1 a2 a3 a4 a5 a6 =
+    graph (fun u => funOf (plus7 a0 a1 a2 a3 a4 a5 a6)
+      (funOf (plus7 a0 a1 a2 a3 a4 a5 a6) u))
+  apply graph_ext
+  intro u
+  rw [plus7_app, plus7_app]
+  have hbody0 (x : Pomega) :
+      plus7Body a0 a1 a2 a3 a4 a5 a6 (tagInj 0 x) = tagInj 0 (funOf a0 x) := by
+    rw [plus7Body, tagInj_zero, tagInj_one, dcondSet_ofNat_zero]
+  have hbody1 (x : Pomega) :
+      plus7Body a0 a1 a2 a3 a4 a5 a6 (tagInj 1 x) = tagInj 1 (funOf a1 x) := by
+    rw [plus7Body, tagInj_zero, tagInj_one, predSet_ofNat_succ,
+      dcondSet_ofNat_one, dcondSet_ofNat_zero]
+  have hbody2 (x : Pomega) :
+      plus7Body a0 a1 a2 a3 a4 a5 a6 (tagInj 2 x) = tagInj 2 (funOf a2 x) := by
+    rw [plus7Body, tagInj_zero, tagInj_one, predSet_ofNat_succ,
+      dcondSet_ofNat_succ, predSet_ofNat_succ, dcondSet_ofNat_one,
+      dcondSet_ofNat_zero]
+  have hbody3 (x : Pomega) :
+      plus7Body a0 a1 a2 a3 a4 a5 a6 (tagInj 3 x) = tagInj 3 (funOf a3 x) := by
+    rw [plus7Body, tagInj_zero, tagInj_one, dcondSet_ofNat_succ,
+      predSet_ofNat_succ, dcondSet_ofNat_succ, predSet_ofNat_succ,
+      dcondSet_ofNat_one, predSet_iterate_self, dcondSet_ofNat_zero]
+  have hbody4 (x : Pomega) :
+      plus7Body a0 a1 a2 a3 a4 a5 a6 (tagInj 4 x) = tagInj 4 (funOf a4 x) := by
+    rw [plus7Body, tagInj_zero, tagInj_one, dcondSet_ofNat_succ,
+      predSet_ofNat_succ, dcondSet_ofNat_succ, predSet_ofNat_succ,
+      dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 3) (i := 1),
+      dcondSet_ofNat_one, predSet_iterate_self, dcondSet_ofNat_zero]
+  have hbody5 (x : Pomega) :
+      plus7Body a0 a1 a2 a3 a4 a5 a6 (tagInj 5 x) = tagInj 5 (funOf a5 x) := by
+    rw [plus7Body, tagInj_zero, tagInj_one, dcondSet_ofNat_succ,
+      predSet_ofNat_succ, dcondSet_ofNat_succ, predSet_ofNat_succ,
+      dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 3) (i := 2),
+      dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 4) (i := 1),
+      dcondSet_ofNat_one, predSet_iterate_self, dcondSet_ofNat_zero]
+  have hbody6 (x : Pomega) :
+      plus7Body a0 a1 a2 a3 a4 a5 a6 (tagInj 6 x) = tagInj 6 (funOf a6 x) := by
+    rw [plus7Body, tagInj_zero, tagInj_one, dcondSet_ofNat_succ,
+      predSet_ofNat_succ, dcondSet_ofNat_succ, predSet_ofNat_succ,
+      dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 3) (i := 3),
+      dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 4) (i := 2),
+      dcondSet_ofNat_succ, predSet_iterate_ofNat (k := 5) (i := 1),
+      dcondSet_ofNat_one, predSet_iterate_self, dcondSet_ofNat_zero]
+  have hbodyTop : plus7Body a0 a1 a2 a3 a4 a5 a6 topElem = topElem := by
+    rw [plus7Body, funOf_top, dcondSet_top]
+  have hbodyBot : plus7Body a0 a1 a2 a3 a4 a5 a6 botElem = botElem := by
+    rw [plus7Body, funOf_bot, dcondSet_bot]
+  rcases dcondSet_cases (funOf u (ofNat 0)) with hz | hz | hz | hz
+  · have hL : plus7Body a0 a1 a2 a3 a4 a5 a6 u =
+        tagInj 0 (funOf a0 (funOf u (ofNat 1))) := by
+      rw [plus7Body, dcondSet_of_zero_not_pos hz.1 hz.2]
+    rw [hL, hbody0, retract_app h0]
+  · rw [plus7Body, dcondSet_of_pos_not_zero hz.1 hz.2]
+    rcases dcondSet_cases (predSet (funOf u (ofNat 0))) with hz1 | hz1 | hz1 | hz1
+    · rw [dcondSet_of_zero_not_pos hz1.1 hz1.2, hbody1, retract_app h1]
+    · rw [dcondSet_of_pos_not_zero hz1.1 hz1.2]
+      rcases dcondSet_cases (predSet (predSet (funOf u (ofNat 0)))) with
+        hz2 | hz2 | hz2 | hz2
+      · rw [dcondSet_of_zero_not_pos hz2.1 hz2.2, hbody2, retract_app h2]
+      · rw [dcondSet_of_pos_not_zero hz2.1 hz2.2]
+        rcases dcondSet_cases (predSet^[3] (funOf u (ofNat 0))) with
+          hz3 | hz3 | hz3 | hz3
+        · rw [dcondSet_of_zero_not_pos hz3.1 hz3.2, hbody3, retract_app h3]
+        · rw [dcondSet_of_pos_not_zero hz3.1 hz3.2]
+          rcases dcondSet_cases (predSet^[4] (funOf u (ofNat 0))) with
+            hz4 | hz4 | hz4 | hz4
+          · rw [dcondSet_of_zero_not_pos hz4.1 hz4.2, hbody4, retract_app h4]
+          · rw [dcondSet_of_pos_not_zero hz4.1 hz4.2]
+            rcases dcondSet_cases (predSet^[5] (funOf u (ofNat 0))) with
+              hz5 | hz5 | hz5 | hz5
+            · rw [dcondSet_of_zero_not_pos hz5.1 hz5.2, hbody5, retract_app h5]
+            · rw [dcondSet_of_pos_not_zero hz5.1 hz5.2]
+              rcases dcondSet_cases (predSet^[6] (funOf u (ofNat 0))) with
+                hz6 | hz6 | hz6 | hz6
+              · rw [dcondSet_of_zero_not_pos hz6.1 hz6.2, hbody6, retract_app h6]
+              · rw [dcondSet_of_pos_not_zero hz6.1 hz6.2, hbodyTop]
+              · rw [dcondSet_of_mixed hz6.1 hz6.2, hbodyTop]
+              · rw [dcondSet_of_empty hz6.1 hz6.2, hbodyBot]
+            · rw [dcondSet_of_mixed hz5.1 hz5.2, hbodyTop]
+            · rw [dcondSet_of_empty hz5.1 hz5.2, hbodyBot]
+          · rw [dcondSet_of_mixed hz4.1 hz4.2, hbodyTop]
+          · rw [dcondSet_of_empty hz4.1 hz4.2, hbodyBot]
+        · rw [dcondSet_of_mixed hz3.1 hz3.2, hbodyTop]
+        · rw [dcondSet_of_empty hz3.1 hz3.2, hbodyBot]
+      · rw [dcondSet_of_mixed hz2.1 hz2.2, hbodyTop]
+      · rw [dcondSet_of_empty hz2.1 hz2.2, hbodyBot]
+    · rw [dcondSet_of_mixed hz1.1 hz1.2, hbodyTop]
+    · rw [dcondSet_of_empty hz1.1 hz1.2, hbodyBot]
+  · rw [plus7Body, dcondSet_of_mixed hz.1 hz.2, hbodyTop]
+  · rw [plus7Body, dcondSet_of_empty hz.1 hz.2, hbodyBot]
+
+theorem tensor4_diag_isScottContinuous :
+    IsScottContinuous (fun z => tensor4 z z z z) :=
+  graph_const_isScottContinuous
+    (fun z u =>
+      seq4 (funOf z (funOf u (ofNat 0)))
+        (funOf z (funOf u (ofNat 1)))
+        (funOf z (funOf u (ofNat 2)))
+        (funOf z (funOf u (ofNat 3))))
+    (fun u =>
+      seq4_comp_isScottContinuous
+        (funOf_isScottContinuous_left (funOf u (ofNat 0)))
+        (funOf_isScottContinuous_left (funOf u (ofNat 1)))
+        (funOf_isScottContinuous_left (funOf u (ofNat 2)))
+        (funOf_isScottContinuous_left (funOf u (ofNat 3))))
+
+theorem tensorR_right_isScottContinuous (a : Pomega) :
+    IsScottContinuous (fun b => tensorR a b) :=
+  graph_const_isScottContinuous
+    (fun b u =>
+      pairSeq (funOf a (funOf u (ofNat 0))) (funOf b (funOf u (ofNat 1))))
+    (fun u =>
+      theorem_1_3
+        (f := fun y => pairSeq (funOf a (funOf u (ofNat 0))) y)
+        (g := fun b => funOf b (funOf u (ofNat 1)))
+        (pairSeq_isScottContinuous_right (funOf a (funOf u (ofNat 0))))
+        (funOf_isScottContinuous_left (funOf u (ofNat 1))))
+
+theorem plus7_comp_isScottContinuous
+    {f0 f1 f2 f3 f4 f5 f6 : Pomega → Pomega}
+    (h0 : IsScottContinuous f0) (h1 : IsScottContinuous f1)
+    (h2 : IsScottContinuous f2) (h3 : IsScottContinuous f3)
+    (h4 : IsScottContinuous f4) (h5 : IsScottContinuous f5)
+    (h6 : IsScottContinuous f6) :
+    IsScottContinuous (fun z =>
+      plus7 (f0 z) (f1 z) (f2 z) (f3 z) (f4 z) (f5 z) (f6 z)) :=
+  graph_const_isScottContinuous
+    (fun z u => plus7Body (f0 z) (f1 z) (f2 z) (f3 z) (f4 z) (f5 z) (f6 z) u)
+    (fun u => by
+      have htag (i : ℕ) {f : Pomega → Pomega} (hf : IsScottContinuous f) :
+          IsScottContinuous (fun z =>
+            tagInj i (funOf (f z) (funOf u (ofNat 1)))) :=
+        theorem_1_3 (f := tagInj i)
+          (g := fun z => funOf (f z) (funOf u (ofNat 1)))
+          (tagInj_isScottContinuous i)
+          (theorem_1_3 (f := fun w => funOf w (funOf u (ofNat 1))) (g := f)
+            (funOf_isScottContinuous_left (funOf u (ofNat 1))) hf)
+      exact continuous_nary
+        (fun y t => dcondSet_isScottContinuous_left y t)
+        (fun x t => dcondSet_isScottContinuous_mid x t)
+        (fun x y => dcondSet_isScottContinuous_right x y)
+        (const_isScottContinuous (funOf u (ofNat 0))) (htag 0 h0)
+        (continuous_nary
+          (fun y t => dcondSet_isScottContinuous_left y t)
+          (fun x t => dcondSet_isScottContinuous_mid x t)
+          (fun x y => dcondSet_isScottContinuous_right x y)
+          (const_isScottContinuous (predSet (funOf u (ofNat 0)))) (htag 1 h1)
+          (continuous_nary
+            (fun y t => dcondSet_isScottContinuous_left y t)
+            (fun x t => dcondSet_isScottContinuous_mid x t)
+            (fun x y => dcondSet_isScottContinuous_right x y)
+            (const_isScottContinuous (predSet (predSet (funOf u (ofNat 0)))))
+            (htag 2 h2)
+            (continuous_nary
+              (fun y t => dcondSet_isScottContinuous_left y t)
+              (fun x t => dcondSet_isScottContinuous_mid x t)
+              (fun x y => dcondSet_isScottContinuous_right x y)
+              (const_isScottContinuous (predSet^[3] (funOf u (ofNat 0))))
+              (htag 3 h3)
+              (continuous_nary
+                (fun y t => dcondSet_isScottContinuous_left y t)
+                (fun x t => dcondSet_isScottContinuous_mid x t)
+                (fun x y => dcondSet_isScottContinuous_right x y)
+                (const_isScottContinuous (predSet^[4] (funOf u (ofNat 0))))
+                (htag 4 h4)
+                (continuous_nary
+                  (fun y t => dcondSet_isScottContinuous_left y t)
+                  (fun x t => dcondSet_isScottContinuous_mid x t)
+                  (fun x y => dcondSet_isScottContinuous_right x y)
+                  (const_isScottContinuous (predSet^[5] (funOf u (ofNat 0))))
+                  (htag 5 h5)
+                  (continuous_nary
+                    (fun y t => dcondSet_isScottContinuous_left y t)
+                    (fun x t => dcondSet_isScottContinuous_mid x t)
+                    (fun x y => dcondSet_isScottContinuous_right x y)
+                    (const_isScottContinuous (predSet^[6] (funOf u (ofNat 0))))
+                    (htag 6 h6) (const_isScottContinuous topElem))))))))
+
+theorem expF_isScottContinuous : IsScottContinuous expF :=
+  plus7_comp_isScottContinuous
+    (const_isScottContinuous intR)
+    (const_isScottContinuous botElem)
+    id_isScottContinuous
+    id_isScottContinuous
+    tensor4_diag_isScottContinuous
+    tensorR_diag_isScottContinuous
+    (tensorR_right_isScottContinuous intR)
+
+/-- **Scott 1976, (4.44).** `exp` is the least fixed point of the seven-tag
+syntax functor. -/
+theorem eq_4_44 : expR = expF expR := by
+  have hY : expR = fix expF := theorem_2_5 expF_isScottContinuous
+  have hfix : expF expR = expR := by
+    rw [hY]
+    exact (theorem_1_4 expF_isScottContinuous).1
+  exact hfix.symm
+
+/-- **Scott 1976, Theorem 4.6 applied to (4.44).** -/
+theorem expR_isRetract : IsRetract expR :=
+  (theorem_4_6 expF_isScottContinuous (fun a ha =>
+    plus7_isRetract intR_isRetract bot_isRetract ha ha
+      (tensor4_isRetract ha ha ha ha) (tensorR_isRetract ha ha)
+      (tensorR_isRetract intR_isRetract ha))).2
+
+theorem plus7_typed_inl0 {a0 a1 a2 a3 a4 a5 a6 x : Pomega} (hx : typed x a0) :
+    typed (tagInj 0 x) (plus7 a0 a1 a2 a3 a4 a5 a6) := by
+  rw [typed, plus7_app_tag0, ← hx]
+
+theorem plus7_typed_inl1 {a0 a1 a2 a3 a4 a5 a6 x : Pomega} (hx : typed x a1) :
+    typed (tagInj 1 x) (plus7 a0 a1 a2 a3 a4 a5 a6) := by
+  rw [typed, plus7_app_tag1, ← hx]
+
+theorem plus7_typed_inl2 {a0 a1 a2 a3 a4 a5 a6 x : Pomega} (hx : typed x a2) :
+    typed (tagInj 2 x) (plus7 a0 a1 a2 a3 a4 a5 a6) := by
+  rw [typed, plus7_app_tag2, ← hx]
+
+theorem plus7_typed_inl3 {a0 a1 a2 a3 a4 a5 a6 x : Pomega} (hx : typed x a3) :
+    typed (tagInj 3 x) (plus7 a0 a1 a2 a3 a4 a5 a6) := by
+  rw [typed, plus7_app_tag3, ← hx]
+
+theorem plus7_typed_inl4 {a0 a1 a2 a3 a4 a5 a6 x : Pomega} (hx : typed x a4) :
+    typed (tagInj 4 x) (plus7 a0 a1 a2 a3 a4 a5 a6) := by
+  rw [typed, plus7_app_tag4, ← hx]
+
+theorem plus7_typed_inl5 {a0 a1 a2 a3 a4 a5 a6 x : Pomega} (hx : typed x a5) :
+    typed (tagInj 5 x) (plus7 a0 a1 a2 a3 a4 a5 a6) := by
+  rw [typed, plus7_app_tag5, ← hx]
+
+theorem plus7_typed_inl6 {a0 a1 a2 a3 a4 a5 a6 x : Pomega} (hx : typed x a6) :
+    typed (tagInj 6 x) (plus7 a0 a1 a2 a3 a4 a5 a6) := by
+  rw [typed, plus7_app_tag6, ← hx]
+
+/-- **Scott 1976, (4.44).** Abstract-syntax encoding of a `LambTerm`. -/
+def encodeExp : LambTerm → Pomega
+  | .var n => tagInj 0 (ofNat n)
+  | .zero => tagInj 1 botElem
+  | .succ τ => tagInj 2 (encodeExp τ)
+  | .pred τ => tagInj 3 (encodeExp τ)
+  | .condq θ τ σ ρ =>
+      tagInj 4 (seq4 (encodeExp θ) (encodeExp τ) (encodeExp σ) (encodeExp ρ))
+  | .app τ σ => tagInj 5 (pairSeq (encodeExp τ) (encodeExp σ))
+  | .lam n τ => tagInj 6 (pairSeq (ofNat n) (encodeExp τ))
+
+theorem typed_ofNat_intR (n : ℕ) : typed (ofNat n) intR :=
+  (intR_ofNat n).symm
+
+theorem typed_bot_botElem : typed botElem botElem := by
+  change botElem = funOf botElem botElem
+  rw [funOf_bot]
+
+theorem envR_map_isScottContinuous :
+    IsScottContinuous (fun t => graph (fun n => funOf lambR (funOf t n))) :=
+  graph_const_isScottContinuous
+    (fun t n => funOf lambR (funOf t n))
+    (fun n => theorem_1_3 (funOf_isScottContinuous lambR)
+      (funOf_isScottContinuous_left n))
+
+theorem envR_app (t : Pomega) :
+    funOf envR t = graph (fun n => funOf lambR (funOf t n)) :=
+  beta envR_map_isScottContinuous t
+
+theorem envR_isRetract : IsRetract envR := by
+  change envR = graph (fun t => funOf envR (funOf envR t))
+  apply graph_ext
+  intro t
+  rw [envR_app, envR_app]
+  apply graph_ext
+  intro n
+  have hβ : funOf (graph (fun m => funOf lambR (funOf t m))) n =
+      funOf lambR (funOf t n) :=
+    beta (theorem_1_3 (funOf_isScottContinuous lambR)
+      (funOf_isScottContinuous t)) n
+  rw [hβ, retract_app lambR_isRetract]
+
+theorem typed_env_nth {t : Pomega} (ht : typed t envR) (n : ℕ) :
+    typed (funOf t (ofNat n)) lambR := by
+  have ht' : t = graph (fun m => funOf lambR (funOf t m)) := by
+    simpa [typed, envR_app] using ht
+  have : funOf t (ofNat n) = funOf lambR (funOf t (ofNat n)) := by
+    nth_rw 1 [ht']
+    exact beta (theorem_1_3 (funOf_isScottContinuous lambR)
+      (funOf_isScottContinuous t)) (ofNat n)
+  exact this
+
+theorem typed_apply_retract {a x : Pomega} (ha : IsRetract a) :
+    typed (funOf a x) a :=
+  (retract_app ha x).symm
+
+theorem typed_inleft_int_lamb {x : Pomega} (hx : typed x intR) :
+    typed (funOf inleftC x) lambR := by
+  rw [eq_4_39, inleftC_app]
+  exact plusR_typed_inl hx
+
+theorem typed_inright_arrow_lamb {x : Pomega}
+    (hx : typed x (arrowR lambR lambR)) :
+    typed (funOf inrightC x) lambR := by
+  rw [eq_4_39, inrightC_app]
+  exact plusR_typed_inr hx
+
+theorem typed_bot_lamb : typed botElem lambR := by
+  rw [eq_4_39]
+  exact plusR_typed_bot _ _
+
+theorem whichC_app (u : Pomega) : funOf whichC u = funOf u (ofNat 0) :=
+  fstC_app u
+
+theorem outC_app (u : Pomega) : funOf outC u = funOf u (ofNat 1) :=
+  sndC_app u
+
+theorem encodeExp_typed : ∀ τ : LambTerm, typed (encodeExp τ) expR := by
+  intro τ
+  induction τ with
+  | var n =>
+    rw [encodeExp, eq_4_44]
+    exact plus7_typed_inl0 (typed_ofNat_intR n)
+  | zero =>
+    rw [encodeExp, eq_4_44]
+    exact plus7_typed_inl1 typed_bot_botElem
+  | succ τ ih =>
+    rw [encodeExp, eq_4_44]
+    exact plus7_typed_inl2 ih
+  | pred τ ih =>
+    rw [encodeExp, eq_4_44]
+    exact plus7_typed_inl3 ih
+  | condq θ τ σ ρ ihθ ihτ ihσ ihρ =>
+    rw [encodeExp, eq_4_44]
+    refine plus7_typed_inl4 ?_
+    rw [typed, tensor4_app, seq4_app_zero, seq4_app_one, seq4_app_two,
+      seq4_app_three, ← ihθ, ← ihτ, ← ihσ, ← ihρ]
+  | app τ σ ihτ ihσ =>
+    rw [encodeExp, eq_4_44]
+    refine plus7_typed_inl5 ?_
+    exact (typed_pairSeq_tensorR expR expR _ _).mpr ⟨ihτ, ihσ⟩
+  | lam n τ ih =>
+    rw [encodeExp, eq_4_44]
+    refine plus7_typed_inl6 ?_
+    exact (typed_pairSeq_tensorR intR expR _ _).mpr ⟨typed_ofNat_intR n, ih⟩
+
+theorem Hinterp_isScottContinuous (τ : LambTerm) :
+    IsScottContinuous (Hinterp τ) := by
+  induction τ with
+  | var n =>
+    exact funOf_isScottContinuous_left (ofNat n)
+  | zero =>
+    exact const_isScottContinuous _
+  | succ τ ih =>
+    exact continuous_nary
+      (fun y z => condSet_isScottContinuous_left y z)
+      (fun x z => condSet_isScottContinuous_mid x z)
+      (fun x y => condSet_isScottContinuous_right x y)
+      (theorem_1_3 (funOf_isScottContinuous whichC) ih)
+      (theorem_1_3 (funOf_isScottContinuous inleftC)
+        (theorem_1_3 succSet_isScottContinuous
+          (theorem_1_3 (funOf_isScottContinuous outC) ih)))
+      (const_isScottContinuous botElem)
+  | pred τ ih =>
+    exact continuous_nary
+      (fun y z => condSet_isScottContinuous_left y z)
+      (fun x z => condSet_isScottContinuous_mid x z)
+      (fun x y => condSet_isScottContinuous_right x y)
+      (theorem_1_3 (funOf_isScottContinuous whichC) ih)
+      (theorem_1_3 (funOf_isScottContinuous inleftC)
+        (theorem_1_3 predSet_isScottContinuous
+          (theorem_1_3 (funOf_isScottContinuous outC) ih)))
+      (const_isScottContinuous botElem)
+  | condq θ τ σ ρ ihθ ihτ ihσ ihρ =>
+    exact theorem_1_3 (f := funOf lambR)
+      (g := fun t =>
+        condSet (funOf whichC (Hinterp θ t))
+          (condSet (funOf outC (Hinterp θ t)) (Hinterp τ t) (Hinterp σ t))
+          (Hinterp ρ t))
+      (funOf_isScottContinuous lambR)
+      (continuous_nary
+        (fun y z => condSet_isScottContinuous_left y z)
+        (fun x z => condSet_isScottContinuous_mid x z)
+        (fun x y => condSet_isScottContinuous_right x y)
+        (theorem_1_3 (funOf_isScottContinuous whichC) ihθ)
+        (continuous_nary
+          (fun y z => condSet_isScottContinuous_left y z)
+          (fun x z => condSet_isScottContinuous_mid x z)
+          (fun x y => condSet_isScottContinuous_right x y)
+          (theorem_1_3 (funOf_isScottContinuous outC) ihθ) ihτ ihσ)
+        ihρ)
+  | app τ σ ihτ ihσ =>
+    exact continuous_nary
+      (fun y z => condSet_isScottContinuous_left y z)
+      (fun x z => condSet_isScottContinuous_mid x z)
+      (fun x y => condSet_isScottContinuous_right x y)
+      (theorem_1_3 (funOf_isScottContinuous whichC) ihτ)
+      (const_isScottContinuous botElem)
+      (continuous_tuple
+        (fun y => funOf_isScottContinuous_left y)
+        (fun u => funOf_isScottContinuous u)
+        (theorem_1_3 (funOf_isScottContinuous outC) ihτ) ihσ)
+  | lam n τ ih =>
+    exact theorem_1_3 (f := funOf inrightC)
+      (g := fun t => graph (fun x => Hinterp τ (updateEnv t x n)))
+      (funOf_isScottContinuous inrightC)
+      (graph_const_isScottContinuous
+        (fun t x => Hinterp τ (updateEnv t x n))
+        (fun x => theorem_1_3 ih
+          (graph_const_isScottContinuous
+            (fun t m => if m = ofNat n then x else funOf t m)
+            (fun m => by
+              by_cases h : m = ofNat n
+              · simpa [h] using const_isScottContinuous (c := x)
+              · simpa [h] using funOf_isScottContinuous_left m))))
+
+/-- **Scott 1976, (4.45).** `ℋ⟦τ⟧` as a map `env → lamb`. -/
+def Htyped (τ : LambTerm) : Pomega :=
+  funOf (arrowR envR lambR) (graph (Hinterp τ))
+
+theorem Htyped_app (τ : LambTerm) (t : Pomega) :
+    funOf (Htyped τ) t = funOf lambR (Hinterp τ (funOf envR t)) := by
+  rw [Htyped, arrowR_app]
+  simp only [comp_app]
+  apply congrArg (funOf lambR)
+  exact beta (Hinterp_isScottContinuous τ) (funOf envR t)
+
+/-- **Scott 1976, (4.45).** Encoded expressions live in `exp`, and
+`ℋ⟦τ⟧` is typed `env → lamb`. -/
+theorem eq_4_45 (τ : LambTerm) :
+    typed (encodeExp τ) expR ∧
+      typed (Htyped τ) (arrowR envR lambR) :=
+  ⟨encodeExp_typed τ,
+    typed_apply_retract
+      (arrowR_isRetract envR_isRetract lambR_isRetract)⟩
+
+/-- Pointwise interpretation of encoded expressions, as an element of
+`Pω`. -/
+def Hpre : Pomega :=
+  graph (fun e =>
+    ⋃ τ : LambTerm, ⋃ (_ : encodeExp τ = e), (Htyped τ : Set ℕ))
+
+/-- **Scott 1976, (4.45).** `ℋ : exp → (env → lamb)`. -/
+def Hcomb : Pomega :=
+  funOf (arrowR expR (arrowR envR lambR)) Hpre
+
+theorem Hcomb_typed :
+    typed Hcomb (arrowR expR (arrowR envR lambR)) :=
+  typed_apply_retract
+    (arrowR_isRetract expR_isRetract
+      (arrowR_isRetract envR_isRetract lambR_isRetract))
