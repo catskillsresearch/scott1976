@@ -734,6 +734,38 @@ def treeR : Pomega := funOf Ycomb (graph treeF)
 def boolR : Pomega :=
   graph (fun u => condSet u (ofNat 0) (ofNat 1))
 
+theorem boolR_app (u : Pomega) :
+    funOf boolR u = condSet u (ofNat 0) (ofNat 1) :=
+  beta (condSet_isScottContinuous_left (ofNat 0) (ofNat 1)) u
+
+/-- `bool` is idempotent on the image of the ordinary conditional. -/
+theorem condSet_bool_idem (u : Pomega) :
+    condSet (condSet u (ofNat 0) (ofNat 1)) (ofNat 0) (ofNat 1) =
+      condSet u (ofNat 0) (ofNat 1) := by
+  ext n
+  constructor
+  · intro hn
+    rcases hn with ⟨hn0, h0⟩ | ⟨hn1, ⟨k, hk⟩⟩
+    · have h0u : 0 ∈ u := by
+        rcases h0 with ⟨_, hu⟩ | ⟨h01, _⟩
+        · exact hu
+        · simp [ofNat] at h01
+      exact Or.inl ⟨hn0, h0u⟩
+    · have hsucc : ∃ t, t + 1 ∈ u := by
+        rcases hk with ⟨hk0, _⟩ | ⟨_, ht⟩
+        · simp [ofNat] at hk0
+        · exact ht
+      exact Or.inr ⟨hn1, hsucc⟩
+  · intro hn
+    rcases hn with ⟨hn0, h0⟩ | ⟨hn1, ht⟩
+    · exact Or.inl ⟨hn0, Or.inl ⟨by simp [ofNat], h0⟩⟩
+    · exact Or.inr ⟨hn1, 0, Or.inr ⟨by simp [ofNat], ht⟩⟩
+
+theorem boolR_isRetract : IsRetract boolR := by
+  apply graph_ext
+  intro u
+  rw [boolR_app, boolR_app, condSet_bool_idem]
+
 /-- **Scott 1976, (4.6).** The open-set retract. -/
 def openR : Pomega :=
   graph (fun u => {m | ∃ n, e n ⊆ e m ∧ n ∈ u})

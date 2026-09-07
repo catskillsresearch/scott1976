@@ -552,12 +552,320 @@ theorem eq_4_33 {a b : Pomega} (hb : IsRetract b) :
     condSet_ofNat_one, retract_app hb]
   rw [pairSeq_app_zero, pairSeq_app_one, condSet_ofNat_one, retract_app hb]
 
+theorem evalC_isScottContinuous :
+    IsScottContinuous (fun u => funOf (funOf u (ofNat 0)) (funOf u (ofNat 1))) :=
+  continuous_tuple
+    (fun y => funOf_isScottContinuous_left y)
+    (fun t => funOf_isScottContinuous t)
+    (funOf_isScottContinuous_left (ofNat 0))
+    (funOf_isScottContinuous_left (ofNat 1))
+
+theorem evalC_app (u : Pomega) :
+    funOf evalC u = funOf (funOf u (ofNat 0)) (funOf u (ofNat 1)) :=
+  beta evalC_isScottContinuous u
+
+theorem curry_body_isScottContinuous_y (u x : Pomega) :
+    IsScottContinuous (fun y => funOf u (pairSeq x y)) :=
+  theorem_1_3 (funOf_isScottContinuous u) (pairSeq_isScottContinuous_right x)
+
+theorem curry_mid_isScottContinuous (u : Pomega) :
+    IsScottContinuous (fun x => graph (fun y => funOf u (pairSeq x y))) :=
+  graph_const_isScottContinuous
+    (fun x y => funOf u (pairSeq x y))
+    (fun y => theorem_1_3 (funOf_isScottContinuous u)
+      (pairSeq_isScottContinuous_left y))
+
+theorem curryC_isScottContinuous :
+    IsScottContinuous (fun u =>
+      graph (fun x => graph (fun y => funOf u (pairSeq x y)))) :=
+  graph_const_isScottContinuous
+    (fun u x => graph (fun y => funOf u (pairSeq x y)))
+    (fun x =>
+      graph_const_isScottContinuous
+        (fun u y => funOf u (pairSeq x y))
+        (fun y => funOf_isScottContinuous_left (pairSeq x y)))
+
+theorem curryC_app (u : Pomega) :
+    funOf curryC u = graph (fun x => graph (fun y => funOf u (pairSeq x y))) :=
+  beta curryC_isScottContinuous u
+
+theorem curryC_app2 (u x : Pomega) :
+    funOf (funOf curryC u) x = graph (fun y => funOf u (pairSeq x y)) := by
+  rw [curryC_app]
+  exact beta (curry_mid_isScottContinuous u) x
+
+theorem curryC_app3 (u x y : Pomega) :
+    funOf (funOf (funOf curryC u) x) y = funOf u (pairSeq x y) := by
+  rw [curryC_app2]
+  exact beta (curry_body_isScottContinuous_y u x) y
+
+/-- **Scott 1976, (4.24).** `eval ∘ ((b ∘→ c) ⊗ b) : ((b ∘→ c) ⊗ b) ∘→ c`. -/
+theorem eq_4_24 {b c : Pomega} (hb : IsRetract b) (hc : IsRetract c) :
+    typed (comp evalC (tensorR (arrowR b c) b))
+      (arrowR (tensorR (arrowR b c) b) c) := by
+  change comp evalC (tensorR (arrowR b c) b) =
+    funOf (arrowR (tensorR (arrowR b c) b) c)
+      (comp evalC (tensorR (arrowR b c) b))
+  rw [arrowR_app]
+  apply graph_ext
+  intro u
+  have hL :
+      funOf evalC (funOf (tensorR (arrowR b c) b) u) =
+        funOf c (funOf (funOf u (ofNat 0)) (funOf b (funOf u (ofNat 1)))) := by
+    rw [evalC_app, tensorR_app, pairSeq_app_zero, pairSeq_app_one, arrowR_app]
+    simp only [comp_app]
+    rw [retract_app hb]
+  have hR :
+      funOf c (funOf evalC (funOf (tensorR (arrowR b c) b)
+        (funOf (tensorR (arrowR b c) b) u))) =
+        funOf c (funOf (funOf u (ofNat 0)) (funOf b (funOf u (ofNat 1)))) := by
+    have hten := retract_app (tensorR_isRetract (arrowR_isRetract hb hc) hb) u
+    rw [hten, hL, retract_app hc]
+  simp only [comp_app]
+  exact hL.trans hR.symm
+
 theorem graph_funOf_ext {f g : Pomega}
     (hf : f = graph (fun x => funOf f x))
     (hg : g = graph (fun x => funOf g x))
     (h : ∀ x, funOf f x = funOf g x) : f = g := by
   rw [hf, hg]
   exact graph_ext h
+
+theorem typed_isGraph {a b f : Pomega} (hf : typed f (arrowR a b)) :
+    f = graph (fun x => funOf f x) := by
+  have hf' := typed_of_arrowR hf
+  apply Eq.trans hf'
+  apply graph_ext
+  intro x
+  have : funOf f x = funOf b (funOf f (funOf a x)) := by
+    have h1 : funOf f x = funOf (comp b (comp f a)) x :=
+      congrArg (fun w => funOf w x) hf'
+    rw [h1, comp_app, comp_app]
+  rw [comp_app, this]
+
+theorem comp_isGraph (u v : Pomega) :
+    comp u v = graph (fun x => funOf (comp u v) x) := by
+  apply graph_ext
+  intro x
+  exact (comp_app u v x).symm
+
+/-- **Scott 1976, after (4.25).** `eval ∘ (curry(f) ⊗ b) = f`. -/
+theorem eval_curry {a b c f : Pomega}
+    (_ha : IsRetract a) (hb : IsRetract b) (_hc : IsRetract c)
+    (hf : typed f (arrowR (tensorR a b) c)) :
+    comp evalC (tensorR (funOf curryC f) b) = f := by
+  have hf' := typed_of_arrowR hf
+  apply graph_funOf_ext (comp_isGraph _ _) (typed_isGraph hf)
+  intro u
+  simp only [comp_app]
+  rw [evalC_app, tensorR_app, pairSeq_app_zero, pairSeq_app_one, curryC_app3]
+  have hfapp :
+      funOf f (pairSeq (funOf u (ofNat 0)) (funOf b (funOf u (ofNat 1)))) =
+        funOf c (funOf f (funOf (tensorR a b)
+          (pairSeq (funOf u (ofNat 0)) (funOf b (funOf u (ofNat 1)))))) := by
+    have := congrArg (fun w =>
+      funOf w (pairSeq (funOf u (ofNat 0)) (funOf b (funOf u (ofNat 1))))) hf'
+    simpa [comp_app] using this
+  have hfu : funOf f u = funOf c (funOf f (funOf (tensorR a b) u)) := by
+    have := congrArg (fun w => funOf w u) hf'
+    simpa [comp_app] using this
+  rw [hfapp, tensorR_app, pairSeq_app_zero, pairSeq_app_one, retract_app hb]
+  rw [hfu, tensorR_app]
+
+/-- **Scott 1976, (4.28).** Left projection of a tagged sum. -/
+def outleftC : Pomega :=
+  graph (fun u => condSet (funOf u (ofNat 0)) (funOf u (ofNat 1)) botElem)
+
+/-- **Scott 1976, (4.29).** Right projection of a tagged sum. -/
+def outrightC : Pomega :=
+  graph (fun u => condSet (funOf u (ofNat 0)) botElem (funOf u (ofNat 1)))
+
+/-- **Scott 1976, (4.30).** Tag of a summand; same combinator as `fst`. -/
+def whichC : Pomega := fstC
+
+/-- **Scott 1976, (4.31).** Untagged payload; same combinator as `snd`. -/
+def outC : Pomega := sndC
+
+theorem outleftC_isScottContinuous :
+    IsScottContinuous (fun u =>
+      condSet (funOf u (ofNat 0)) (funOf u (ofNat 1)) botElem) :=
+  continuous_tuple
+    (fun y => condSet_isScottContinuous_left y botElem)
+    (fun tes => condSet_isScottContinuous_mid tes botElem)
+    (funOf_isScottContinuous_left (ofNat 0))
+    (funOf_isScottContinuous_left (ofNat 1))
+
+theorem outrightC_isScottContinuous :
+    IsScottContinuous (fun u =>
+      condSet (funOf u (ofNat 0)) botElem (funOf u (ofNat 1))) :=
+  continuous_tuple
+    (fun y => condSet_isScottContinuous_left botElem y)
+    (fun tes => condSet_isScottContinuous_right tes botElem)
+    (funOf_isScottContinuous_left (ofNat 0))
+    (funOf_isScottContinuous_left (ofNat 1))
+
+theorem outleftC_app (u : Pomega) :
+    funOf outleftC u = condSet (funOf u (ofNat 0)) (funOf u (ofNat 1)) botElem :=
+  beta outleftC_isScottContinuous u
+
+theorem outrightC_app (u : Pomega) :
+    funOf outrightC u = condSet (funOf u (ofNat 0)) botElem (funOf u (ofNat 1)) :=
+  beta outrightC_isScottContinuous u
+
+theorem funOf_condSet (z x y w : Pomega) :
+    funOf (condSet z x y) w = condSet z (funOf x w) (funOf y w) := by
+  ext m
+  constructor
+  · intro ⟨n, hn, hp⟩
+    rcases hp with ⟨hx, h0⟩ | ⟨hy, ht⟩
+    · exact Or.inl ⟨⟨n, hn, hx⟩, h0⟩
+    · exact Or.inr ⟨⟨n, hn, hy⟩, ht⟩
+  · intro hm
+    rcases hm with ⟨⟨n, hn, hx⟩, h0⟩ | ⟨⟨n, hn, hy⟩, ht⟩
+    · exact ⟨n, hn, Or.inl ⟨hx, h0⟩⟩
+    · exact ⟨n, hn, Or.inr ⟨hy, ht⟩⟩
+
+theorem plusR_fst (a b u : Pomega) :
+    funOf (funOf (plusR a b) u) (ofNat 0) =
+      condSet (funOf u (ofNat 0)) (ofNat 0) (ofNat 1) := by
+  rw [plusR_app, funOf_condSet, pairSeq_app_zero, pairSeq_app_zero]
+
+theorem plusR_snd (a b u : Pomega) :
+    funOf (funOf (plusR a b) u) (ofNat 1) =
+      condSet (funOf u (ofNat 0))
+        (funOf a (funOf u (ofNat 1))) (funOf b (funOf u (ofNat 1))) := by
+  rw [plusR_app, funOf_condSet, pairSeq_app_one, pairSeq_app_one]
+
+/-- **Scott 1976, (4.36).** `which ∘ (a ⊕ b) : (a ⊕ b) ∘→ bool`. -/
+theorem eq_4_36 (a b : Pomega) :
+    typed (comp whichC (plusR a b)) (arrowR (plusR a b) boolR) := by
+  change comp whichC (plusR a b) =
+    funOf (arrowR (plusR a b) boolR) (comp whichC (plusR a b))
+  rw [arrowR_app]
+  apply graph_ext
+  intro u
+  simp only [comp_app, whichC, fstC_app]
+  rw [plusR_fst, boolR_app, plusR_fst, plusR_fst, condSet_bool_idem, condSet_bool_idem]
+
+/-- **Scott 1976, Theorem 4.4.** The product mediator
+`h = (f ⊗ g) ∘ diag ∘ c`. -/
+def pairMed (f g c : Pomega) : Pomega :=
+  comp (tensorR f g) (comp diagC c)
+
+/-- **Scott 1976, Theorem 4.4.** Existence of the product mediator. -/
+theorem theorem_4_4_med {a b c f g : Pomega}
+    (_ha : IsRetract a) (_hb : IsRetract b) (hc : IsRetract c)
+    (hf : typed f (arrowR c a)) (hg : typed g (arrowR c b)) :
+    typed (pairMed f g c) (arrowR c (tensorR a b)) ∧
+      comp fstC (pairMed f g c) = f ∧
+      comp sndC (pairMed f g c) = g := by
+  have hf' := typed_of_arrowR hf
+  have hg' := typed_of_arrowR hg
+  refine ⟨?_, ?_, ?_⟩
+  · change pairMed f g c =
+        funOf (arrowR c (tensorR a b)) (pairMed f g c)
+    rw [arrowR_app, pairMed]
+    apply graph_ext
+    intro x
+    have hfxc : funOf f (funOf c x) =
+        funOf a (funOf f (funOf c x)) := by
+      have := congrArg (fun w => funOf w (funOf c x)) hf'
+      simpa [comp_app, retract_app hc] using this
+    have hgxc : funOf g (funOf c x) =
+        funOf b (funOf g (funOf c x)) := by
+      have := congrArg (fun w => funOf w (funOf c x)) hg'
+      simpa [comp_app, retract_app hc] using this
+    have hL : funOf (tensorR f g) (funOf diagC (funOf c x)) =
+        pairSeq (funOf f (funOf c x)) (funOf g (funOf c x)) := by
+      rw [diagC_app, tensorR_app, pairSeq_app_zero, pairSeq_app_one]
+    have hR : funOf (tensorR a b)
+        (funOf (tensorR f g) (funOf diagC (funOf c (funOf c x)))) =
+        pairSeq (funOf a (funOf f (funOf c x)))
+          (funOf b (funOf g (funOf c x))) := by
+      rw [retract_app hc, diagC_app]
+      have hinter :
+          funOf (tensorR f g) (pairSeq (funOf c x) (funOf c x)) =
+            pairSeq (funOf f (funOf c x)) (funOf g (funOf c x)) := by
+        rw [tensorR_app, pairSeq_app_zero, pairSeq_app_one]
+      rw [hinter, tensorR_app, pairSeq_app_zero, pairSeq_app_one]
+    simp only [comp_app]
+    rw [hL, hR]
+    exact congr (congrArg pairSeq hfxc) hgxc
+  · apply graph_funOf_ext (comp_isGraph _ _) (typed_isGraph hf)
+    intro x
+    simp only [comp_app, pairMed, fstC_app, diagC_app]
+    rw [tensorR_app, pairSeq_app_zero, pairSeq_app_zero]
+    have := congrArg (fun w => funOf w x) (typed_arrowR_restrict hc hf)
+    simpa [comp_app] using this.symm
+  · apply graph_funOf_ext (comp_isGraph _ _) (typed_isGraph hg)
+    intro x
+    simp only [comp_app, pairMed, sndC_app, diagC_app]
+    rw [tensorR_app, pairSeq_app_one, pairSeq_app_one]
+    have := congrArg (fun w => funOf w x) (typed_arrowR_restrict hc hg)
+    simpa [comp_app] using this.symm
+
+/-- **Scott 1976, Theorem 4.4.** The product mediator is unique. -/
+theorem theorem_4_4_med_unique {a b c f g h : Pomega}
+    (ha : IsRetract a) (hb : IsRetract b) (hc : IsRetract c)
+    (hf : typed f (arrowR c a)) (hg : typed g (arrowR c b))
+    (hh : typed h (arrowR c (tensorR a b)))
+    (hfst : comp fstC h = f) (hsnd : comp sndC h = g) :
+    h = pairMed f g c := by
+  apply graph_funOf_ext (typed_isGraph hh)
+    (typed_isGraph (theorem_4_4_med ha hb hc hf hg).1)
+  intro x
+  have hh' := typed_of_arrowR hh
+  have hx : funOf h x =
+      funOf (tensorR a b) (funOf h (funOf c x)) := by
+    have := congrArg (fun w => funOf w x) hh'
+    simpa [comp_app] using this
+  have h0 : funOf (funOf h x) (ofNat 0) = funOf f x := by
+    have := congrArg (fun w => funOf w x) hfst
+    simpa [comp_app, fstC_app] using this
+  have h1 : funOf (funOf h x) (ofNat 1) = funOf g x := by
+    have := congrArg (fun w => funOf w x) hsnd
+    simpa [comp_app, sndC_app] using this
+  rw [hx, tensorR_app]
+  have hfx : funOf a (funOf (funOf h (funOf c x)) (ofNat 0)) = funOf f x := by
+    have h0c : funOf (funOf h (funOf c x)) (ofNat 0) = funOf f (funOf c x) := by
+      have := congrArg (fun w => funOf w (funOf c x)) hfst
+      simpa [comp_app, fstC_app] using this
+    rw [h0c]
+    have := congrArg (fun w => funOf w x) (typed_of_arrowR hf)
+    simpa [comp_app] using this.symm
+  have hgx : funOf b (funOf (funOf h (funOf c x)) (ofNat 1)) = funOf g x := by
+    have h1c : funOf (funOf h (funOf c x)) (ofNat 1) = funOf g (funOf c x) := by
+      have := congrArg (fun w => funOf w (funOf c x)) hsnd
+      simpa [comp_app, sndC_app] using this
+    rw [h1c]
+    have := congrArg (fun w => funOf w x) (typed_of_arrowR hg)
+    simpa [comp_app] using this.symm
+  rw [hfx, hgx]
+  simp only [pairMed, comp_app, diagC_app, tensorR_app, pairSeq_app_zero,
+    pairSeq_app_one]
+  have hfr : funOf f (funOf c x) = funOf f x := by
+    have := congrArg (fun w => funOf w x) (typed_arrowR_restrict hc hf)
+    simpa [comp_app] using this.symm
+  have hgr : funOf g (funOf c x) = funOf g x := by
+    have := congrArg (fun w => funOf w x) (typed_arrowR_restrict hc hg)
+    simpa [comp_app] using this.symm
+  rw [hfr, hgr]
+
+theorem condSet_same_bot (x : Pomega) : condSet botElem x x = botElem :=
+  condSet_bot x x
+
+theorem condSet_same_of_mem {z x : Pomega} {k : ℕ} (hk : k ∈ z) :
+    condSet z x x = x := by
+  ext n
+  constructor
+  · intro hn
+    rcases hn with ⟨hnx, _⟩ | ⟨hnx, _⟩
+    · exact hnx
+    · exact hnx
+  · intro hnx
+    cases k with
+    | zero => exact Or.inl ⟨hnx, hk⟩
+    | succ t => exact Or.inr ⟨hnx, t, hk⟩
 
 theorem theorem_7_2_ii_of_typed {a b f : Pomega} (hf : typed f (arrowR a b)) :
     (arrowE (Ea a) (Ea b)).mem f := by

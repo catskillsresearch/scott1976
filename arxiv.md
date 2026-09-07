@@ -117,8 +117,8 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 4.1 | `theorem_4_1`, `theorem_4_1_complete` | partial — complete-lattice fragment on `Fixpoints`; continuous-lattice claim for retract ranges not fully packaged |
 | Theorem 4.2 | `theorem_4_2` | faithful |
 | Theorem 4.3 | `theorem_4_3`, `arrowR_isRetract` | partial — core function-space identities; not every numbered functoriality clause |
-| Theorem 4.4 | `theorem_4_4`, `theorem_4_4_typed`, `tensorR_isRetract`, `tensorR_isStrict`, `tensorR_retractLe`, `tensorR_functor`, `eq_4_12`, `eq_4_17`–`eq_4_21` | partial — product retract, `⊑`, functor on maps, (4.12)(4.17)–(4.21); mediator uniqueness omitted |
-| Theorem 4.5 | `theorem_4_5`, `eq_4_32`, `eq_4_33`, `inleftC`, `inrightC` | partial — strictness at `⊥`; injections typed; not the non-unique-coproduct remark |
+| Theorem 4.4 | `theorem_4_4`, `theorem_4_4_typed`, `theorem_4_4_med`, `theorem_4_4_med_unique`, `tensorR_isRetract`, `tensorR_isStrict`, `tensorR_retractLe`, `tensorR_functor`, `eq_4_12`, `eq_4_17`–`eq_4_21`, `eq_4_24`, `eval_curry` | partial — product retract, mediator existence/uniqueness, CCC `eval`; (4.25) curry typing omitted |
+| Theorem 4.5 | `theorem_4_5`, `eq_4_32`, `eq_4_33`, `eq_4_36`, `inleftC`, `inrightC`, `outleftC`, `outrightC`, `whichC`, `outC`, `boolR_isRetract` | partial — strictness at `⊥`; injections and `which` typed; `⊕` is not proved a retract; not the non-unique-coproduct remark |
 | Theorem 4.6 | `theorem_4_6` | partial — `Y(F)` is a retract; inverse-limit homeomorphism omitted |
 | (4.38) `tree` | `treeR` | partial — definition only |
 
