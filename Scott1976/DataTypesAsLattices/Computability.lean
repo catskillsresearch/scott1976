@@ -1641,4 +1641,24 @@ theorem theorem_2_6 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
   · exact ⟨fun ⟨t, ht⟩ => by simpa [ht] using theorem_2_4_closed t,
       combinatory_isLambdaDefinable⟩
 
+/-- **Scott 1976, §2, Definition.** A `k`-ary continuous map is computable
+when its nested graph (the pairing encoding of
+`m ∈ f(e n₀)⋯(e n_{k-1})`) is r.e. -/
+def IsComputableFin {n : ℕ} (f : (Fin n → Pomega) → Pomega) : Prop :=
+  IsScottContinuousFin f ∧ IsRE (curryFin f)
+
+/-- **Scott 1976, Theorem 2.6 (The definability theorem).**
+For a `k`-ary continuous `f`, computability of the finite-argument relation,
+recursive enumerability of the nested graph, combinatory definability, and
+closed LAMBDA-definability agree. -/
+theorem theorem_2_6_fin {n : ℕ} {f : (Fin n → Pomega) → Pomega}
+    (hf : IsScottContinuousFin f) :
+    (IsComputableFin f ↔ IsRE (curryFin f)) ∧
+      (IsRE (curryFin f) ↔ IsCombinatory (curryFin f)) ∧
+      (IsLambdaDefinable (curryFin f) ↔ IsCombinatory (curryFin f)) := by
+  refine ⟨?_, IsRE.iff_combinatory, ?_⟩
+  · exact ⟨fun h => h.2, fun h => ⟨hf, h⟩⟩
+  · exact ⟨fun ⟨t, ht⟩ => by simpa [ht] using theorem_2_4_closed t,
+      combinatory_isLambdaDefinable⟩
+
 end Scott1976.DataTypesAsLattices

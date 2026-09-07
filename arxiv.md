@@ -14,10 +14,10 @@ This note records a Lean 4 / mathlib formalization of Dana Scott's 1976 paper
 *Data Types as Lattices*. The library target is a 1:1 onto translation of
 every numbered definition, theorem, displayed equation used as a definition
 or example, and Tables 1–3 — no schematic stand-ins. Palomar Challenge /
-Solution files are a later, separate packaging step: they will select a
-minimum set of numbered theorems whose proofs depend on that whole
-development. Dana Scott was not contacted and did not participate in,
-review, or endorse this formalization.
+Solution files name every numbered theorem from §§1–7, and lock the paper's
+core definitions, so a Comparator match requires that whole development.
+Dana Scott was not contacted and did not participate in, review, or endorse
+this formalization.
 
 <!-- AI_MODEL_TOOL_BULLETS -->
 <!-- /AI_MODEL_TOOL_BULLETS -->
@@ -25,18 +25,20 @@ review, or endorse this formalization.
 ## 1. Scope
 
 The Lean library (`Scott1976/DataTypesAsLattices/*`) is the 1:1 onto
-translation. Palomar is not the inventory: it will later name a small
-spanning subset of numbered theorems. Until every source item is
-`faithful`, the project remains partial.
+translation. Palomar names every numbered theorem from §§1–7, and compares
+the bodies of the paper's core definitions, so a Comparator match requires
+the graph model, LAMBDA, enumeration, retracts, closures, classification,
+and functionality.
 
-The Palomar Comparator currently selects:
+The Palomar Comparator currently selects every numbered theorem:
 
-- `theorem_2_6`, the unary definability theorem.
-- `theorem_3_5`, Myhill–Shepherdson completeness.
-- `theorem_3_7`, finite generation of `RE ∩ FUN`.
-- `theorem_4_6`, the retract half of the limit theorem.
-- `theorem_6_7`, the `𝔅_δ` characterization by equalizers.
-- `theorem_7_4`, Plotkin's characterization of the iterators.
+- §1: `theorem_1_1`–`theorem_1_6` — continuity, graphs, substitution, fixed points, extension, embedding.
+- §2: `theorem_2_1`–`theorem_2_6` — LAMBDA continuity, conversion, reduction, combinators, `Y`, definability.
+- §3: `theorem_3_1`–`theorem_3_7` — generator, enumeration, second recursion, incompleteness, Myhill–Shepherdson, degrees, the semigroup.
+- §4: `theorem_4_1`–`theorem_4_6` (with `theorem_4_4_typed`, `theorem_4_5_sum`) — lattices of retracts, `∘→`, `⊗`, `⊕`, inverse limits.
+- §5: `theorem_5_1`–`theorem_5_6` (with `theorem_5_4_plus`, `theorem_5_5_universe`) — algebraic lattices, closures, `V`.
+- §6: `theorem_6_1`–`theorem_6_7` — `𝔊`, `𝔉`, `𝔊_δ`, `𝔉∩̇𝔊`, `𝔉∩̇𝔊_δ`, `𝔅`, `𝔅_δ`.
+- §7: `theorem_7_1`–`theorem_7_4` — restricted equivalences, `E_a` isomorphisms, functionality of `I,K,S`, iterators.
 
 The living inventory in §2 tracks every numbered source item. Status words:
 
@@ -83,11 +85,11 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | (2.28) `Y` commuting | `eq_2_28`, `eq_2_28_commute` | faithful |
 | Theorem 2.1 | `theorem_2_1` | faithful |
 | Theorem 2.2 | `theorem_2_2` | faithful |
-| Theorem 2.3 | `theorem_2_3`, `_unary`, `_ternary` | partial — packaged for `k≤3`, not a single finite-arity statement |
+| Theorem 2.3 | `theorem_2_3`, `_unary`, `_binary`, `_ternary` | faithful — any finite arity via nested graphs |
 | Theorem 2.4 | `theorem_2_4`, `theorem_2_4_complete`, `erase` | faithful |
 | Theorem 2.5 | `theorem_2_5` | faithful |
 | Def. computable | `IsComputable` | faithful |
-| Theorem 2.6 | `theorem_2_6`, `IsRE.iff_combinatory` | partial — unary `(i)↔(ii)↔(iii)`; paper is `k`-ary; `IsRE ↔ IsCombinatory` |
+| Theorem 2.6 | `theorem_2_6`, `theorem_2_6_fin`, `IsComputableFin` | faithful — unary and `k`-ary; the nested graph is the pairing encoding of `m ∈ f(e n₀)⋯(e n_{k-1})` |
 
 ### §3 Enumeration
 
@@ -152,7 +154,7 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 6.5 | `theorem_6_5` | faithful |
 | Theorem 6.6 | `theorem_6_6` | faithful |
 | Theorem 6.7 | `theorem_6_7` | faithful — `B_δ` sets are exactly equalizers of continuous maps |
-| Table 3 typical sets | `typicalG` … `typicalPi11` | partial — named typical sets; not every Table 3 closure remark |
+| Table 3 typical sets | `typicalG` … `typicalPi11`, `typical*_universal` | faithful — each class is the continuous preimages of the typical set |
 
 ### §7 Functionality
 
@@ -161,7 +163,7 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Def. restricted equivalence | `RestrictedEquiv` | faithful |
 | (7.4)–(7.8) `E_a`, `→`, `×`, `+` | `Ea`, `arrowE`, `prodE`, `sumE` | faithful |
 | Theorem 7.1 | `theorem_7_1` | faithful |
-| Theorem 7.2 | `theorem_7_2` | partial — retract/iso identities; uniqueness of `+` mediators not fully recorded |
+| Theorem 7.2 | `theorem_7_2` | faithful — `E_a` kernel iso, `E_{a∘→b} ≅ E_a → E_b`, `E_{a⊗b} = E_a × E_b`, and the `⊕` identity with `{⊥,⊤}` |
 | Theorem 7.3 | `theorem_7_3` | faithful |
 | Theorem 7.4 | `theorem_7_4`, `theorem_7_4_unique` | faithful — `Z_n : (A→A)→(A→A)` for all `A`, and this with `z(f)=z(λx. f(x))` characterizes the iterators |
 | (7.15)–(7.19) iterators | `Z`, `Zcomb`, `sigmaJ`, `eq_7_18_*` | faithful |

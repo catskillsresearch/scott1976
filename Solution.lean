@@ -8,6 +8,6 @@ import Scott1976.DataTypesAsLattices.Basic
 /-!
 # Solution to the Challenge
 
-Imports the sorry-free development so Comparator can match the six
+Imports the sorry-free development so Comparator can match the spanning
 source theorems named in `Challenge.lean` and `comparator.json`.
 -/

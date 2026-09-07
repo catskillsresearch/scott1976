@@ -5,6 +5,7 @@ Authors: Lars Warren Ericson.
 -/
 import Scott1976.DataTypesAsLattices.Enumeration
 import Scott1976.DataTypesAsLattices.Classification
+import Scott1976.DataTypesAsLattices.Closures
 
 /-!
 # Scott 1976 — Data Types as Lattices
@@ -13,5 +14,6 @@ Primary source: Dana S. Scott, *Data Types as Lattices*, Technical Monograph
 PRG-5 (September 1976); reprinted SIAM J. Comput. 5 (1976), 522–587.
 Working transcription: `sources/Data_Types_as_Lattices_vision.md`.
 
-The compared Palomar results are Theorems 2.6, 3.5, 3.7, 4.6, 6.7, and 7.4.
+The Palomar comparator names every numbered theorem from §§1–7
+and locks the paper's core definitions.
 -/

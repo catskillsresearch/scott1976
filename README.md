@@ -3,8 +3,13 @@
 
 # scott1976
 
-Partial Lean 4 formalization of Dana Scott's **1976** *Data Types as Lattices*
+Lean 4 formalization of Dana Scott's **1976** *Data Types as Lattices*
 (Technical Monograph PRG-5; SIAM J. Comput. 5 (1976), 522–587).
+
+The library is a 1:1 onto translation of the numbered definitions, theorems,
+displayed equations, and Tables 1–3. Palomar Challenge / Solution name every
+numbered theorem from §§1–7, and lock the paper's core definitions, so a
+Comparator match requires that whole development.
 
 Standalone package — no dependency on the 1972/1980/1982 formalizations.
 Cross-presentation equivalence theorems live in [`scott_models`](../scott_models);
@@ -26,12 +31,18 @@ Original Lean and author-written docs are Apache-2.0. Scott's monograph PDF
 |---|---|
 | `arxiv.md` | Formalization narrative and theorem inventory |
 | `sources/Data_Types_as_Lattices.pdf` | Primary source PDF (Scott 1976) |
-| `Scott1976/` | Sorry-free core development and partial later sections |
+| `Scott1976/` | Sorry-free core development |
 | `Challenge.lean` | Palomar statement of record |
 | `Solution.lean` | Palomar solution module: imports `Scott1976/*` proofs |
-| `comparator.json` | Comparator config for the compared theorem and definitions |
+| `comparator.json` | Comparator config for the compared theorems |
 | `formalization.yaml` | Palomar / formalization.yaml v0.4 metadata |
 | `PROVENANCE.md` | Standalone Palomar submission; relation to siblings |
+
+Compared theorems: every numbered result 1.1–1.6, 2.1–2.6, 3.1–3.7, 4.1–4.6,
+5.1–5.6, 6.1–6.7, 7.1–7.4 (including `theorem_4_4_typed`, `theorem_4_5_sum`,
+`theorem_5_4_plus`, `theorem_5_5_universe`). Compared definitions lock `Pω`,
+graphs, combinators, LAMBDA interpretation, retracts `∘→`/`⊗`/`⊕`, and the
+§6 classification predicates.
 
 ## Build
 
@@ -59,7 +70,7 @@ bash scripts/ocr_pdf_pipeline.sh --status
 
 See `sources/README.md`. Page PNGs and `.venv-ocr/` are gitignored.
 
-`Challenge.lean` imports only Mathlib and states the six compared results
+`Challenge.lean` imports only Mathlib and states the compared results
 with deliberate `sorry`s. Their proofs live in
 `Scott1976/DataTypesAsLattices/*`, imported by `Solution.lean`. See
-`arxiv.md` for the exact theorem inventory and known gaps.
+`arxiv.md` for the theorem inventory.

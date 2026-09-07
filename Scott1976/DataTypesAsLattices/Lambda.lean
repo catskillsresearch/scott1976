@@ -575,7 +575,7 @@ theorem theorem_2_3_unary {f : Pomega → Pomega} (hf : IsScottContinuous f) :
   ⟨graph f, fun x => by rw [theorem_1_2_i hf]⟩
 
 /-- **Scott 1976, Theorem 2.3 (The reduction theorem), binary case.** -/
-theorem theorem_2_3 {f : Pomega → Pomega → Pomega}
+theorem theorem_2_3_binary {f : Pomega → Pomega → Pomega}
     (hfx : ∀ y, IsScottContinuous (fun x => f x y))
     (hfy : ∀ x, IsScottContinuous (fun y => f x y)) :
     ∃ u, ∀ x y, funOf (funOf u x) y = f x y :=
@@ -666,9 +666,10 @@ theorem curryFin_app {n : ℕ} {f : (Fin n → Pomega) → Pomega}
     rw [hβ, ih (hf.2 (xs 0)) (Fin.tail xs)]
     exact congrArg f (Fin.cons_self_tail xs)
 
-/-- **Scott 1976, Theorem 2.3 (The reduction theorem), finite arity.**
-Every n-ary continuous operation is represented by an n-fold nested graph. -/
-theorem theorem_2_3_fin {n : ℕ} {f : (Fin n → Pomega) → Pomega}
+/-- **Scott 1976, Theorem 2.3 (The reduction theorem).**
+Any continuous function of `k` variables is represented by an element
+`u ∈ Pω` via iterated application. -/
+theorem theorem_2_3 {n : ℕ} {f : (Fin n → Pomega) → Pomega}
     (hf : IsScottContinuousFin f) :
     ∃ u, ∀ xs, nestApplyFin u xs = f xs :=
   ⟨curryFin f, curryFin_app hf⟩
