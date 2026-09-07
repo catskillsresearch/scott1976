@@ -292,6 +292,101 @@ theorem continuous_nary {F : Pomega → Pomega → Pomega → Pomega}
     (fun v => continuous_tuple (fun y => hf0 y (i v)) (fun x => hf1 x (i v)) hg hh)
     (fun u => theorem_1_3 (hf2 (g u) (h u)) hi)
 
+/-- Coproduct mediator in the category of restricted equivalences. -/
+def sumMed (f g : Pomega) : Pomega :=
+  graph (fun u =>
+    condSet (funOf u (ofNat 0))
+      (funOf f (funOf u (ofNat 1)))
+      (funOf g (funOf u (ofNat 1))))
+
+theorem sumMed_body_isScottContinuous (f g : Pomega) :
+    IsScottContinuous (fun u =>
+      condSet (funOf u (ofNat 0))
+        (funOf f (funOf u (ofNat 1)))
+        (funOf g (funOf u (ofNat 1)))) :=
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (funOf_isScottContinuous_left (ofNat 0))
+    (theorem_1_3 (funOf_isScottContinuous f)
+      (funOf_isScottContinuous_left (ofNat 1)))
+    (theorem_1_3 (funOf_isScottContinuous g)
+      (funOf_isScottContinuous_left (ofNat 1)))
+
+theorem sumMed_app (f g u : Pomega) :
+    funOf (sumMed f g) u =
+      condSet (funOf u (ofNat 0))
+        (funOf f (funOf u (ofNat 1)))
+        (funOf g (funOf u (ofNat 1))) :=
+  beta (sumMed_body_isScottContinuous f g) u
+
+theorem sumMed_app_inl (f g x : Pomega) :
+    funOf (sumMed f g) (pairElem (ofNat 0) x) = funOf f x := by
+  rw [sumMed_app, pairElem_fst, pairElem_snd, condSet_ofNat_zero]
+
+theorem sumMed_app_inr (f g x : Pomega) :
+    funOf (sumMed f g) (pairElem (ofNat 1) x) = funOf g x := by
+  rw [sumMed_app, pairElem_fst, pairElem_snd, condSet_ofNat_one]
+
+theorem sumMed_isGraph (f g : Pomega) :
+    sumMed f g = graph (fun u => funOf (sumMed f g) u) := by
+  apply graph_ext
+  intro u
+  exact (sumMed_app f g u).symm
+
+theorem sumMed_rel {A B C : RestrictedEquiv} {f g : Pomega}
+    (hf : (arrowE A C).mem f) (hg : (arrowE B C).mem g) :
+    (arrowE (sumE A B) C).mem (sumMed f g) := by
+  refine ⟨sumMed_isGraph f g, sumMed_isGraph f g, ?_⟩
+  intro u v huv
+  rcases huv with ⟨hu, hv, hA⟩ | ⟨hu, hv, hB⟩
+  · have hmu : funOf (sumMed f g) u = funOf f (funOf u (ofNat 1)) :=
+      (congrArg (fun w => funOf (sumMed f g) w) hu).trans
+        (sumMed_app_inl f g _)
+    have hmv : funOf (sumMed f g) v = funOf f (funOf v (ofNat 1)) :=
+      (congrArg (fun w => funOf (sumMed f g) w) hv).trans
+        (sumMed_app_inl f g _)
+    rw [hmu, hmv]
+    exact hf.2.2 (funOf u (ofNat 1)) (funOf v (ofNat 1)) hA
+  · have hmu : funOf (sumMed f g) u = funOf g (funOf u (ofNat 1)) :=
+      (congrArg (fun w => funOf (sumMed f g) w) hu).trans
+        (sumMed_app_inr f g _)
+    have hmv : funOf (sumMed f g) v = funOf g (funOf v (ofNat 1)) :=
+      (congrArg (fun w => funOf (sumMed f g) w) hv).trans
+        (sumMed_app_inr f g _)
+    rw [hmu, hmv]
+    exact hg.2.2 (funOf u (ofNat 1)) (funOf v (ofNat 1)) hB
+
+/-- Coproduct mediators are unique up to the codomain restricted
+equivalence, which is categorical arrow equality in this presentation. -/
+theorem sumMed_rel_unique {A B C : RestrictedEquiv} {f g h : Pomega}
+    (hh : (arrowE (sumE A B) C).mem h)
+    (hinl : ∀ x y, A.rel x y →
+      C.rel (funOf h (pairElem (ofNat 0) x)) (funOf f y))
+    (hinr : ∀ x y, B.rel x y →
+      C.rel (funOf h (pairElem (ofNat 1) x)) (funOf g y)) :
+    (arrowE (sumE A B) C).rel h (sumMed f g) := by
+  refine ⟨hh.1, sumMed_isGraph f g, ?_⟩
+  intro u v huv
+  rcases huv with ⟨hu, hv, hA⟩ | ⟨hu, hv, hB⟩
+  · have hhu :
+        funOf h u = funOf h (pairElem (ofNat 0) (funOf u (ofNat 1))) :=
+      congrArg (fun w => funOf h w) hu
+    have hmv : funOf (sumMed f g) v = funOf f (funOf v (ofNat 1)) :=
+      (congrArg (fun w => funOf (sumMed f g) w) hv).trans
+        (sumMed_app_inl f g _)
+    rw [hhu, hmv]
+    exact hinl (funOf u (ofNat 1)) (funOf v (ofNat 1)) hA
+  · have hhu :
+        funOf h u = funOf h (pairElem (ofNat 1) (funOf u (ofNat 1))) :=
+      congrArg (fun w => funOf h w) hu
+    have hmv : funOf (sumMed f g) v = funOf g (funOf v (ofNat 1)) :=
+      (congrArg (fun w => funOf (sumMed f g) w) hv).trans
+        (sumMed_app_inr f g _)
+    rw [hhu, hmv]
+    exact hinr (funOf u (ofNat 1)) (funOf v (ofNat 1)) hB
+
 theorem pairSeq_isScottContinuous_left (y : Pomega) :
     IsScottContinuous (fun x => pairSeq x y) :=
   graph_const_isScottContinuous
@@ -1166,14 +1261,51 @@ theorem theorem_7_2_iii (a b x y x' y' : Pomega) :
       (typed_pairSeq_tensorR a b x' y').mpr ⟨hx', hy'⟩, ?_⟩
     rw [heqx, heqy]
 
-/-- **Scott 1976, Theorem 7.2 (iv).** `E_{a ⊕ b}` contains `E_a + E_b`
-together with `⟨⊥, ⊥⟩` (and `⟨⊤, ⊤⟩` when `⊤` is a fixed point). -/
-theorem theorem_7_2_iv (a b u v : Pomega) :
-    ((sumE (Ea a) (Ea b)).rel u v → (Ea (plusR a b)).rel u v) ∧
-      (Ea (plusR a b)).rel botElem botElem ∧
-      (typed topElem (plusR a b) → (Ea (plusR a b)).rel topElem topElem) := by
-  refine ⟨?_, ?_, ?_⟩
+/-- **Scott 1976, Theorem 7.2 (iii).**
+The printed identity `E_{a ⊗ b} = E_a × E_b`, for arbitrary representatives. -/
+theorem theorem_7_2_iii_exact (a b u v : Pomega) :
+    (Ea (tensorR a b)).rel u v ↔ (prodE (Ea a) (Ea b)).rel u v := by
+  constructor
+  · intro huv
+    rcases huv with ⟨hu, hv, rfl⟩
+    rcases (theorem_4_4_typed.mp hu) with ⟨hpair, ha, hb⟩
+    refine ⟨hpair, hpair, ?_, ?_⟩
+    · exact ⟨ha, ha, rfl⟩
+    · exact ⟨hb, hb, rfl⟩
+  · intro huv
+    rcases huv with ⟨hu, hv, h0, h1⟩
+    rcases h0 with ⟨hx, hx', heqx⟩
+    rcases h1 with ⟨hy, hy', heqy⟩
+    have huvEq : u = v := by
+      rw [hu, hv, heqx, heqy]
+    refine ⟨?_, ?_, huvEq⟩
+    · exact theorem_4_4_typed.mpr ⟨hu, hx, hy⟩
+    · exact theorem_4_4_typed.mpr ⟨hv, hx', hy'⟩
+
+/-- **Scott 1976, Theorem 7.2 (iv).**
+The exact identity
+`E_{a ⊕ b} = E_a + E_b ∪ {⟨⊥,⊥⟩, ⟨⊤,⊤⟩}`. -/
+theorem theorem_7_2_iv {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b)
+    (u v : Pomega) :
+    (Ea (plusR a b)).rel u v ↔
+      (sumE (Ea a) (Ea b)).rel u v ∨
+        (u = botElem ∧ v = botElem) ∨ (u = topElem ∧ v = topElem) := by
+  constructor
+  · intro huv
+    rcases huv with ⟨hu, hv, huv⟩
+    subst v
+    rcases (plusR_typed_iff ha hb).mp hu with
+      rfl | rfl | ⟨x, rfl, hx⟩ | ⟨y, rfl, hy⟩
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inr (Or.inr ⟨rfl, rfl⟩)
+    · exact Or.inl (Or.inl ⟨by rw [pairElem_eq_pairSeq, pairSeq_app_one],
+          by rw [pairElem_eq_pairSeq, pairSeq_app_one],
+          by simpa [pairSeq_app_one] using (show (Ea a).rel x x from ⟨hx, hx, rfl⟩)⟩)
+    · exact Or.inl (Or.inr ⟨by rw [pairElem_eq_pairSeq, pairSeq_app_one],
+          by rw [pairElem_eq_pairSeq, pairSeq_app_one],
+          by simpa [pairSeq_app_one] using (show (Ea b).rel y y from ⟨hy, hy, rfl⟩)⟩)
   · intro h
+    rcases h with h | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     rcases h with ⟨hu, hv, hA⟩ | ⟨hu, hv, hB⟩
     · rcases hA with ⟨hxt, hyt, heq⟩
       have heq' : u = v := by
@@ -1187,9 +1319,8 @@ theorem theorem_7_2_iv (a b u v : Pomega) :
       refine ⟨?_, ?_, heq'⟩
       · rw [hu]; exact plusR_typed_inr hxt
       · rw [hv]; exact plusR_typed_inr hyt
-  · exact ⟨plusR_typed_bot a b, plusR_typed_bot a b, rfl⟩
-  · intro ht
-    exact ⟨ht, ht, rfl⟩
+    · exact ⟨plusR_typed_bot a b, plusR_typed_bot a b, rfl⟩
+    · exact ⟨plusR_typed_top a b, plusR_typed_top a b, rfl⟩
 
 /-- **Scott 1976, Theorem 7.2 (The isomorphism theorem).** -/
 theorem theorem_7_2 {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
@@ -1199,14 +1330,14 @@ theorem theorem_7_2 {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
           (Ea (arrowR a b)).rel (funOf (arrowR a b) f)
             (funOf (arrowR a b) g)) ∧
         ((Ea (arrowR a b)).rel f g → (arrowE (Ea a) (Ea b)).rel f g)) ∧
-      (∀ x y x' y',
-        (Ea (tensorR a b)).rel (pairSeq x y) (pairSeq x' y') ↔
-          (prodE (Ea a) (Ea b)).rel (pairSeq x y) (pairSeq x' y')) ∧
-      (∀ u v, (sumE (Ea a) (Ea b)).rel u v → (Ea (plusR a b)).rel u v) :=
+      (∀ u v, (Ea (tensorR a b)).rel u v ↔ (prodE (Ea a) (Ea b)).rel u v) ∧
+      (∀ u v, (Ea (plusR a b)).rel u v ↔
+        (sumE (Ea a) (Ea b)).rel u v ∨
+          (u = botElem ∧ v = botElem) ∨ (u = topElem ∧ v = topElem)) :=
   ⟨fun x y => theorem_7_2_i_iso ha x y,
     fun f g => theorem_7_2_ii ha hb f g,
-    fun x y x' y' => theorem_7_2_iii a b x y x' y',
-    fun u v => (theorem_7_2_iv a b u v).1⟩
+    theorem_7_2_iii_exact a b,
+    theorem_7_2_iv ha hb⟩
 
 theorem Icomb_isGraph : Icomb = graph (fun x => funOf Icomb x) := by
   apply graph_ext
@@ -1571,7 +1702,7 @@ theorem Zcomb_app_isGraph (n : ℕ) (f : Pomega) :
   exact (beta (Z_isScottContinuous_right n f) x).symm
 
 /-- **Scott 1976, Theorem 7.4 (i).** `Zₙ : (A → A) → (A → A)`. -/
-theorem theorem_7_4 (A : RestrictedEquiv) (n : ℕ) :
+theorem theorem_7_4_i (A : RestrictedEquiv) (n : ℕ) :
     (arrowE (arrowE A A) (arrowE A A)).mem (Zcomb n) := by
   refine ⟨Zcomb_isGraph n, Zcomb_isGraph n, ?_⟩
   intro f f' hf
@@ -1707,6 +1838,537 @@ theorem eq_7_18_ne (j j' m : ℕ) (hne : j ≠ j') :
       _ = sigmaJ j botElem := by rw [ih]
       _ = botElem := sigmaJ_bot j
 
+theorem sigmaJ_pair_union (j j' m : ℕ) (hne : j ≠ j') :
+    sigmaJ j (({pair j m} : Pomega) ∪ {pair j' m}) =
+      ({pair j (m + 1)} : Pomega) := by
+  ext p
+  constructor
+  · intro ⟨k, hp, hk⟩
+    rcases hk with hk | hk
+    · have hkm : k = m := (pair_inj hk).2
+      subst k
+      simpa using hp.symm
+    · have hj : j = j' := (pair_inj hk).1
+      exact (hne hj).elim
+  · intro hp
+    exact ⟨m, hp.symm, Or.inl (by simp)⟩
+
+/-- **Scott 1976, (7.19).**
+Independent successor powers advance both tagged atoms in lockstep. -/
+theorem eq_7_19 (j j' m : ℕ) :
+    Z m (graph (sigmaJ j) ∪ graph (sigmaJ j'))
+        (({pair j 0} : Pomega) ∪ {pair j' 0}) =
+      ({pair j m} : Pomega) ∪ {pair j' m} := by
+  by_cases h : j = j'
+  · subst j'
+    simp only [Set.union_self]
+    exact eq_7_18_eq j m
+  · induction m with
+    | zero => rfl
+    | succ m ih =>
+      rw [Z, eq_2_9, ih, sigmaJ_app, sigmaJ_app,
+        sigmaJ_pair_union j j' m h]
+      rw [show sigmaJ j' (({pair j m} : Pomega) ∪ {pair j' m}) =
+          ({pair j' (m + 1)} : Pomega) by
+        simpa [Set.union_comm] using sigmaJ_pair_union j' j m (Ne.symm h)]
+
+/-- Plotkin's independent successors force one common iterate count on all
+tagged successor tests. -/
+theorem theorem_7_4_sigma_index (z : Pomega)
+    (hη : ∀ f, funOf z f = funOf z (graph (fun y => funOf f y)))
+    (hz : ∀ A, (arrowE (arrowE A A) (arrowE A A)).mem z) :
+    ∃ n, ∀ j,
+      funOf (funOf z (graph (sigmaJ j))) {pair j 0} =
+        ({pair j n} : Pomega) := by
+  obtain ⟨n, hn⟩ :=
+    theorem_7_4_plotkin z hη hz (graph (sigmaJ 0)) {pair 0 0}
+  refine ⟨n, ?_⟩
+  intro j
+  have hn' :
+      funOf (funOf z (graph (sigmaJ 0))) {pair 0 0} =
+        ({pair 0 n} : Pomega) := by
+    rw [hn, eq_7_18_eq]
+  by_cases hj : j = 0
+  · subst j
+    exact hn'
+  obtain ⟨nj, hnj⟩ :=
+    theorem_7_4_plotkin z hη hz (graph (sigmaJ j)) {pair j 0}
+  have hnj' :
+      funOf (funOf z (graph (sigmaJ j))) {pair j 0} =
+        ({pair j nj} : Pomega) := by
+    rw [hnj, eq_7_18_eq]
+  obtain ⟨k, hk⟩ := theorem_7_4_plotkin z hη hz
+    (graph (sigmaJ 0) ∪ graph (sigmaJ j))
+    (({pair 0 0} : Pomega) ∪ {pair j 0})
+  have hk' :
+      funOf
+          (funOf z (graph (sigmaJ 0) ∪ graph (sigmaJ j)))
+          (({pair 0 0} : Pomega) ∪ {pair j 0}) =
+        ({pair 0 k} : Pomega) ∪ {pair j k} := by
+    rw [hk, eq_7_19]
+  have hmono0 :
+      funOf (funOf z (graph (sigmaJ 0))) {pair 0 0} ⊆
+        funOf
+          (funOf z (graph (sigmaJ 0) ∪ graph (sigmaJ j)))
+          (({pair 0 0} : Pomega) ∪ {pair j 0}) :=
+    mu_law
+      (funOf_monotone_right z Set.subset_union_left)
+      Set.subset_union_left
+  have hmonoj :
+      funOf (funOf z (graph (sigmaJ j))) {pair j 0} ⊆
+        funOf
+          (funOf z (graph (sigmaJ 0) ∪ graph (sigmaJ j)))
+          (({pair 0 0} : Pomega) ∪ {pair j 0}) :=
+    mu_law
+      (funOf_monotone_right z Set.subset_union_right)
+      Set.subset_union_right
+  have h0mem : pair 0 n ∈ ({pair 0 k} : Pomega) ∪ {pair j k} := by
+    rw [← hk']
+    apply hmono0
+    rw [hn']
+    simp
+  have hjmem : pair j nj ∈ ({pair 0 k} : Pomega) ∪ {pair j k} := by
+    rw [← hk']
+    apply hmonoj
+    rw [hnj']
+    simp
+  have hnk : n = k := by
+    rcases h0mem with h0 | h0
+    · exact (pair_inj h0).2
+    · exact (hj ((pair_inj h0).1).symm).elim
+  have hnjk : nj = k := by
+    rcases hjmem with hj0 | hjj
+    · exact (hj (pair_inj hj0).1).elim
+    · exact (pair_inj hjj).2
+  rw [hnj', hnjk, ← hnk]
+
+def eraseTag (j : ℕ) (u : Pomega) : Pomega :=
+  {p | p ∈ u ∧ ∀ k, p ≠ pair j k}
+
+theorem Z_finite_bound (p q m : ℕ) :
+    ∀ k ∈ Z m (e p) (e q), k ≤ max p q := by
+  induction m with
+  | zero =>
+      intro k hk
+      exact (mem_e_le hk).trans (Nat.le_max_right p q)
+  | succ m ih =>
+      intro k hk
+      obtain ⟨r, _hr, hpair⟩ := hk
+      exact (pair_le_right r k).trans
+        ((mem_e_le hpair).trans (Nat.le_max_left p q))
+
+theorem Z_finite_no_tag (p q m k : ℕ) :
+    pair (max p q + 1) k ∉ Z m (e p) (e q) := by
+  intro hk
+  have hle := Z_finite_bound p q m _ hk
+  exact (Nat.not_succ_le_self (max p q))
+    ((pair_le_left (max p q + 1) k).trans hle)
+
+theorem funOf_e_union_fresh (p j m : ℕ) (u : Pomega) (hpj : p < j) :
+    funOf (e p) (u ∪ {pair j m}) = funOf (e p) u := by
+  apply subset_antisymm
+  · intro k hk
+    obtain ⟨r, hr, hprk⟩ := hk
+    refine ⟨r, ?_, hprk⟩
+    intro t ht
+    rcases hr ht with htu | htag
+    · exact htu
+    · have htEq : t = pair j m := by simpa using htag
+      have hjr : j ≤ r := by
+        rw [htEq] at ht
+        exact (pair_le_left j m).trans (mem_e_le ht)
+      have hrp : r ≤ p := (pair_le_left r k).trans (mem_e_le hprk)
+      exact (Nat.not_lt_of_ge (hjr.trans hrp) hpj).elim
+  · exact funOf_monotone_right (e p) Set.subset_union_left
+
+theorem sigmaJ_of_no_tag {j : ℕ} {u : Pomega}
+    (hu : ∀ k, pair j k ∉ u) :
+    sigmaJ j u = botElem := by
+  ext p
+  constructor
+  · intro ⟨k, _hp, hk⟩
+    exact (hu k hk).elim
+  · simp [botElem]
+
+theorem sigmaJ_union_fresh {j m : ℕ} {u : Pomega}
+    (hu : ∀ k, pair j k ∉ u) :
+    sigmaJ j (u ∪ {pair j m}) = ({pair j (m + 1)} : Pomega) := by
+  rw [show u ∪ {pair j m} = ({pair j m} : Pomega) ∪ u by
+    exact Set.union_comm _ _]
+  ext p
+  constructor
+  · intro ⟨k, hp, hk⟩
+    rcases hk with hk | hk
+    · have hkm : k = m := (pair_inj hk).2
+      subst k
+      simpa using hp.symm
+    · exact (hu k hk).elim
+  · intro hp
+    exact ⟨m, hp.symm, Or.inl (by simp)⟩
+
+theorem plotkin_finite_separation (p q m : ℕ) :
+    Z m
+        (graph (fun y => funOf (e p) y) ∪
+          graph (sigmaJ (max p q + 1)))
+        ((e q) ∪ {pair (max p q + 1) 0}) =
+      Z m (e p) (e q) ∪ {pair (max p q + 1) m} := by
+  induction m with
+  | zero => rfl
+  | succ m ih =>
+      rw [Z, eq_2_9, ih]
+      have hbeta :
+          funOf (graph (fun y => funOf (e p) y))
+              (Z m (e p) (e q) ∪ {pair (max p q + 1) m}) =
+            funOf (e p) (Z m (e p) (e q) ∪ {pair (max p q + 1) m}) :=
+        beta (funOf_isScottContinuous (e p)) _
+      rw [hbeta, funOf_e_union_fresh p (max p q + 1) m _
+        (Nat.lt_succ_of_le (Nat.le_max_left p q)), sigmaJ_app,
+        sigmaJ_union_fresh (fun k => Z_finite_no_tag p q m k)]
+      rfl
+
+def plotkinRel (p q j : ℕ) (u v : Pomega) : Prop :=
+  ∃ m, (u = Z m (e p) (e q) ∧
+      v = Z m (e p) (e q) ∪ {pair j m}) ∨
+    (v = Z m (e p) (e q) ∧
+      u = Z m (e p) (e q) ∪ {pair j m})
+
+def plotkinGood (p q j : ℕ) (u : Pomega) : Prop :=
+  ∃ m, u = Z m (e p) (e q) ∨
+    u = Z m (e p) (e q) ∪ {pair j m}
+
+def plotkinE (p q j : ℕ) : RestrictedEquiv where
+  rel u v :=
+    plotkinGood p q j u ∧ plotkinGood p q j v ∧
+      Relation.EqvGen (plotkinRel p q j) u v
+  symm := by
+    intro u v ⟨hu, hv, huv⟩
+    exact ⟨hv, hu, Relation.EqvGen.symm _ _ huv⟩
+  trans := by
+    intro u v w ⟨hu, _hv, huv⟩ ⟨_hv', hw, hvw⟩
+    exact ⟨hu, hw, Relation.EqvGen.trans _ _ _ huv hvw⟩
+
+theorem eraseTag_Z_finite (p q m : ℕ) :
+    eraseTag (max p q + 1) (Z m (e p) (e q)) = Z m (e p) (e q) := by
+  ext k
+  constructor
+  · exact fun hk => hk.1
+  · intro hk
+    exact ⟨hk, fun r hkr => Z_finite_no_tag p q m r (hkr ▸ hk)⟩
+
+theorem eraseTag_Z_finite_union (p q m : ℕ) :
+    eraseTag (max p q + 1)
+        (Z m (e p) (e q) ∪ {pair (max p q + 1) m}) =
+      Z m (e p) (e q) := by
+  ext k
+  constructor
+  · intro ⟨hk, hnot⟩
+    rcases hk with hk | hk
+    · exact hk
+    · exact (hnot m (by simpa using hk)).elim
+  · intro hk
+    exact ⟨Or.inl hk, fun r hkr => Z_finite_no_tag p q m r (hkr ▸ hk)⟩
+
+theorem plotkinE_erase {p q : ℕ} {u v : Pomega}
+    (h : (plotkinE p q (max p q + 1)).rel u v) :
+    eraseTag (max p q + 1) u = eraseTag (max p q + 1) v := by
+  rcases h with ⟨_hu, _hv, h⟩
+  clear _hu _hv
+  induction h with
+  | rel x y hxy =>
+      rcases hxy with ⟨m, ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩⟩
+      · rw [eraseTag_Z_finite, eraseTag_Z_finite_union]
+      · rw [eraseTag_Z_finite, eraseTag_Z_finite_union]
+  | refl => rfl
+  | symm _ _ _ ih => exact ih.symm
+  | trans _ _ _ _ _ ih₁ ih₂ => exact ih₁.trans ih₂
+
+theorem normalized_finite_app (p : ℕ) (u : Pomega) :
+    funOf (graph (fun y => funOf (e p) y)) u = funOf (e p) u :=
+  beta (funOf_isScottContinuous (e p)) u
+
+theorem normalized_finite_fresh_app (p q m : ℕ) :
+    funOf (graph (fun y => funOf (e p) y))
+        (Z m (e p) (e q) ∪ {pair (max p q + 1) m}) =
+      Z (m + 1) (e p) (e q) := by
+  rw [normalized_finite_app,
+    funOf_e_union_fresh p (max p q + 1) m _
+      (Nat.lt_succ_of_le (Nat.le_max_left p q))]
+  rfl
+
+theorem finite_sigma_union_app (p q m : ℕ) :
+    funOf
+        (graph (fun y => funOf (e p) y) ∪
+          graph (sigmaJ (max p q + 1)))
+        (Z m (e p) (e q) ∪ {pair (max p q + 1) m}) =
+      Z (m + 1) (e p) (e q) ∪ {pair (max p q + 1) (m + 1)} := by
+  rw [eq_2_9, normalized_finite_fresh_app, sigmaJ_app,
+    sigmaJ_union_fresh (fun k => Z_finite_no_tag p q m k)]
+
+theorem finite_sigma_plain_app (p q m : ℕ) :
+    funOf
+        (graph (fun y => funOf (e p) y) ∪
+          graph (sigmaJ (max p q + 1)))
+        (Z m (e p) (e q)) =
+      Z (m + 1) (e p) (e q) := by
+  rw [eq_2_9, normalized_finite_app, sigmaJ_app,
+    sigmaJ_of_no_tag (fun k => Z_finite_no_tag p q m k)]
+  simp [botElem, Z]
+
+theorem plotkin_function_related (p q : ℕ) :
+    (arrowE
+      (plotkinE p q (max p q + 1))
+      (plotkinE p q (max p q + 1))).rel
+        (graph (fun y => funOf (e p) y))
+        (graph (fun y => funOf (e p) y) ∪
+          graph (sigmaJ (max p q + 1))) := by
+  have hgf : graph (fun y => funOf (e p) y) =
+      graph (fun y => funOf (graph (fun y => funOf (e p) y)) y) := by
+    apply graph_ext
+    intro y
+    exact (beta (funOf_isScottContinuous (e p)) y).symm
+  have hgu :
+      graph (fun y => funOf (e p) y) ∪ graph (sigmaJ (max p q + 1)) =
+        graph (fun y => funOf
+          (graph (fun y => funOf (e p) y) ∪
+            graph (sigmaJ (max p q + 1))) y) := by
+    let F := fun y => funOf (e p) y ∪ sigmaJ (max p q + 1) y
+    have hrep :
+        graph (fun y => funOf (e p) y) ∪ graph (sigmaJ (max p q + 1)) =
+          graph F := eq_2_10 _ _
+    rw [hrep]
+    congr 1
+    funext y
+    dsimp only [F]
+    rw [← hrep]
+    rw [eq_2_9, normalized_finite_app, sigmaJ_app]
+  refine ⟨hgf, hgu, ?_⟩
+  intro u v huv
+  have herase := plotkinE_erase huv
+  rcases huv.1 with ⟨r, hur | hur⟩
+  <;> rcases huv.2.1 with ⟨s, hvs | hvs⟩
+  all_goals
+    subst u
+    subst v
+  · have hrs : Z r (e p) (e q) = Z s (e p) (e q) := by
+      simpa [eraseTag_Z_finite] using herase
+    have hrs' : Z (r + 1) (e p) (e q) = Z (s + 1) (e p) (e q) := by
+      simpa [Z] using congrArg (fun w => funOf (e p) w) hrs
+    have hleft :
+        funOf (graph (fun y => funOf (e p) y)) (Z r (e p) (e q)) =
+          Z (r + 1) (e p) (e q) := by
+      rw [normalized_finite_app]
+      rfl
+    have hright :
+        funOf
+            (graph (fun y => funOf (e p) y) ∪
+              graph (sigmaJ (max p q + 1)))
+            (Z s (e p) (e q)) = Z (s + 1) (e p) (e q) :=
+      finite_sigma_plain_app p q s
+    rw [hleft, hright, ← hrs']
+    exact ⟨⟨r + 1, Or.inl rfl⟩, ⟨r + 1, Or.inl rfl⟩,
+      Relation.EqvGen.refl _⟩
+  · have hrs : Z r (e p) (e q) = Z s (e p) (e q) := by
+      exact (eraseTag_Z_finite p q r).symm.trans
+        (herase.trans (eraseTag_Z_finite_union p q s))
+    have hrs' : Z (r + 1) (e p) (e q) = Z (s + 1) (e p) (e q) := by
+      simpa [Z] using congrArg (fun w => funOf (e p) w) hrs
+    have hleft :
+        funOf (graph (fun y => funOf (e p) y)) (Z r (e p) (e q)) =
+          Z (r + 1) (e p) (e q) := by
+      rw [normalized_finite_app]
+      rfl
+    have hright :
+        funOf
+            (graph (fun y => funOf (e p) y) ∪
+              graph (sigmaJ (max p q + 1)))
+            (Z s (e p) (e q) ∪ {pair (max p q + 1) s}) =
+          Z (s + 1) (e p) (e q) ∪
+            {pair (max p q + 1) (s + 1)} :=
+      finite_sigma_union_app p q s
+    rw [hleft, hright, hrs']
+    exact ⟨⟨s + 1, Or.inl rfl⟩, ⟨s + 1, Or.inr rfl⟩,
+      Relation.EqvGen.rel _ _
+        ⟨s + 1, Or.inl ⟨rfl, rfl⟩⟩⟩
+  · have hrs : Z r (e p) (e q) = Z s (e p) (e q) := by
+      exact (eraseTag_Z_finite_union p q r).symm.trans
+        (herase.trans (eraseTag_Z_finite p q s))
+    have hrs' : Z (r + 1) (e p) (e q) = Z (s + 1) (e p) (e q) := by
+      simpa [Z] using congrArg (fun w => funOf (e p) w) hrs
+    have hleft :
+        funOf (graph (fun y => funOf (e p) y))
+            (Z r (e p) (e q) ∪ {pair (max p q + 1) r}) =
+          Z (r + 1) (e p) (e q) :=
+      normalized_finite_fresh_app p q r
+    have hright :
+        funOf
+            (graph (fun y => funOf (e p) y) ∪
+              graph (sigmaJ (max p q + 1)))
+            (Z s (e p) (e q)) = Z (s + 1) (e p) (e q) :=
+      finite_sigma_plain_app p q s
+    rw [hleft, hright, ← hrs']
+    exact ⟨⟨r + 1, Or.inl rfl⟩, ⟨r + 1, Or.inl rfl⟩,
+      Relation.EqvGen.refl _⟩
+  · have hrs : Z r (e p) (e q) = Z s (e p) (e q) := by
+      simpa using (eraseTag_Z_finite_union p q r).symm.trans
+        (herase.trans (eraseTag_Z_finite_union p q s))
+    have hrs' : Z (r + 1) (e p) (e q) = Z (s + 1) (e p) (e q) := by
+      simpa [Z] using congrArg (fun w => funOf (e p) w) hrs
+    have hleft :
+        funOf (graph (fun y => funOf (e p) y))
+            (Z r (e p) (e q) ∪ {pair (max p q + 1) r}) =
+          Z (r + 1) (e p) (e q) :=
+      normalized_finite_fresh_app p q r
+    have hright :
+        funOf
+            (graph (fun y => funOf (e p) y) ∪
+              graph (sigmaJ (max p q + 1)))
+            (Z s (e p) (e q) ∪ {pair (max p q + 1) s}) =
+          Z (s + 1) (e p) (e q) ∪
+            {pair (max p q + 1) (s + 1)} :=
+      finite_sigma_union_app p q s
+    rw [hleft, hright, hrs']
+    exact ⟨⟨s + 1, Or.inl rfl⟩, ⟨s + 1, Or.inr rfl⟩,
+      Relation.EqvGen.rel _ _
+        ⟨s + 1, Or.inl ⟨rfl, rfl⟩⟩⟩
+
+theorem theorem_7_4_finite (z : Pomega)
+    (hη : ∀ f, funOf z f = funOf z (graph (fun y => funOf f y)))
+    (hz : ∀ A, (arrowE (arrowE A A) (arrowE A A)).mem z)
+    {n : ℕ}
+    (hn : ∀ j, funOf (funOf z (graph (sigmaJ j))) {pair j 0} =
+      ({pair j n} : Pomega))
+    (p q : ℕ) :
+    funOf (funOf z (e p)) (e q) = Z n (e p) (e q) := by
+  let j := max p q + 1
+  let gf := graph (fun y => funOf (e p) y)
+  let gu := gf ∪ graph (sigmaJ j)
+  have hfg : (arrowE
+      (plotkinE p q j) (plotkinE p q j)).rel gf gu := by
+    simpa [j, gf, gu] using plotkin_function_related p q
+  have hzfg :
+      (arrowE (plotkinE p q j) (plotkinE p q j)).rel
+        (funOf z gf) (funOf z gu) :=
+    (hz (plotkinE p q j)).2.2 gf gu hfg
+  have hstart :
+      (plotkinE p q j).rel (e q) (e q ∪ {pair j 0}) := by
+    refine ⟨⟨0, Or.inl rfl⟩, ⟨0, Or.inr rfl⟩, ?_⟩
+    exact Relation.EqvGen.rel _ _
+      ⟨0, Or.inl ⟨rfl, rfl⟩⟩
+  have hout :
+      (plotkinE p q j).rel
+        (funOf (funOf z gf) (e q))
+        (funOf (funOf z gu) (e q ∪ {pair j 0})) :=
+    hzfg.2.2 _ _ hstart
+  obtain ⟨r, hr⟩ := theorem_7_4_plotkin z hη hz gf (e q)
+  obtain ⟨m, hm⟩ :=
+    theorem_7_4_plotkin z hη hz gu (e q ∪ {pair j 0})
+  have hleft :
+      funOf (funOf z gf) (e q) = Z r (e p) (e q) := by
+    rw [hr]
+    exact Z_graph_funOf r (e p) (e q)
+  have hright :
+      funOf (funOf z gu) (e q ∪ {pair j 0}) =
+        Z m (e p) (e q) ∪ {pair j m} := by
+    rw [hm]
+    simpa [j, gf, gu] using plotkin_finite_separation p q m
+  have herase := plotkinE_erase hout
+  have horbit : Z r (e p) (e q) = Z m (e p) (e q) := by
+    rw [hleft, hright] at herase
+    exact (eraseTag_Z_finite p q r).symm.trans
+      (herase.trans (eraseTag_Z_finite_union p q m))
+  have hsigmaSub :
+      funOf (funOf z (graph (sigmaJ j))) {pair j 0} ⊆
+        funOf (funOf z gu) (e q ∪ {pair j 0}) := by
+    exact mu_law
+      (funOf_monotone_right z Set.subset_union_right)
+      Set.subset_union_right
+  have htag : pair j n ∈ Z m (e p) (e q) ∪ {pair j m} := by
+    rw [← hright]
+    apply hsigmaSub
+    rw [hn j]
+    simp
+  have hnm : n = m := by
+    rcases htag with hbad | htag
+    · exact (Z_finite_no_tag p q m n (by simpa [j] using hbad)).elim
+    · exact (pair_inj htag).2
+  rw [hη (e p), hleft, horbit, ← hnm]
+
+theorem theorem_7_4_unique (z : Pomega)
+    (hη : ∀ f, funOf z f = funOf z (graph (fun y => funOf f y)))
+    (hz : ∀ A, (arrowE (arrowE A A) (arrowE A A)).mem z) :
+    ∃ n, z = Zcomb n := by
+  obtain ⟨n, hn⟩ := theorem_7_4_sigma_index z hη hz
+  refine ⟨n, ?_⟩
+  have hfinite (p : ℕ) :
+      funOf z (e p) = funOf (Zcomb n) (e p) := by
+    let gp := graph (fun y => funOf (e p) y)
+    have hgpGraph : gp = graph (fun y => funOf gp y) := by
+      apply graph_ext
+      intro y
+      exact (normalized_finite_app p y).symm
+    have hgpMem : (arrowE emptyE emptyE).mem gp :=
+      ⟨hgpGraph, hgpGraph, fun _ _ h => False.elim h⟩
+    have hzgpGraph : funOf z gp = graph (fun y => funOf (funOf z gp) y) :=
+      ((theorem_7_1 (arrowE emptyE emptyE) (arrowE emptyE emptyE)).2.1
+        (hz emptyE) hgpMem).1
+    have hzFiniteGraph :
+        funOf z (e p) = graph (fun y => funOf (funOf z (e p)) y) := by
+      rw [hη (e p)]
+      exact hzgpGraph
+    apply graph_funOf_ext hzFiniteGraph (Zcomb_app_isGraph n (e p))
+    intro x
+    have hright :
+        IsScottContinuous (fun y => Z n (e p) y) :=
+      Z_isScottContinuous_right n (e p)
+    have hleft :
+        IsScottContinuous (fun y => funOf (funOf z (e p)) y) :=
+      funOf_isScottContinuous (funOf z (e p))
+    have heq := congrFun
+      (isScottContinuous_determined hleft hright
+        (fun q => theorem_7_4_finite z hη hz hn p q)) x
+    simpa [Zcomb_app2] using heq
+  have hall (f : Pomega) : funOf z f = funOf (Zcomb n) f := by
+    let gf := graph (fun y => funOf f y)
+    have hgfGraph : gf = graph (fun y => funOf gf y) := by
+      apply graph_ext
+      intro y
+      exact (beta (funOf_isScottContinuous f) y).symm
+    have hgfMem : (arrowE emptyE emptyE).mem gf :=
+      ⟨hgfGraph, hgfGraph, fun _ _ h => False.elim h⟩
+    have hzgfGraph : funOf z gf = graph (fun y => funOf (funOf z gf) y) :=
+      ((theorem_7_1 (arrowE emptyE emptyE) (arrowE emptyE emptyE)).2.1
+        (hz emptyE) hgfMem).1
+    have hzfGraph :
+        funOf z f = graph (fun y => funOf (funOf z f) y) := by
+      rw [hη f]
+      exact hzgfGraph
+    apply graph_funOf_ext hzfGraph (Zcomb_app_isGraph n f)
+    intro x
+    have hleft :
+        IsScottContinuous (fun g => funOf (funOf z g) x) :=
+      theorem_1_3 (f := fun u => funOf u x) (g := funOf z)
+        (funOf_isScottContinuous_left x)
+        (funOf_isScottContinuous z)
+    have hright : IsScottContinuous (fun g => Z n g x) :=
+      Z_isScottContinuous_left n x
+    have heq := congrFun
+      (isScottContinuous_determined hleft hright (fun p => by
+        have := congrArg (fun w => funOf w x) (hfinite p)
+        simpa [Zcomb_app2] using this)) f
+    simpa [Zcomb_app2] using heq
+  exact graph_funOf_ext (hz emptyE).1 (Zcomb_isGraph n) hall
+
+/-- **Scott 1976, Theorem 7.4 (The iterator theorem).**
+The functionality is both satisfied by and globally characterizes the
+iterators. -/
+theorem theorem_7_4 :
+    (∀ A n, (arrowE (arrowE A A) (arrowE A A)).mem (Zcomb n)) ∧
+      ∀ z,
+        (∀ f, funOf z f = funOf z (graph (fun y => funOf f y))) →
+        (∀ A, (arrowE (arrowE A A) (arrowE A A)).mem z) →
+        ∃ n, z = Zcomb n :=
+  ⟨theorem_7_4_i, theorem_7_4_unique⟩
+
 theorem tensorR_diag_isScottContinuous :
     IsScottContinuous (fun z => tensorR z z) :=
   graph_const_isScottContinuous
@@ -1750,6 +2412,14 @@ theorem eq_4_38 : treeR = plusR botElem (tensorR treeR treeR) := by
     rw [hY]
     exact (theorem_1_4 treeF_isScottContinuous).1
   exact hfix.symm
+
+/-- **Scott 1976, Theorem 4.6 applied to (4.38).** -/
+theorem treeR_isRetract : IsRetract treeR :=
+  (theorem_4_6 treeF_isScottContinuous (fun a ha =>
+    plusR_isRetract bot_isRetract (tensorR_isRetract ha ha))).2
+
+theorem treeR_fixedPoint : treeF treeR = treeR := by
+  simpa [treeF] using eq_4_38.symm
 
 theorem typed_bot_bot : typed botElem botElem := by
   change botElem = funOf botElem botElem
@@ -1797,5 +2467,50 @@ def Hinterp : LambTerm → Pomega → Pomega
         (funOf (funOf outC (Hinterp τ t)) (Hinterp σ t))
   | .lam n τ, t =>
       funOf inrightC (graph (fun x => Hinterp τ (updateEnv t x n)))
+
+theorem arrowR_diag_isScottContinuous :
+    IsScottContinuous (fun z => arrowR z z) := by
+  apply graph_const_isScottContinuous
+  intro u
+  have h :
+      IsScottContinuous (fun z =>
+        graph (fun x => funOf z (funOf u (funOf z x)))) :=
+    graph_const_isScottContinuous
+      (fun z x => funOf z (funOf u (funOf z x)))
+      (fun x =>
+        continuous_tuple
+          (fun y => funOf_isScottContinuous_left (funOf u (funOf y x)))
+          (fun z =>
+            theorem_1_3 (funOf_isScottContinuous z)
+              (theorem_1_3 (funOf_isScottContinuous u)
+                (funOf_isScottContinuous_left x)))
+          id_isScottContinuous
+          id_isScottContinuous)
+  convert h using 1
+  funext z
+  apply graph_ext
+  intro x
+  simp only [comp_app]
+
+theorem lambF_isScottContinuous : IsScottContinuous lambF :=
+  theorem_1_3 (f := fun b => plusR intR b) (g := fun z => arrowR z z)
+    (plusR_right_isScottContinuous intR)
+    arrowR_diag_isScottContinuous
+
+/-- **Scott 1976, Theorem 4.6 applied to (4.39).** -/
+theorem lambR_isRetract : IsRetract lambR :=
+  (theorem_4_6 lambF_isScottContinuous (fun a ha =>
+    plusR_isRetract intR_isRetract (arrowR_isRetract ha ha))).2
+
+/-- **Scott 1976, (4.39).** `lamb = int ⊕ (lamb ∘→ lamb)`. -/
+theorem eq_4_39 : lambR = plusR intR (arrowR lambR lambR) := by
+  have hY : lambR = fix lambF := theorem_2_5 lambF_isScottContinuous
+  have hfix : lambF lambR = lambR := by
+    rw [hY]
+    exact (theorem_1_4 lambF_isScottContinuous).1
+  exact hfix.symm
+
+theorem lambR_fixedPoint : lambF lambR = lambR := by
+  simpa [lambF] using eq_4_39.symm
 
 end Scott1976.DataTypesAsLattices

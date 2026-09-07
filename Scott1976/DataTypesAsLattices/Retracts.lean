@@ -3,7 +3,7 @@ Copyright (c) 2026  Lars Warren Ericson.  All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Lars Warren Ericson.
 -/
-import Mathlib.Order.CompleteLattice.Defs
+import Scott1976.DataTypesAsLattices.FixedLattices
 import Scott1976.DataTypesAsLattices.Lambda
 
 /-!
@@ -342,6 +342,165 @@ def fixpointsCompleteLattice {f : Pomega → Pomega} (hf : IsScottContinuous f) 
     bot := ⟨fix f, (theorem_1_4 hf).1⟩
     bot_le := fun x => (theorem_1_4 hf).2 x.val x.property }
 
+noncomputable instance fixpointsFunOfCompleteLattice (a : Pomega) :
+    CompleteLattice (Fixpoints (funOf a)) :=
+  fixpointsCompleteLattice (funOf_isScottContinuous a)
+
+theorem retract_app {a : Pomega} (ha : IsRetract a) (x : Pomega) :
+    funOf a (funOf a x) = funOf a x := by
+  have := congrArg (fun u => funOf u x) ha
+  simpa [comp_app] using this.symm
+
+theorem directed_finite_cover {A : Set (Fixpoints f)}
+    (hA : IsDirectedSet A) {t : Pomega} (ht : t.Finite)
+    (hsub : t ⊆ ⋃₀ (Fixpoints.vals A)) :
+    ∃ z ∈ A, t ⊆ z := by
+  classical
+  have aux : ∀ s : Finset ℕ,
+      (s : Set ℕ) ⊆ ⋃₀ (Fixpoints.vals A) →
+        ∃ z ∈ A, (s : Set ℕ) ⊆ z := by
+    intro s
+    induction s using Finset.induction with
+    | empty =>
+        intro _
+        obtain ⟨z, hz⟩ := hA.1
+        exact ⟨z, hz, by simp⟩
+    | insert k s hks ih =>
+        intro hs
+        obtain ⟨u, hu, hsu⟩ :=
+          ih (fun m hm => hs (by simp [hm]))
+        obtain ⟨v, hv, hkv⟩ :=
+          Set.mem_sUnion.mp
+            (hs (show k ∈ (insert k s : Finset ℕ) by simp))
+        obtain ⟨v', hv'A, rfl⟩ := hv
+        obtain ⟨z, hz, huz, hvz⟩ := hA.2 hu hv'A
+        refine ⟨z, hz, ?_⟩
+        intro m hm
+        simp only [Finset.coe_insert, Set.mem_insert_iff] at hm
+        rcases hm with rfl | hm
+        · exact hvz hkv
+        · exact huz (hsu hm)
+  obtain ⟨z, hzA, hz⟩ := aux ht.toFinset (by simpa using hsub)
+  exact ⟨z, hzA, fun m hm => hz (by simpa using hm)⟩
+
+theorem directed_sUnion_fixed {f : Pomega → Pomega} (hf : IsScottContinuous f)
+    {A : Set (Fixpoints f)} (hA : IsDirectedSet A) :
+    ⋃₀ (Fixpoints.vals A) ∈ Fixpoints f := by
+  apply subset_antisymm
+  · intro k hk
+    have hk' : k ∈ scottUnion f (⋃₀ (Fixpoints.vals A)) := by
+      rwa [← hf (⋃₀ (Fixpoints.vals A))]
+    obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp hk'
+    obtain ⟨z, hzA, hnz⟩ :=
+      directed_finite_cover hA (e_finite n) hn
+    have : k ∈ f z :=
+      isScottContinuous_monotone hf hnz hkn
+    rw [z.property] at this
+    exact Set.mem_sUnion.mpr ⟨z, ⟨z, hzA, rfl⟩, this⟩
+  · exact sUnion_Fixpoints_le_image hf (Fixpoints.vals_subset A)
+
+theorem sSup_fixed_eq_sUnion {f : Pomega → Pomega} (hf : IsScottContinuous f)
+    {A : Set (Fixpoints f)} (hA : IsDirectedSet A) :
+    ((@sSup (Fixpoints f) (fixpointsCompleteLattice hf).toSupSet A :
+        Fixpoints f) : Pomega) =
+      ⋃₀ (Fixpoints.vals A) := by
+  letI := fixpointsCompleteLattice hf
+  let u : Fixpoints f :=
+    ⟨⋃₀ (Fixpoints.vals A), directed_sUnion_fixed hf hA⟩
+  apply subset_antisymm
+  · have hle : sSup A ≤ u := by
+      apply sSup_le
+      intro x hx
+      exact Set.subset_sUnion_of_mem ⟨x, hx, rfl⟩
+    exact hle
+  · intro k hk
+    obtain ⟨x, hxA, hkx⟩ := Set.mem_sUnion.mp hk
+    obtain ⟨y, hyA, rfl⟩ := hxA
+    exact (le_sSup hyA) hkx
+
+/-- The canonical finite-image basis of the fixed-point lattice of a retract. -/
+def retractBasis (a : Pomega) (x : Fixpoints (funOf a)) :
+    Set (Fixpoints (funOf a)) :=
+  {y | ∃ n, e n ⊆ x ∧ (y : Pomega) = funOf a (e n)}
+
+theorem retractBasis_directed {a : Pomega} (ha : IsRetract a)
+    (x : Fixpoints (funOf a)) :
+    IsDirectedSet (retractBasis a x) := by
+  constructor
+  · let y : Fixpoints (funOf a) :=
+      ⟨funOf a (e 0), retract_app ha (e 0)⟩
+    exact ⟨y, 0, by simp [e_zero], rfl⟩
+  · intro y hy z hz
+    obtain ⟨n, hnx, hyn⟩ := hy
+    obtain ⟨m, hmx, hzm⟩ := hz
+    let w : Fixpoints (funOf a) :=
+      ⟨funOf a (e (n ||| m)), retract_app ha (e (n ||| m))⟩
+    refine ⟨w, ⟨n ||| m, e_or_of_subset hnx hmx, rfl⟩, ?_, ?_⟩
+    · change (y : Pomega) ⊆ (w : Pomega)
+      rw [hyn]
+      change funOf a (e n) ⊆ funOf a (e (n ||| m))
+      rw [e_or]
+      exact isScottContinuous_monotone (funOf_isScottContinuous a)
+        Set.subset_union_left
+    · change (z : Pomega) ⊆ (w : Pomega)
+      rw [hzm]
+      change funOf a (e m) ⊆ funOf a (e (n ||| m))
+      rw [e_or]
+      exact isScottContinuous_monotone (funOf_isScottContinuous a)
+        Set.subset_union_right
+
+theorem retractBasis_wayBelow {a : Pomega} (ha : IsRetract a)
+    {x y : Fixpoints (funOf a)} (hy : y ∈ retractBasis a x) :
+    WayBelow y x := by
+  intro A hA hxA
+  obtain ⟨n, hnx, hyn⟩ := hy
+  have hsup :
+      ((sSup A : Fixpoints (funOf a)) : Pomega) =
+        ⋃₀ (Fixpoints.vals A) :=
+    sSup_fixed_eq_sUnion (funOf_isScottContinuous a) hA
+  have hfinite :
+      e n ⊆ ⋃₀ (Fixpoints.vals A) := by
+    rw [← hsup]
+    exact hnx.trans hxA
+  obtain ⟨z, hzA, hnz⟩ :=
+    directed_finite_cover hA (e_finite n) hfinite
+  refine ⟨z, hzA, ?_⟩
+  change (y : Pomega) ⊆ z
+  rw [hyn]
+  have := isScottContinuous_monotone (funOf_isScottContinuous a) hnz
+  rwa [z.property] at this
+
+theorem retractBasis_sSup {a : Pomega} (ha : IsRetract a)
+    (x : Fixpoints (funOf a)) :
+    x = sSup (retractBasis a x) := by
+  apply Subtype.ext
+  rw [sSup_fixed_eq_sUnion (funOf_isScottContinuous a)
+    (retractBasis_directed ha x)]
+  have hx : typed (x : Pomega) a := x.property.symm
+  rw [retract_interpolation ha hx]
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨n, hnx, hkn⟩ := Set.mem_iUnion.mp hk
+    let y : Fixpoints (funOf a) :=
+      ⟨funOf a (e n), retract_app ha (e n)⟩
+    exact Set.mem_sUnion.mpr
+      ⟨y, ⟨y, ⟨n, hnx, rfl⟩, rfl⟩, hkn⟩
+  · intro hk
+    obtain ⟨_, ⟨y, ⟨n, hnx, hyn⟩, rfl⟩, hky⟩ :=
+      Set.mem_sUnion.mp hk
+    exact Set.mem_iUnion.mpr ⟨n, hnx, hyn ▸ hky⟩
+
+/-- **Scott 1976, Theorem 4.1, continuous-lattice half.**
+The finite-image points form a directed way-below basis for every point in
+the range of a retract. -/
+theorem theorem_4_1_continuous {a : Pomega} (ha : IsRetract a) :
+    IsContinuousBasis (retractBasis a) := by
+  intro x
+  exact ⟨retractBasis_directed ha x,
+    fun y hy => retractBasis_wayBelow ha hy,
+    retractBasis_sSup ha x⟩
+
 /-- **Scott 1976, Theorem 4.1 (The lattice theorem).**
 Fixed points of a continuous function form a complete lattice under `⊆`;
 those of a retract form a continuous lattice. -/
@@ -349,10 +508,9 @@ theorem theorem_4_1 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
     (∀ A : Set Pomega, A ⊆ Fixpoints f →
       gfpBelow f (⋂₀ A) ∈ Fixpoints f ∧
         lfpAbove f (⋃₀ A) ∈ Fixpoints f) ∧
-      ∀ {a} (_ha : IsRetract a),
+      ∀ {a} (ha : IsRetract a),
         Fixpoints (funOf a) = {x | typed x a} ∧
-          ∀ x, typed x a →
-            x = ⋃ n, {k | e n ⊆ x ∧ k ∈ funOf a (e n)} := by
+          IsContinuousBasis (retractBasis a) := by
   constructor
   · intro A hA
     exact ⟨theorem_4_1_complete f hf A hA, lfpAbove_mem hf hA⟩
@@ -360,8 +518,7 @@ theorem theorem_4_1 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
     constructor
     · ext x
       simp [Fixpoints, typed, eq_comm]
-    · intro x hx
-      exact retract_interpolation ha hx
+    · exact theorem_4_1_continuous ha
 
 theorem graph_ext {f g : Pomega → Pomega} (h : ∀ x, f x = g x) :
     graph f = graph g := by
@@ -374,11 +531,6 @@ theorem funRetract_isRetract : IsRetract funRetract := by
   apply graph_ext
   intro x
   exact (beta (funOf_isScottContinuous u) x).symm
-
-theorem retract_app {a : Pomega} (ha : IsRetract a) (x : Pomega) :
-    funOf a (funOf a x) = funOf a x := by
-  have := congrArg (fun u => funOf u x) ha
-  simpa [comp_app] using this.symm
 
 theorem comp_right_const (a : Pomega) :
     IsScottContinuous (fun u => comp u a) :=
@@ -920,6 +1072,248 @@ theorem theorem_4_6 {F : Pomega → Pomega}
       graph (funOf (fix F)) :=
     graph_ext (fun x => funOf_fix_idem hf hret x)
   exact (hidem'.trans hgr).symm
+
+/-- The strict bottom retract is below every strict retract in Scott's
+projection order. -/
+theorem bot_retractLe {a : Pomega} (ha : IsStrict a) :
+    retractLe botElem a := by
+  constructor
+  · unfold comp
+    have h : (fun x => funOf botElem (funOf a x)) = fun _ => botElem := by
+      funext x
+      exact funOf_botElem (funOf a x)
+    rw [h, graph_const_bot]
+  · unfold comp
+    have h : (fun x => funOf a (funOf botElem x)) = fun _ => botElem := by
+      funext x
+      rw [funOf_botElem, ha]
+    rw [h, graph_const_bot]
+
+/-- Strictness of all Kleene approximants of a strictness-preserving
+retract functor. -/
+theorem iterateBot_isStrict {F : Pomega → Pomega}
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a)) :
+    ∀ n, IsStrict (iterateBot F n)
+  | 0 => by simp [iterateBot, IsStrict, funOf_botElem]
+  | n + 1 =>
+      hstrict _ (iterates_areRetracts hret n)
+        (iterateBot_isStrict hret hstrict n)
+
+/-- Projection-order monotonicity gives adjacent projection equations for
+the Kleene chain. -/
+theorem iterateBot_retractLe_succ {F : Pomega → Pomega}
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a))
+    (hmono : ∀ {a b}, IsRetract a → IsStrict a →
+      IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b)) :
+    ∀ n, retractLe (iterateBot F n) (iterateBot F (n + 1))
+  | 0 => by
+      simpa [iterateBot] using
+        (bot_retractLe (iterateBot_isStrict hret hstrict 1))
+  | n + 1 => by
+      simpa only [iterateBot] using
+        hmono (iterates_areRetracts hret n) (iterateBot_isStrict hret hstrict n)
+          (iterates_areRetracts hret (n + 1))
+          (iterateBot_isStrict hret hstrict (n + 1))
+          (iterateBot_retractLe_succ hret hstrict hmono n)
+
+/-- Projection equations between arbitrary comparable Kleene stages. -/
+theorem iterateBot_retractLe {F : Pomega → Pomega}
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a))
+    (hmono : ∀ {a b}, IsRetract a → IsStrict a →
+      IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b))
+    {n m : ℕ} (hnm : n ≤ m) :
+    retractLe (iterateBot F n) (iterateBot F m) := by
+  induction m, hnm using Nat.le_induction with
+  | base =>
+      exact retractLe_refl (iterates_areRetracts hret n)
+  | succ m _ ih =>
+      exact retractLe_trans ih (iterateBot_retractLe_succ hret hstrict hmono m)
+
+/-- The inverse limit of the ranges of `Fⁿ(⊥)`: points are typed at every
+stage and adjacent coordinates satisfy Scott's projection equation. -/
+def RetractInverseLimit (F : Pomega → Pomega) :=
+  {v : ℕ → Pomega //
+    (∀ n, typed (v n) (iterateBot F n)) ∧
+      ∀ n, v n = funOf (iterateBot F n) (v (n + 1))}
+
+instance (F : Pomega → Pomega) : PartialOrder (RetractInverseLimit F) where
+  le v w := ∀ n, v.1 n ⊆ w.1 n
+  le_refl _ _ := subset_rfl
+  le_trans _ _ _ hvw hwz n := subset_trans (hvw n) (hwz n)
+  le_antisymm v w hvw hwv := by
+    apply Subtype.ext
+    funext n
+    exact Set.Subset.antisymm (hvw n) (hwv n)
+
+/-- A coherent inverse-limit sequence is increasing in the ambient
+powerset order. -/
+theorem inverseLimit_mono {F : Pomega → Pomega}
+    (hf : IsScottContinuous F) (v : RetractInverseLimit F) :
+    ∀ n, v.1 n ⊆ v.1 (n + 1) := by
+  intro n
+  rw [v.property.2 n]
+  have hcode : iterateBot F n ⊆ iterateBot F (n + 1) :=
+    iterateBot_mono hf n
+  have h := funOf_monotone_left hcode (v.1 (n + 1))
+  rw [← v.property.1 (n + 1)] at h
+  exact h
+
+theorem inverseLimit_chain {F : Pomega → Pomega}
+    (hf : IsScottContinuous F) (v : RetractInverseLimit F) :
+    ∀ n m, n ≤ m → v.1 n ⊆ v.1 m :=
+  chain_mono v.1 (inverseLimit_mono hf v)
+
+/-- Repeated coherence: every later coordinate projects to an earlier one. -/
+theorem inverseLimit_project_later {F : Pomega → Pomega}
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a))
+    (hmono : ∀ {a b}, IsRetract a → IsStrict a →
+      IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b))
+    (v : RetractInverseLimit F) {n m : ℕ} (hnm : n ≤ m) :
+    funOf (iterateBot F n) (v.1 m) = v.1 n := by
+  induction m, hnm using Nat.le_induction with
+  | base => exact (v.property.1 n).symm
+  | succ m hnm ih =>
+      have hle := iterateBot_retractLe hret hstrict hmono hnm
+      have happ :=
+        congrArg (fun a => funOf a (v.1 (m + 1))) hle.1
+      rw [comp_app, ← v.property.2 m, ih] at happ
+      exact happ
+
+/-- Earlier typed coordinates are fixed by every later projection. -/
+theorem inverseLimit_project_earlier {F : Pomega → Pomega}
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a))
+    (hmono : ∀ {a b}, IsRetract a → IsStrict a →
+      IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b))
+    (v : RetractInverseLimit F) {m n : ℕ} (hmn : m ≤ n) :
+    funOf (iterateBot F n) (v.1 m) = v.1 m := by
+  have hle := iterateBot_retractLe hret hstrict hmono hmn
+  have hm : funOf (iterateBot F m) (v.1 m) = v.1 m :=
+    (v.property.1 m).symm
+  have happ := congrArg (fun a => funOf a (v.1 m)) hle.2
+  simpa only [comp_app, hm] using happ.symm
+
+/-- Every stage projection of the union of a coherent sequence is its
+corresponding coordinate. -/
+theorem inverseLimit_project_iUnion {F : Pomega → Pomega}
+    (hf : IsScottContinuous F)
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a))
+    (hmono : ∀ {a b}, IsRetract a → IsStrict a →
+      IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b))
+    (v : RetractInverseLimit F) (n : ℕ) :
+    funOf (iterateBot F n) (⋃ m, v.1 m) = v.1 n := by
+  rw [chain_lemma (funOf_isScottContinuous (iterateBot F n)) v.1
+    (inverseLimit_mono hf v)]
+  apply subset_antisymm
+  · intro k hk
+    obtain ⟨m, hkm⟩ := Set.mem_iUnion.mp hk
+    by_cases hmn : m ≤ n
+    · rw [inverseLimit_project_earlier hret hstrict hmono v hmn] at hkm
+      exact inverseLimit_chain hf v m n hmn hkm
+    · have hnm : n ≤ m := Nat.le_of_lt (Nat.lt_of_not_ge hmn)
+      rwa [inverseLimit_project_later hret hstrict hmono v hnm] at hkm
+  · intro k hk
+    exact Set.mem_iUnion.mpr ⟨n, by
+      rw [inverseLimit_project_later hret hstrict hmono v (le_refl n)]
+      exact hk⟩
+
+/-- The union of a coherent sequence lies in the range of the least fixed
+point retract. -/
+theorem inverseLimit_iUnion_typed {F : Pomega → Pomega}
+    (hf : IsScottContinuous F)
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a))
+    (hmono : ∀ {a b}, IsRetract a → IsStrict a →
+      IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b))
+    (v : RetractInverseLimit F) :
+    typed (⋃ n, v.1 n) (fix F) := by
+  change (⋃ n, v.1 n) = funOf (fix F) (⋃ n, v.1 n)
+  rw [fix, funOf_iUnion]
+  apply Eq.symm
+  congr 1
+  funext n
+  exact inverseLimit_project_iUnion hf hret hstrict hmono v n
+
+/-- A point of the fixed-point range determines its sequence of finite
+projections. -/
+def fixedToInverseLimit {F : Pomega → Pomega}
+    (hf : IsScottContinuous F)
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a))
+    (hmono : ∀ {a b}, IsRetract a → IsStrict a →
+      IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b))
+    (u : Fixpoints (funOf (fix F))) : RetractInverseLimit F :=
+  ⟨fun n => funOf (iterateBot F n) u.1,
+    ⟨fun n => (retract_app (iterates_areRetracts hret n) u.1).symm,
+      fun n => by
+        have hle := iterateBot_retractLe_succ hret hstrict hmono n
+        have happ := congrArg (fun a => funOf a u.1) hle.1
+        simpa only [comp_app] using happ⟩⟩
+
+/-- A coherent sequence determines a point of the least fixed-point range
+by taking the union of its coordinates. -/
+def inverseLimitToFixed {F : Pomega → Pomega}
+    (hf : IsScottContinuous F)
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a))
+    (hmono : ∀ {a b}, IsRetract a → IsStrict a →
+      IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b))
+    (v : RetractInverseLimit F) : Fixpoints (funOf (fix F)) :=
+  ⟨⋃ n, v.1 n, (inverseLimit_iUnion_typed hf hret hstrict hmono v).symm⟩
+
+/-- **Scott 1976, Theorem 4.6, inverse-limit half.** The maps
+`u ↦ (Fⁿ(⊥)(u))ₙ` and `(vₙ) ↦ ⋃ₙ vₙ` are inverse order isomorphisms. -/
+def theorem_4_6_inverseLimit {F : Pomega → Pomega}
+    (hf : IsScottContinuous F)
+    (hret : ∀ a, IsRetract a → IsRetract (F a))
+    (hstrict : ∀ a, IsRetract a → IsStrict a → IsStrict (F a))
+    (hmono : ∀ {a b}, IsRetract a → IsStrict a →
+      IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b)) :
+    Fixpoints (funOf (fix F)) ≃o RetractInverseLimit F where
+  toFun := fixedToInverseLimit hf hret hstrict hmono
+  invFun := inverseLimitToFixed hf hret hstrict hmono
+  left_inv u := by
+    apply Subtype.ext
+    change (⋃ n, funOf (iterateBot F n) u.1) = u.1
+    rw [← funOf_iUnion, ← fix, u.property]
+  right_inv v := by
+    apply Subtype.ext
+    funext n
+    exact inverseLimit_project_iUnion hf hret hstrict hmono v n
+  map_rel_iff' := by
+    intro u w
+    constructor
+    · intro h
+      change ∀ n, funOf (iterateBot F n) u.1 ⊆
+        funOf (iterateBot F n) w.1 at h
+      change u.1 ⊆ w.1
+      have hu : u.1 = ⋃ n, funOf (iterateBot F n) u.1 := by
+        calc
+          u.1 = funOf (fix F) u.1 := u.property.symm
+          _ = ⋃ n, funOf (iterateBot F n) u.1 := by
+            change funOf (⋃ n, iterateBot F n) u.1 = _
+            rw [funOf_iUnion]
+      have hw : w.1 = ⋃ n, funOf (iterateBot F n) w.1 := by
+        calc
+          w.1 = funOf (fix F) w.1 := w.property.symm
+          _ = ⋃ n, funOf (iterateBot F n) w.1 := by
+            change funOf (⋃ n, iterateBot F n) w.1 = _
+            rw [funOf_iUnion]
+      rw [hu, hw]
+      intro k hk
+      obtain ⟨n, hkn⟩ := Set.mem_iUnion.mp hk
+      exact Set.mem_iUnion.mpr ⟨n, h n hkn⟩
+    · intro huw
+      change u.1 ⊆ w.1 at huw
+      change ∀ n, funOf (iterateBot F n) u.1 ⊆
+        funOf (iterateBot F n) w.1
+      intro n
+      exact funOf_monotone_right (iterateBot F n) huw
 
 def treeR : Pomega := funOf Ycomb (graph treeF)
 

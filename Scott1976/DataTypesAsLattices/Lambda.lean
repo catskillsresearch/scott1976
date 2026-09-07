@@ -614,6 +614,65 @@ theorem theorem_2_3_ternary {f : Pomega → Pomega → Pomega → Pomega}
     ∃ u, ∀ x y z, funOf (funOf (funOf u x) y) z = f x y z :=
   ⟨curry3 f hf0 hf1 hf2, curry3_app f hf0 hf1 hf2⟩
 
+/-- Continuity of an n-ary map, taken one argument at a time from the left. -/
+def IsScottContinuousFin : ∀ {n : ℕ}, ((Fin n → Pomega) → Pomega) → Prop
+  | 0, _ => True
+  | n + 1, f =>
+      (∀ xs : Fin n → Pomega, IsScottContinuous (fun x => f (Fin.cons x xs))) ∧
+      (∀ x : Pomega, IsScottContinuousFin (fun xs : Fin n → Pomega => f (Fin.cons x xs)))
+
+/-- Nested-graph representative of an n-ary continuous map. -/
+def curryFin : ∀ {n : ℕ}, ((Fin n → Pomega) → Pomega) → Pomega
+  | 0, f => f Fin.elim0
+  | _n + 1, f => graph (fun x => curryFin (fun xs => f (Fin.cons x xs)))
+
+/-- Iterated application of a nested-graph representative. -/
+def nestApplyFin (u : Pomega) : ∀ {n : ℕ}, (Fin n → Pomega) → Pomega
+  | 0, _ => u
+  | _n + 1, xs => nestApplyFin (funOf u (xs 0)) (Fin.tail xs)
+
+theorem curryFin_isScottContinuous {n : ℕ} :
+    ∀ {f : (Fin (n + 1) → Pomega) → Pomega},
+      IsScottContinuousFin f →
+      IsScottContinuous (fun x => curryFin (fun xs : Fin n → Pomega => f (Fin.cons x xs))) := by
+  induction n with
+  | zero =>
+    intro f hf
+    exact hf.1 Fin.elim0
+  | succ n ih =>
+    intro f hf
+    refine graph_const_isScottContinuous
+      (fun x y => curryFin (fun zs : Fin n → Pomega =>
+        f (Fin.cons x (Fin.cons y zs)))) (fun y =>
+      ih (f := fun xs : Fin (n + 1) → Pomega =>
+          f (Fin.cons (xs 0) (Fin.cons y (Fin.tail xs)))) ⟨?_, ?_⟩)
+    · intro zs
+      simpa [Fin.cons_zero, Fin.cons_succ] using hf.1 (Fin.cons y zs)
+    · intro x
+      simpa [Fin.cons_zero, Fin.cons_succ] using (hf.2 x).2 y
+
+theorem curryFin_app {n : ℕ} {f : (Fin n → Pomega) → Pomega}
+    (hf : IsScottContinuousFin f) (xs : Fin n → Pomega) :
+    nestApplyFin (curryFin f) xs = f xs := by
+  induction n with
+  | zero =>
+    change curryFin f = f xs
+    exact congrArg f (funext fun i => nomatch i)
+  | succ n ih =>
+    have hβ : funOf (curryFin f) (xs 0) =
+        curryFin (fun ys => f (Fin.cons (xs 0) ys)) :=
+      beta (curryFin_isScottContinuous hf) (xs 0)
+    change nestApplyFin (funOf (curryFin f) (xs 0)) (Fin.tail xs) = f xs
+    rw [hβ, ih (hf.2 (xs 0)) (Fin.tail xs)]
+    exact congrArg f (Fin.cons_self_tail xs)
+
+/-- **Scott 1976, Theorem 2.3 (The reduction theorem), finite arity.**
+Every n-ary continuous operation is represented by an n-fold nested graph. -/
+theorem theorem_2_3_fin {n : ℕ} {f : (Fin n → Pomega) → Pomega}
+    (hf : IsScottContinuousFin f) :
+    ∃ u, ∀ xs, nestApplyFin u xs = f xs :=
+  ⟨curryFin f, curryFin_app hf⟩
+
 def zeroC : Pomega := ofNat 0
 def sucC : Pomega := graph succSet
 def predC : Pomega := graph predSet
@@ -1919,6 +1978,10 @@ theorem primRecHat_ofNat (a f : Pomega) : ∀ n,
     · intro hk
       exact Set.mem_iUnion₂.mpr ⟨n + 1, rfl, hk⟩
 
+theorem succSet_ofNat (j : ℕ) : succSet (ofNat j) = ofNat (j + 1) := by
+  ext k
+  simp [succSet, ofNat]
+
 theorem predSet_ofNat_succ (n : ℕ) : predSet (ofNat (n + 1)) = ofNat n := by
   ext k
   simp [predSet, ofNat]
@@ -2101,5 +2164,224 @@ theorem Ycomb_unfold (u : Pomega) :
     _ = funOf u (funOf (omegaComb u) (omegaComb u)) :=
       omegaComb_app u (omegaComb u)
     _ = funOf u (funOf Ycomb u) := by rw [Ycomb_app]
+
+/-- Term-level shift `λt. u(t+1)`, which agrees with `seqShift` on numerals. -/
+def termShift (u : Pomega) : Pomega :=
+  graph (fun t => funOf u (succSet t))
+
+theorem termShift_isScottContinuous (u : Pomega) :
+    IsScottContinuous (fun t => funOf u (succSet t)) :=
+  theorem_1_3 (funOf_isScottContinuous u) succSet_isScottContinuous
+
+theorem termShift_app (u t : Pomega) :
+    funOf (termShift u) t = funOf u (succSet t) :=
+  beta (termShift_isScottContinuous u) t
+
+theorem termShift_ofNat (u : Pomega) (i : ℕ) :
+    funOf (termShift u) (ofNat i) = funOf u (ofNat (i + 1)) := by
+  rw [termShift_app, succSet_ofNat]
+
+theorem termShift_left_isScottContinuous : IsScottContinuous termShift :=
+  graph_const_isScottContinuous (fun u t => funOf u (succSet t))
+    (fun t => funOf_isScottContinuous_left (succSet t))
+
+/-- Paper combinator for `$`: `λs λu λz. z ⊃ u(0), s(λt. u(t+1))(z−1)`. -/
+def dollarStepTerm : Term :=
+  .lam 0 (.lam 1 (.lam 2
+    (.cond (.var 2)
+      (.app (.var 1) .zero)
+      (.app (.app (.var 0) (.lam 3 (.app (.var 1) (.succ (.var 3)))))
+        (.pred (.var 2))))))
+
+def termDollarStepBody (s u z : Pomega) : Pomega :=
+  condSet z (funOf u (ofNat 0))
+    (funOf (funOf s (termShift u)) (predSet z))
+
+def termDollarStep (s : Pomega) : Pomega :=
+  graph (fun u => graph (fun z => termDollarStepBody s u z))
+
+theorem seqFunLt_succ_term (u z : Pomega) (n : ℕ) :
+    condSet z (funOf u (ofNat 0)) (seqFunLt (termShift u) (predSet z) n) =
+      seqFunLt u z (n + 1) := by
+  ext k
+  constructor
+  · intro hk
+    rcases hk with ⟨hk0, h0z⟩ | ⟨hpos, t, ht⟩
+    · exact (mem_seqFunLt).mpr ⟨0, h0z, Nat.succ_pos n, hk0⟩
+    · obtain ⟨i, hi, hlt, hki⟩ := (mem_seqFunLt).mp hpos
+      refine (mem_seqFunLt).mpr ⟨i + 1, hi, Nat.succ_lt_succ hlt, ?_⟩
+      simpa [termShift_ofNat] using hki
+  · intro hk
+    obtain ⟨i, hi, hlt, hki⟩ := (mem_seqFunLt).mp hk
+    cases i with
+    | zero => exact Or.inl ⟨hki, hi⟩
+    | succ i =>
+      refine Or.inr ⟨?_, i, hi⟩
+      refine (mem_seqFunLt).mpr ⟨i, hi, Nat.lt_of_succ_lt_succ hlt, ?_⟩
+      simpa [termShift_ofNat] using hki
+
+theorem termDollarStepBody_isScottContinuous_s (u z : Pomega) :
+    IsScottContinuous (fun s => termDollarStepBody s u z) := by
+  have hinner : IsScottContinuous
+      (fun s => funOf (funOf s (termShift u)) (predSet z)) :=
+    theorem_1_3 (f := fun w => funOf w (predSet z))
+      (g := fun s => funOf s (termShift u))
+      (funOf_isScottContinuous_left (predSet z))
+      (funOf_isScottContinuous_left (termShift u))
+  exact theorem_1_3 (condSet_isScottContinuous_right z (funOf u (ofNat 0))) hinner
+
+theorem termDollarStepBody_isScottContinuous_u (s z : Pomega) :
+    IsScottContinuous (fun u => termDollarStepBody s u z) := by
+  have helse : IsScottContinuous
+      (fun u => funOf (funOf s (termShift u)) (predSet z)) :=
+    theorem_1_3 (f := fun w => funOf w (predSet z))
+      (g := fun u => funOf s (termShift u))
+      (funOf_isScottContinuous_left (predSet z))
+      (theorem_1_3 (funOf_isScottContinuous s) termShift_left_isScottContinuous)
+  exact theorem_1_3_tuple
+    (fun y => condSet_isScottContinuous_mid z y)
+    (fun x => condSet_isScottContinuous_right z x)
+    (funOf_isScottContinuous_left (ofNat 0)) helse
+
+theorem termDollarStepBody_isScottContinuous_z (s u : Pomega) :
+    IsScottContinuous (fun z => termDollarStepBody s u z) :=
+  theorem_1_3_tuple
+    (fun y => condSet_isScottContinuous_left (funOf u (ofNat 0)) y)
+    (fun z => condSet_isScottContinuous_right z (funOf u (ofNat 0)))
+    id_isScottContinuous
+    (theorem_1_3 (funOf_isScottContinuous (funOf s (termShift u)))
+      predSet_isScottContinuous)
+
+theorem termDollarStep_isScottContinuous : IsScottContinuous termDollarStep :=
+  graph_const_isScottContinuous
+    (fun s u => graph (fun z => termDollarStepBody s u z))
+    (fun u => graph_const_isScottContinuous
+      (fun s z => termDollarStepBody s u z)
+      (fun z => termDollarStepBody_isScottContinuous_s u z))
+
+theorem termDollarStep_app (s u : Pomega) :
+    funOf (termDollarStep s) u = graph (fun z => termDollarStepBody s u z) :=
+  beta (graph_const_isScottContinuous (fun u z => termDollarStepBody s u z)
+    (fun z => termDollarStepBody_isScottContinuous_u s z)) u
+
+theorem termDollarStep_app2 (s u z : Pomega) :
+    funOf (funOf (termDollarStep s) u) z = termDollarStepBody s u z := by
+  rw [termDollarStep_app]
+  exact beta (termDollarStepBody_isScottContinuous_z s u) z
+
+theorem termDollarStep_iterate (n : ℕ) (u z : Pomega) :
+    funOf (funOf (iterateBot termDollarStep n) u) z = seqFunLt u z n := by
+  induction n generalizing u z with
+  | zero =>
+    simp [iterateBot, funOf_bot, seqFunLt_zero]
+  | succ n ih =>
+    rw [iterateBot, termDollarStep_app2, termDollarStepBody, ih, seqFunLt_succ_term]
+
+theorem termDollarStep_fix_app (u z : Pomega) :
+    funOf (funOf (fix termDollarStep) u) z = seqFun u z := by
+  have : funOf (funOf (fix termDollarStep) u) z =
+      ⋃ n, funOf (funOf (iterateBot termDollarStep n) u) z := by
+    simp [fix, funOf_iUnion]
+  rw [this, seqFun_eq_iUnion_lt]
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨n, hn⟩ := Set.mem_iUnion.mp hk
+    exact Set.mem_iUnion.mpr ⟨n, by simpa [termDollarStep_iterate] using hn⟩
+  · intro hk
+    obtain ⟨n, hn⟩ := Set.mem_iUnion.mp hk
+    exact Set.mem_iUnion.mpr ⟨n, by simpa [termDollarStep_iterate] using hn⟩
+
+theorem dollarC_eq_fix_termDollarStep : dollarC = fix termDollarStep := by
+  have hfix : termDollarStep (fix termDollarStep) = fix termDollarStep :=
+    (theorem_1_4 termDollarStep_isScottContinuous).1
+  have hbody : ∀ u z, termDollarStepBody (fix termDollarStep) u z = seqFun u z := by
+    intro u z
+    calc termDollarStepBody (fix termDollarStep) u z
+        = funOf (funOf (termDollarStep (fix termDollarStep)) u) z :=
+          (termDollarStep_app2 _ _ _).symm
+      _ = funOf (funOf (fix termDollarStep) u) z := by rw [hfix]
+      _ = seqFun u z := termDollarStep_fix_app u z
+  have : termDollarStep (fix termDollarStep) =
+      graph (fun u => graph (fun z => seqFun u z)) := by
+    apply congrArg graph
+    funext u
+    apply congrArg graph
+    funext z
+    exact hbody u z
+  exact this.symm.trans hfix
+
+theorem dollarStepTerm_interp :
+    interp dollarStepTerm (fun _ => botElem) = graph termDollarStep := by
+  unfold dollarStepTerm termDollarStep termDollarStepBody termShift interp
+  apply congrArg graph
+  funext s
+  simp only [envSet, Function.update_self, Function.update_of_ne (by decide : (1 : ℕ) ≠ 0),
+    Function.update_of_ne (by decide : (2 : ℕ) ≠ 0),
+    Function.update_of_ne (by decide : (3 : ℕ) ≠ 0),
+    Function.update_of_ne (by decide : (2 : ℕ) ≠ 1),
+    Function.update_of_ne (by decide : (3 : ℕ) ≠ 1),
+    Function.update_of_ne (by decide : (3 : ℕ) ≠ 2)]
+  apply congrArg graph
+  funext u
+  simp only [envSet, Function.update_self,
+    Function.update_of_ne (by decide : (2 : ℕ) ≠ 1),
+    Function.update_of_ne (by decide : (3 : ℕ) ≠ 1),
+    Function.update_of_ne (by decide : (0 : ℕ) ≠ 1),
+    Function.update_of_ne (by decide : (3 : ℕ) ≠ 2),
+    Function.update_of_ne (by decide : (0 : ℕ) ≠ 2)]
+  apply congrArg graph
+  funext z
+  simp [envSet, Function.update, condSet, succSet]
+  rfl
+
+theorem ofNat_combinatory : ∀ n, IsCombinatory (ofNat n)
+  | 0 => by
+    simpa [zeroC] using IsCombinatory.zero
+  | n + 1 => by
+    have h := IsCombinatory.app IsCombinatory.suc (ofNat_combinatory n)
+    simpa [sucC_app, succSet_ofNat] using h
+
+/-- **Scott 1976, (2.24).** `$` is combinatory: `$ = Y(λs λu λz. z ⊃ u₀, s(λt. u_{t+1})(z−1))`. -/
+theorem dollarC_combinatory : IsCombinatory dollarC := by
+  have hY : funOf Ycomb (interp dollarStepTerm (fun _ => botElem)) = dollarC := by
+    rw [dollarStepTerm_interp, theorem_2_5 termDollarStep_isScottContinuous,
+      dollarC_eq_fix_termDollarStep]
+  exact hY ▸ IsCombinatory.app Ycomb_combinatory (theorem_2_4_closed dollarStepTerm)
+
+/-- Combinatory primitive-recursion step `λa λf λu λn. n ⊃ a, f(n−1)(u(n−1))`. -/
+def primRecStepTerm : Term :=
+  .lam 0 (.lam 1 (.lam 2 (.lam 3
+    (.cond (.var 3) (.var 0)
+      (.app (.app (.var 1) (.pred (.var 3)))
+        (.app (.var 2) (.pred (.var 3))))))))
+
+theorem primRecStepTerm_interp (a f u n : Pomega) :
+    funOf (funOf (funOf (funOf (interp primRecStepTerm (fun _ => botElem)) a) f) u) n =
+      condSet n a (funOf (funOf f (predSet n)) (funOf u (predSet n))) := by
+  change funOf (funOf (funOf (funOf (interp (.lam 0 _) (fun _ => botElem)) a) f) u) n = _
+  rw [theorem_2_2_beta]
+  change funOf (funOf (funOf (interp (.lam 1 _) _) f) u) n = _
+  rw [theorem_2_2_beta]
+  change funOf (funOf (interp (.lam 2 _) _) u) n = _
+  rw [theorem_2_2_beta]
+  change funOf (interp (.lam 3 _) _) n = _
+  rw [theorem_2_2_beta]
+  simp [interp, envSet, Function.update]
+
+theorem primRecStep_graph_of (a f : Pomega) :
+    graph (primRecStep a f) =
+      funOf (funOf (interp primRecStepTerm (fun _ => botElem)) a) f := by
+  change graph (primRecStep a f) =
+    funOf (funOf (interp (.lam 0 (.lam 1 (.lam 2 (.lam 3
+      (.cond (.var 3) (.var 0)
+        (.app (.app (.var 1) (.pred (.var 3)))
+          (.app (.var 2) (.pred (.var 3))))))))) (fun _ => botElem)) a) f
+  rw [theorem_2_2_beta, theorem_2_2_beta]
+  apply congrArg graph
+  funext u
+  apply congrArg graph
+  funext n
+  simp [primRecStep, interp, envSet, Function.update]
 
 end Scott1976.DataTypesAsLattices

@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Lars Warren Ericson.
 -/
 import Scott1976.DataTypesAsLattices.Computability
+import Scott1976.DataTypesAsLattices.Functionality
 
 /-!
 # Scott 1976, §3 — enumeration, degrees, and the semigroup of operators
@@ -33,9 +34,6 @@ theorem Gcomb_succ (k : ℕ) : funOf Gcomb (ofNat (k + 1)) = zeroC := by
 
 theorem Gcomb_bot : funOf Gcomb botElem = botElem := by
   rw [Gcomb_app, eq_2_7_bot]
-
-theorem funOf_botElem (x : Pomega) : funOf botElem x = botElem := by
-  ext; simp [funOf, botElem]
 
 theorem condC_app2 (x y : Pomega) :
     funOf (funOf condC x) y = graph (fun z => condSet z x y) :=
@@ -323,12 +321,44 @@ theorem theorem_3_1 {u : Pomega} :
 /-- **Scott 1976, (3.4).** `apply(n)(m) = (n, m) + 1`. -/
 def applyNat (n m : ℕ) : ℕ := pair n m + 1
 
-/-- **Scott 1976, (3.7).** One step of the enumerator. -/
+/-- The application selected by one positive Gödel code. -/
+def valStepValue (v : Pomega) : ℕ → Pomega
+  | 0 => botElem
+  | p + 1 =>
+      funOf (funOf v (ofNat (unpair p).1))
+        (funOf v (ofNat (unpair p).2))
+
+/-- **Scott 1976, (3.7).** One step of the enumerator.  The positive
+branch is written as `minExtend`; this is extensionally Scott's existential
+clause and exposes its continuity. -/
 def valStep (v : Pomega) : Pomega :=
-  graph (fun k =>
-    condSet k Gcomb
-      {j | ∃ n m, pair n m + 1 ∈ k ∧
-        j ∈ funOf (funOf v (ofNat n)) (funOf v (ofNat m))})
+  graph (fun k => condSet k Gcomb (minExtend (valStepValue v) k))
+
+theorem valStep_body_isScottContinuous (v : Pomega) :
+    IsScottContinuous (fun k =>
+      condSet k Gcomb (minExtend (valStepValue v) k)) :=
+  theorem_1_3_tuple
+    (fun y => condSet_isScottContinuous_left Gcomb y)
+    (fun z => condSet_isScottContinuous_right z Gcomb)
+    id_isScottContinuous
+    (minExtend_isScottContinuous (valStepValue v))
+
+theorem valStep_app (v k : Pomega) :
+    funOf (valStep v) k =
+      condSet k Gcomb (minExtend (valStepValue v) k) :=
+  beta (valStep_body_isScottContinuous v) k
+
+theorem valStep_app_zero (v : Pomega) :
+    funOf (valStep v) (ofNat 0) = Gcomb := by
+  rw [valStep_app]
+  exact eq_2_7_zero Gcomb (minExtend (valStepValue v) (ofNat 0))
+
+theorem valStep_app_succ (v : Pomega) (p : ℕ) :
+    funOf (valStep v) (ofNat (p + 1)) =
+      funOf (funOf v (ofNat (unpair p).1))
+        (funOf v (ofNat (unpair p).2)) := by
+  rw [valStep_app, eq_2_7_succ]
+  simp [minExtend, valStepValue, ofNat]
 
 def valC : Pomega := fix valStep
 
@@ -374,17 +404,6 @@ theorem valNat_apply (n m : ℕ) :
     valNat (applyNat n m) = valNat n ⬝ valNat m := by
   simp [applyNat, valNat, unpair_pair]
 
-theorem succSet_ofNat (j : ℕ) : succSet (ofNat j) = ofNat (j + 1) := by
-  ext k
-  constructor
-  · intro ⟨n, hn, hk⟩
-    simp [ofNat] at hn
-    subst hn
-    simpa [ofNat] using hk
-  · intro hk
-    simp [ofNat] at hk
-    exact ⟨j, rfl, hk⟩
-
 /-- **Scott 1976, (3.8).** `apply(0)(0) = 1` and `val(1) = 0`. -/
 theorem eq_3_8_apply : applyNat 0 0 = 1 := by native_decide
 
@@ -422,6 +441,72 @@ decreasing_by
   · exact (pair_lt_right (unpair n).1 (unpair n).2).trans_le (by
       have := pair_unpair n
       omega)
+
+/-- A stage by which the finite application tree coded by `n` has appeared
+in the least-fixed-point construction of `valC`. -/
+noncomputable def valRank : ℕ → ℕ
+  | 0 => 1
+  | p + 1 => max (valRank (unpair p).1) (valRank (unpair p).2) + 1
+decreasing_by
+  · exact (pair_lt_left (unpair p).1 (unpair p).2).trans_le (by
+      have := pair_unpair p
+      omega)
+  · exact (pair_lt_right (unpair p).1 (unpair p).2).trans_le (by
+      have := pair_unpair p
+      omega)
+
+theorem valStage_subset : ∀ s n,
+    funOf (iterateBot valStep s) (ofNat n) ⊆ valNat n
+  | 0, n => by simp [iterateBot, funOf, botElem]
+  | s + 1, 0 => by
+      rw [iterateBot, valStep_app_zero, valNat_zero]
+  | s + 1, p + 1 => by
+      rw [iterateBot, valStep_app_succ]
+      simp only [valNat]
+      exact subset_trans
+        (funOf_monotone_left
+          (valStage_subset s (unpair p).1)
+          (funOf (iterateBot valStep s) (ofNat (unpair p).2)))
+        (funOf_monotone_right (valNat (unpair p).1)
+          (valStage_subset s (unpair p).2))
+
+theorem valStage_eq_of_rank_le : ∀ n s, valRank n ≤ s →
+    funOf (iterateBot valStep s) (ofNat n) = valNat n
+  | 0, 0, h => by simp [valRank] at h
+  | 0, s + 1, _ => by
+      rw [iterateBot, valStep_app_zero, valNat_zero]
+  | p + 1, 0, h => by simp [valRank] at h
+  | p + 1, s + 1, h => by
+      rw [iterateBot, valStep_app_succ]
+      simp only [valNat]
+      have hleft : valRank (unpair p).1 ≤ s := by
+        simp only [valRank] at h
+        omega
+      have hright : valRank (unpair p).2 ≤ s := by
+        simp only [valRank] at h
+        omega
+      rw [valStage_eq_of_rank_le (unpair p).1 s hleft,
+        valStage_eq_of_rank_le (unpair p).2 s hright]
+termination_by n => n
+decreasing_by
+  · exact (pair_lt_left (unpair p).1 (unpair p).2).trans_le (by
+      have := pair_unpair p
+      omega)
+  · exact (pair_lt_right (unpair p).1 (unpair p).2).trans_le (by
+      have := pair_unpair p
+      omega)
+
+/-- `valC` and the well-founded numerical evaluator denote the same
+enumeration on integer arguments. -/
+theorem valC_valNat (n : ℕ) : funOf valC (ofNat n) = valNat n := by
+  rw [valC, fix, funOf_iUnion]
+  apply subset_antisymm
+  · intro k hk
+    obtain ⟨s, hs⟩ := Set.mem_iUnion.mp hk
+    exact valStage_subset s n hs
+  · intro k hk
+    exact Set.mem_iUnion.mpr
+      ⟨valRank n, (valStage_eq_of_rank_le n (valRank n) le_rfl).symm ▸ hk⟩
 
 /-- **Scott 1976, Theorem 3.2 (The enumeration theorem).**
 `RE = {val n | n ∈ ω}`, with `val(0) = G` and
@@ -502,6 +587,72 @@ theorem secondRecVal_app (u x : Pomega) :
       ⋃ m ∈ x, funOf u (ofNat (applyNat m (num m))) :=
   beta (secondRecVal_isScottContinuous u) x
 
+/-- The primitive-recursive numerical substitution used in Theorem 3.3. -/
+def secondRecSubst (m : ℕ) : ℕ := applyNat m (num m)
+
+theorem primrec_secondRecSubst : Primrec secondRecSubst :=
+  primrec_applyNat.comp Primrec.id primrec_num
+
+/-- A fixed combinator realizing `m ↦ apply(m)(num(m))`. -/
+noncomputable def secondRecSubstC : Pomega :=
+  (primrec_realized (Primrec.nat_iff.mp primrec_secondRecSubst)).choose
+
+theorem secondRecSubstC_combinatory : IsCombinatory secondRecSubstC :=
+  (primrec_realized (Primrec.nat_iff.mp primrec_secondRecSubst)).choose_spec.1
+
+theorem secondRecSubstC_realizes : Realizes secondRecSubstC secondRecSubst :=
+  (primrec_realized (Primrec.nat_iff.mp primrec_secondRecSubst)).choose_spec.2
+
+/-- The uniform operator `u ↦ λm∈ω. u(apply(m)(num(m)))`. -/
+def secondRecOperator : Pomega :=
+  funOf (funOf Scomb (funOf Kcomb dollarC))
+    (funOf (funOf Scomb
+      (funOf (funOf Scomb (funOf Kcomb Scomb)) Kcomb))
+      (funOf Kcomb secondRecSubstC))
+
+theorem secondRecOperator_combinatory : IsCombinatory secondRecOperator :=
+  .app (.app .S (.app .K dollarC_combinatory))
+    (.app
+      (.app .S (.app (.app .S (.app .K .S)) .K))
+      (.app .K secondRecSubstC_combinatory))
+
+theorem secondRecOperator_app (u : Pomega) :
+    funOf secondRecOperator u = secondRecVal u := by
+  have hsubst :
+      (Scomb ⬝ (Scomb ⬝ (Kcomb ⬝ Scomb) ⬝ Kcomb) ⬝ (Kcomb ⬝ secondRecSubstC)) ⬝ u =
+        Scomb ⬝ (Kcomb ⬝ u) ⬝ secondRecSubstC := by
+    rw [Scomb_beta3, Kcomb_beta2, SK_comp]
+  rw [secondRecOperator, SK_comp, hsubst, dollarC_app]
+  apply congrArg graph
+  funext x
+  have hreal (m : ℕ) :
+      (Scomb ⬝ (Kcomb ⬝ u) ⬝ secondRecSubstC) ⬝ ofNat m =
+        u ⬝ ofNat (secondRecSubst m) := by
+    rw [SK_comp, secondRecSubstC_realizes]
+  ext k
+  simp [seqFun, hreal, secondRecSubst]
+
+/-- A Gödel code for the uniform operator in Theorem 3.3. -/
+noncomputable def secondRecOperatorCode : ℕ :=
+  (theorem_3_2_surjective secondRecOperator_combinatory).choose
+
+theorem valNat_secondRecOperatorCode :
+    valNat secondRecOperatorCode = secondRecOperator :=
+  (theorem_3_2_surjective secondRecOperator_combinatory).choose_spec
+
+/-- Scott's primitive-recursive function `v` in Theorem 3.3. -/
+noncomputable def secondRecV (n : ℕ) : ℕ :=
+  applyNat secondRecOperatorCode n
+
+theorem primrec_secondRecV : Primrec secondRecV :=
+  primrec_applyNat.comp (Primrec.const secondRecOperatorCode) Primrec.id
+
+/-- **Scott 1976, Theorem 3.3 (i).** -/
+theorem theorem_3_3_i (n : ℕ) :
+    valNat (secondRecV n) = secondRecVal (valNat n) := by
+  rw [secondRecV, valNat_apply, valNat_secondRecOperatorCode,
+    secondRecOperator_app]
+
 /-- **Scott 1976, Theorem 3.3 (ii).** `rec(n) = apply(v(n))(num(v(n)))`. -/
 def recNat (v : ℕ → ℕ) (n : ℕ) : ℕ :=
   applyNat (v n) (num (v n))
@@ -517,7 +668,7 @@ theorem eq_3_12 : ∀ n, valNat (num n) = ofNat n
 
 /-- **Scott 1976, Theorem 3.3 (iii)** from (i) and (ii):
 `val(rec(n)) = val(n)(rec(n))`. -/
-theorem theorem_3_3 (v : ℕ → ℕ) (n : ℕ)
+theorem theorem_3_3_from_v (v : ℕ → ℕ) (n : ℕ)
     (hv : valNat (v n) = secondRecVal (valNat n)) :
     valNat (recNat v n) = funOf (valNat n) (ofNat (recNat v n)) := by
   rw [recNat, valNat_apply, hv, eq_3_12, secondRecVal_app]
@@ -528,6 +679,26 @@ theorem theorem_3_3 (v : ℕ → ℕ) (n : ℕ)
     simp [ofNat] at hm; subst hm; exact hkm
   · intro hk
     exact Set.mem_iUnion₂.mpr ⟨v n, rfl, hk⟩
+
+theorem primrec_recNat (v : ℕ → ℕ) (hv : Primrec v) :
+    Primrec (recNat v) := by
+  unfold recNat
+  exact primrec_applyNat.comp hv (primrec_num.comp hv)
+
+/-- **Scott 1976, Theorem 3.3 (The second recursion theorem).**
+The functions `v` and `rec` are primitive recursive and satisfy clauses
+(i)--(iii) of the paper. -/
+theorem theorem_3_3 :
+    Primrec secondRecV ∧
+      Primrec (recNat secondRecV) ∧
+      (∀ n, valNat (secondRecV n) = secondRecVal (valNat n)) ∧
+      (∀ n, recNat secondRecV n =
+        applyNat (secondRecV n) (num (secondRecV n))) ∧
+      ∀ n, valNat (recNat secondRecV n) =
+        funOf (valNat n) (ofNat (recNat secondRecV n)) :=
+  ⟨primrec_secondRecV, primrec_recNat secondRecV primrec_secondRecV,
+    theorem_3_3_i, theorem_3_3_ii secondRecV,
+    fun n => theorem_3_3_from_v secondRecV n (theorem_3_3_i n)⟩
 
 /-- A Gödel number of `Y`, used for a Kleene-style fixed point on codes. -/
 noncomputable def Ycode : ℕ :=
@@ -545,8 +716,8 @@ theorem theorem_3_3_val (n : ℕ) :
   rw [recCode, valNat_apply, valNat_Ycode]
   exact Ycomb_unfold (valNat n)
 
-/-- **Scott 1976, Theorem 3.4 (The incompleteness theorem), diagonal form.** -/
-theorem theorem_3_4 {val : ℕ → Pomega} {v : ℕ → ℕ} {b : Set ℕ}
+/-- The diagonal contradiction used in Scott 1976, Theorem 3.4. -/
+theorem theorem_3_4_diagonal {val : ℕ → Pomega} {v : ℕ → ℕ} {b : Set ℕ}
     (hv : ∀ k, val (v k) = ofNat k ∩ val k)
     (hb : b = {j | val j = botElem})
     (hex : ∃ k, val k = {i | v i ∈ b}) : False := by
@@ -584,19 +755,76 @@ theorem theorem_3_4 {val : ℕ → Pomega} {v : ℕ → ℕ} {b : Set ℕ}
   · exact hkmem (this.mpr hkmem)
 
 /-- **Scott 1976, Theorem 3.4** for an r.e. undefined-index set. -/
-theorem theorem_3_4_re {val : ℕ → Pomega} {v : ℕ → ℕ}
+theorem theorem_3_4_re_diagonal {val : ℕ → Pomega} {v : ℕ → ℕ}
     (hv : ∀ k, val (v k) = ofNat k ∩ val k)
     (_hRE : IsRE {j | val j = botElem})
     (hex : ∃ k, val k = {i | v i ∈ {j | val j = botElem}}) : False :=
-  theorem_3_4 hv rfl hex
+  theorem_3_4_diagonal hv rfl hex
 
-theorem ofNat_combinatory : ∀ n, IsCombinatory (ofNat n)
-  | 0 => by
-    have : zeroC = ofNat 0 := rfl
-    simpa [this] using IsCombinatory.zero
-  | n + 1 => by
-    have h := IsCombinatory.app IsCombinatory.suc (ofNat_combinatory n)
-    simpa [sucC_app, succSet_ofNat] using h
+/-- A closed LAMBDA term for the body defining binary intersection. -/
+def interStepTerm : Term :=
+  let omega : Term := .lam 4 (.app (.var 4) (.var 4))
+  .lam 0 (.lam 1 (.lam 2
+    (.cond (.var 1)
+      (.cond (.var 2) .zero (.app omega omega))
+      (.succ (.app (.app (.var 0) (.pred (.var 1))) (.pred (.var 2)))))))
+
+theorem interStepTerm_interp :
+    interp interStepTerm (fun _ => botElem) = graph interStep := by
+  unfold interStepTerm interStep
+  simp only [interp, envSet, Function.update_self,
+    Function.update_of_ne (by decide : (1 : ℕ) ≠ 0),
+    Function.update_of_ne (by decide : (2 : ℕ) ≠ 0),
+    Function.update_of_ne (by decide : (2 : ℕ) ≠ 1)]
+  apply congrArg graph
+  funext f
+  apply congrArg graph
+  funext x
+  apply congrArg graph
+  funext y
+  congr 2
+  exact eq_2_14
+
+theorem interC_combinatory : IsCombinatory interC := by
+  have hbody : IsCombinatory (graph interStep) := by
+    rw [← interStepTerm_interp]
+    exact theorem_2_4_closed interStepTerm
+  have hfix := IsCombinatory.app Ycomb_combinatory hbody
+  rw [theorem_2_5 interStep_isScottContinuous] at hfix
+  exact hfix
+
+noncomputable def interCode : ℕ :=
+  (theorem_3_2_surjective interC_combinatory).choose
+
+theorem valNat_interCode : valNat interCode = interC :=
+  (theorem_3_2_surjective interC_combinatory).choose_spec
+
+/-- The primitive-recursive diagonal intersection code used in Theorem 3.4. -/
+noncomputable def diagonalInterCode (n : ℕ) : ℕ :=
+  applyNat (applyNat interCode (num n)) n
+
+theorem primrec_diagonalInterCode : Primrec diagonalInterCode :=
+  primrec_applyNat.comp
+    (primrec_applyNat.comp (Primrec.const interCode) primrec_num)
+    Primrec.id
+
+theorem valNat_diagonalInterCode (n : ℕ) :
+    valNat (diagonalInterCode n) = ofNat n ∩ valNat n := by
+  rw [diagonalInterCode, valNat_apply, valNat_apply, valNat_interCode,
+    eq_3_12, eq_2_17]
+
+/-- **Scott 1976, Theorem 3.4 (The incompleteness theorem).**
+The set of Gödel numbers denoting bottom is not recursively enumerable. -/
+theorem theorem_3_4 :
+    ¬ IsRE {n | valNat n = botElem} := by
+  intro hb
+  have hpre : IsRE {i | diagonalInterCode i ∈ {n | valNat n = botElem}} :=
+    hb.comp primrec_diagonalInterCode.to_comp
+  obtain ⟨k, hk⟩ :=
+    theorem_3_2_surjective (IsRE.combinatory hpre)
+  exact theorem_3_4_diagonal (val := valNat) (v := diagonalInterCode)
+    valNat_diagonalInterCode rfl ⟨k, hk⟩
+
 
 theorem union_combinatory {x y : Pomega}
     (hx : IsCombinatory x) (hy : IsCombinatory y) :
@@ -639,13 +867,180 @@ theorem e_eq_unionBits (j : ℕ) : e j = unionBits (bitList j) := by
 theorem e_combinatory (j : ℕ) : IsCombinatory (e j) := by
   simpa [e_eq_unionBits] using unionBits_combinatory (bitList j)
 
-/-- **Scott 1976, before Theorem 3.5.** A Gödel number of the finite set `e j`. -/
-noncomputable def fin (j : ℕ) : ℕ :=
-  (theorem_3_2_surjective (e_combinatory j)).choose
+/-- A closed term for binary union.  Keeping this term explicit avoids making
+`fin` choose a fresh code separately for every finite set. -/
+def unionTerm : Term :=
+  .lam 0 (.lam 1 (.cond (.lam 2 .zero) (.var 0) (.var 1)))
+
+theorem unionTerm_interp :
+    interp unionTerm (fun _ => botElem) =
+      graph (fun x => graph (fun y => x ∪ y)) := by
+  unfold unionTerm
+  simp only [interp, envSet, Function.update_self,
+    Function.update_of_ne (by decide : (1 : ℕ) ≠ 0)]
+  apply congrArg graph
+  funext x
+  apply congrArg graph
+  funext y
+  change condSet (graph fun _ => zeroC) x y = x ∪ y
+  simpa [condC_beta3, Kcomb_beta] using union_via_cond x y
+
+theorem unionOperator_combinatory :
+    IsCombinatory (graph (fun x => graph (fun y => x ∪ y))) := by
+  rw [← unionTerm_interp]
+  exact theorem_2_4_closed unionTerm
+
+/-- One fixed Gödel code for the binary union operator. -/
+noncomputable def unionCode : ℕ :=
+  (theorem_3_2_surjective unionOperator_combinatory).choose
+
+theorem valNat_unionCode :
+    valNat unionCode = graph (fun x => graph (fun y => x ∪ y)) :=
+  (theorem_3_2_surjective unionOperator_combinatory).choose_spec
+
+noncomputable def botCode : ℕ :=
+  (theorem_3_2_surjective bot_combinatory).choose
+
+theorem valNat_botCode : valNat botCode = botElem :=
+  (theorem_3_2_surjective bot_combinatory).choose_spec
+
+theorem enumerationUnion_left_isScottContinuous (y : Pomega) :
+    IsScottContinuous (fun x => x ∪ y) := by
+  intro x
+  ext n
+  constructor
+  · rintro (hn | hn)
+    · exact mem_scottUnion.mpr ⟨2 ^ n,
+        by simp [e_pow2, Set.singleton_subset_iff, hn],
+        Or.inl (by simp [e_pow2])⟩
+    · exact mem_scottUnion.mpr ⟨0, by simp [e_zero], Or.inr hn⟩
+  · intro hn
+    obtain ⟨i, hi, hni⟩ := mem_scottUnion.mp hn
+    exact hni.elim (fun h => Or.inl (hi h)) Or.inr
+
+theorem enumerationUnion_right_isScottContinuous (x : Pomega) :
+    IsScottContinuous (fun y => x ∪ y) := by
+  intro y
+  ext n
+  constructor
+  · rintro (hn | hn)
+    · exact mem_scottUnion.mpr ⟨0, by simp [e_zero], Or.inl hn⟩
+    · exact mem_scottUnion.mpr ⟨2 ^ n,
+        by simp [e_pow2, Set.singleton_subset_iff, hn],
+        Or.inr (by simp [e_pow2])⟩
+  · intro hn
+    obtain ⟨i, hi, hni⟩ := mem_scottUnion.mp hn
+    exact hni.elim Or.inl (fun h => Or.inr (hi h))
+
+/-- Primitive recursion scanning the first `k` bits of `j`. -/
+noncomputable def finAux (j : ℕ) : ℕ → ℕ
+  | 0 => botCode
+  | k + 1 =>
+      if j.testBit k then
+        applyNat (applyNat unionCode (num k)) (finAux j k)
+      else finAux j k
+
+/-- **Scott 1976, before Theorem 3.5.** A uniform primitive-recursive code
+for `e j`; unlike the former definition, this makes only one fixed choice,
+namely a code for binary union. -/
+noncomputable def fin (j : ℕ) : ℕ := finAux j (j + 1)
+
+theorem primrec₂_finAux : Primrec fun p : ℕ × ℕ => finAux p.1 p.2 := by
+  let step : (ℕ × ℕ) → (ℕ × ℕ) → ℕ := fun p q =>
+    if p.1.testBit q.1 then
+      applyNat (applyNat unionCode (num q.1)) q.2
+    else q.2
+  have hstep : Primrec₂ step := by
+    unfold step
+    have hc : Primrec fun z : (ℕ × ℕ) × (ℕ × ℕ) =>
+        z.1.1.testBit z.2.1 :=
+      primrec_testBit.comp
+        (Primrec.fst.comp Primrec.fst)
+        (Primrec.fst.comp Primrec.snd)
+    have ht : Primrec fun z : (ℕ × ℕ) × (ℕ × ℕ) =>
+        applyNat (applyNat unionCode (num z.2.1)) z.2.2 :=
+      primrec_applyNat.comp
+        (primrec_applyNat.comp (Primrec.const unionCode)
+          (primrec_num.comp (Primrec.fst.comp Primrec.snd)))
+        (Primrec.snd.comp Primrec.snd)
+    have he : Primrec fun z : (ℕ × ℕ) × (ℕ × ℕ) => z.2.2 :=
+      Primrec.snd.comp Primrec.snd
+    exact (Primrec.cond hc ht he).to₂.of_eq fun p q => by
+      cases h : p.1.testBit q.1 <;> simp [h]
+  refine (Primrec.nat_rec' (f := fun p : ℕ × ℕ => p.2)
+    (g := fun _ : ℕ × ℕ => botCode) (h := step)
+    Primrec.snd (Primrec.const botCode) hstep).of_eq fun p => ?_
+  induction p.2 with
+  | zero => rfl
+  | succ k ih =>
+      change (if p.1.testBit k then
+          applyNat (applyNat unionCode (num k))
+            (Nat.rec botCode (fun n r => step p (n, r)) k)
+        else Nat.rec botCode (fun n r => step p (n, r)) k) =
+        finAux p.1 (k + 1)
+      rw [finAux, ih]
+
+theorem primrec_fin : Primrec fin := by
+  unfold fin
+  exact primrec₂_finAux.comp
+    (Primrec.pair Primrec.id (Primrec.succ.comp Primrec.id))
+
+theorem valNat_finAux (j : ℕ) : ∀ k,
+    valNat (finAux j k) = {n | n < k ∧ j.testBit n} := by
+  intro k
+  induction k with
+  | zero =>
+      simp [finAux, valNat_botCode, botElem]
+  | succ k ih =>
+      simp only [finAux]
+      by_cases hk : j.testBit k
+      · rw [if_pos hk, valNat_apply, valNat_apply, valNat_unionCode,
+          eq_3_12, ih]
+        change funOf
+          (funOf (lam fun x => graph fun y => x ∪ y) (ofNat k))
+          {n | n < k ∧ j.testBit n} =
+            {n | n < k + 1 ∧ j.testBit n}
+        rw [beta (graph_const_isScottContinuous (fun x y => x ∪ y)
+          (fun y => enumerationUnion_left_isScottContinuous y)) (ofNat k)]
+        change funOf (lam fun y => ofNat k ∪ y)
+          {n | n < k ∧ j.testBit n} =
+            {n | n < k + 1 ∧ j.testBit n}
+        rw [beta (enumerationUnion_right_isScottContinuous (ofNat k))
+          {n | n < k ∧ j.testBit n}]
+        ext n
+        simp only [Set.mem_union, mem_ofNat, Set.mem_setOf_eq]
+        constructor
+        · rintro (hnk | ⟨hn, hb⟩)
+          · subst n
+            exact ⟨by omega, hk⟩
+          · exact ⟨Nat.lt_succ_of_lt hn, hb⟩
+        · rintro ⟨hn, hb⟩
+          by_cases hnk : n = k
+          · exact Or.inl hnk
+          · exact Or.inr ⟨Nat.lt_of_le_of_ne (Nat.le_of_lt_succ hn) hnk, hb⟩
+      · rw [if_neg hk, ih]
+        ext n
+        simp only [Set.mem_setOf_eq]
+        constructor
+        · rintro ⟨hn, hb⟩
+          exact ⟨Nat.lt_succ_of_lt hn, hb⟩
+        · rintro ⟨hn, hb⟩
+          have hne : n ≠ k := by
+            intro hnk
+            subst n
+            exact hk hb
+          exact ⟨Nat.lt_of_le_of_ne (Nat.le_of_lt_succ hn) hne, hb⟩
 
 /-- **Scott 1976, before Theorem 3.5.** `val(fin j) = e j`. -/
 theorem valNat_fin (j : ℕ) : valNat (fin j) = e j :=
-  (theorem_3_2_surjective (e_combinatory j)).choose_spec
+  by
+    rw [fin, valNat_finAux]
+    ext n
+    simp only [Set.mem_setOf_eq, mem_e]
+    constructor
+    · exact fun h => h.2
+    · intro h
+      exact ⟨Nat.lt_succ_of_le (mem_e_le (mem_e.mpr h)), h⟩
 
 /-- Appendix `q` of Theorem 3.5: `q = {(j,m) | m ∈ val(p(fin j))}`. -/
 def myhillQ (val : ℕ → Pomega) (p : ℕ → ℕ) : Pomega :=
@@ -677,7 +1072,7 @@ theorem theorem_3_5_unique {q q' : Pomega → Pomega}
 
 /-- **Scott 1976, Theorem 3.5 (The completeness theorem for definability),
 realizer form.** If `q` realizes `p` on values, then `val(p n) = q(val n)`. -/
-theorem theorem_3_5 {val : ℕ → Pomega} {p : ℕ → ℕ} {q : Pomega}
+theorem theorem_3_5_of_realizer {val : ℕ → Pomega} {p : ℕ → ℕ} {q : Pomega}
     (hq : ∀ n, val (p n) = funOf q (val n)) :
     ∀ n, val (p n) = funOf q (val n) := hq
 
@@ -686,6 +1081,36 @@ theorem theorem_3_5_q_app (p : ℕ → ℕ) (j : ℕ) :
     valNat (p (fin j)) ⊆ funOf (myhillQ valNat p) (e j) := by
   intro m hm
   exact ⟨j, subset_rfl, ⟨j, m, rfl, by simpa [valNat_fin] using hm⟩⟩
+
+/-- Both inclusions in the direct calculation of the Myhill–Shepherdson
+relation as an enumeration operator. -/
+theorem myhillQ_app (p : ℕ → ℕ) (x : Pomega) :
+    funOf (myhillQ valNat p) x =
+      ⋃ j, ⋃ (_ : e j ⊆ x), valNat (p (fin j)) := by
+  ext m
+  constructor
+  · rintro ⟨j, hj, hpair⟩
+    have hm : m ∈ valNat (p (fin j)) :=
+      (theorem_3_5_q valNat p j m).mp hpair
+    exact Set.mem_iUnion.mpr
+      ⟨j, Set.mem_iUnion.mpr ⟨hj, hm⟩⟩
+  · intro hm
+    obtain ⟨j, hm⟩ := Set.mem_iUnion.mp hm
+    obtain ⟨hj, hm⟩ := Set.mem_iUnion.mp hm
+    exact ⟨j, hj, (theorem_3_5_q valNat p j m).mpr hm⟩
+
+def myhillRealizer (p : ℕ → ℕ) : Pomega → Pomega :=
+  funOf (myhillQ valNat p)
+
+theorem myhillRealizer_isScottContinuous (p : ℕ → ℕ) :
+    IsScottContinuous (myhillRealizer p) :=
+  funOf_isScottContinuous _
+
+/- Completing Theorem 3.5 from `myhillQ_app` requires proving the two
+nontrivial continuity inclusions in the paper.  Their contradiction argument
+uses Theorem 3.4's unqualified non-r.e. result, which in turn currently stops
+at the missing `IsRE → IsCombinatory` direction.  Consequently no declaration
+named `theorem_3_5` is made for the weaker realizer hypothesis above. -/
 
 /-- **Scott 1976, Definition.** Enumeration degree of `a`. -/
 def Deg (a : Pomega) : Set Pomega :=
@@ -716,7 +1141,7 @@ theorem Deg_self (a : Pomega) : a ∈ Deg a :=
 /-- **Scott 1976, Theorem 3.6 (The subalgebra theorem).**
 Every enumeration degree is a combinatory subalgebra generated by `a`
 (together with `G`, which it contains). -/
-theorem theorem_3_6 (a : Pomega) :
+theorem theorem_3_6_degree (a : Pomega) :
     IsSubalgebra (Deg a) ∧ a ∈ Deg a :=
   ⟨Deg_isSubalgebra a, Deg_self a⟩
 
@@ -806,6 +1231,149 @@ theorem seqCons_right_isScottContinuous (x : Pomega) :
     (fun z => theorem_1_3 (condSet_isScottContinuous_right z x)
       (funOf_isScottContinuous_left (predSet z)))
 
+/-- A closed divergent term denoting bottom. -/
+def enumBottomTerm : Term :=
+  .app (.lam 9 (.app (.var 9) (.var 9)))
+    (.lam 9 (.app (.var 9) (.var 9)))
+
+theorem enumBottomTerm_interp (ρ : ℕ → Pomega) :
+    interp enumBottomTerm ρ = botElem := by
+  simp [enumBottomTerm, interp, envSet, Function.update, eq_2_14]
+
+/-- `t` does not depend on environment slot `i`. -/
+def Term.Avoids (i : ℕ) : Term → Prop
+  | .var j => j ≠ i
+  | .zero => True
+  | .succ t => t.Avoids i
+  | .pred t => t.Avoids i
+  | .cond z x y => z.Avoids i ∧ x.Avoids i ∧ y.Avoids i
+  | .app u x => u.Avoids i ∧ x.Avoids i
+  | .lam j body => j = i ∨ body.Avoids i
+
+theorem interp_avoids {i : ℕ} (t : Term) (ρ : ℕ → Pomega) (v : Pomega)
+    (h : t.Avoids i) : interp t (envSet ρ i v) = interp t ρ := by
+  induction t generalizing ρ i with
+  | var j =>
+    have hji : j ≠ i := h
+    simp [interp, envSet, Function.update, hji]
+  | zero => rfl
+  | succ t ih => exact congrArg succSet (ih (ρ := ρ) (i := i) h)
+  | pred t ih => exact congrArg predSet (ih (ρ := ρ) (i := i) h)
+  | cond z x y ihz ihx ihy =>
+    simp only [interp]
+    rw [ihz (ρ := ρ) (i := i) h.1, ihx (ρ := ρ) (i := i) h.2.1,
+      ihy (ρ := ρ) (i := i) h.2.2]
+  | app u x ihu ihx =>
+    simp only [interp]
+    rw [ihu (ρ := ρ) (i := i) h.1, ihx (ρ := ρ) (i := i) h.2]
+  | lam j body ih =>
+    simp only [interp]
+    apply congrArg graph
+    funext w
+    cases h with
+    | inl hji =>
+      subst hji
+      simp [envSet, Function.update]
+    | inr hb =>
+      by_cases hji : j = i
+      · subst hji
+        simp [envSet, Function.update]
+      · rw [envSet_comm (ρ := ρ) (i := i) (j := j) (Ne.symm hji) v w,
+          ih (ρ := envSet ρ j w) (i := i) hb]
+
+theorem enumBottomTerm_avoids (i : ℕ) : enumBottomTerm.Avoids i := by
+  unfold enumBottomTerm
+  constructor <;>
+    (by_cases h : 9 = i
+     · exact Or.inl h
+     · exact Or.inr ⟨h, h⟩)
+
+/-- Term-level binary sequence constructor. -/
+def seq2Term (a b : Term) : Term :=
+  .lam 8 (.cond (.var 8) a
+    (.cond (.pred (.var 8)) b enumBottomTerm))
+
+theorem seq2Term_interp (a b : Term) (ρ : ℕ → Pomega)
+    (ha : a.Avoids 8) (hb : b.Avoids 8) :
+    interp (seq2Term a b) ρ = seq2 (interp a ρ) (interp b ρ) := by
+  unfold seq2Term seq2
+  apply congrArg graph
+  funext z
+  simp only [interp]
+  rw [interp_avoids a ρ z ha, interp_avoids b ρ z hb, enumBottomTerm_interp]
+  simp [envSet, Function.update]
+
+/-- Term-level sequence cons constructor. -/
+def seqConsTerm (a xs : Term) : Term :=
+  .lam 7 (.cond (.var 7) a (.app xs (.pred (.var 7))))
+
+theorem seqConsTerm_interp (a xs : Term) (ρ : ℕ → Pomega)
+    (ha : a.Avoids 7) (hxs : xs.Avoids 7) :
+    interp (seqConsTerm a xs) ρ =
+      seqCons (interp a ρ) (interp xs ρ) := by
+  unfold seqConsTerm seqCons
+  apply congrArg graph
+  funext z
+  simp only [interp]
+  rw [interp_avoids a ρ z ha, interp_avoids xs ρ z hxs]
+  simp [envSet, Function.update]
+
+/-- Term for the positive branch `⟨1,u,x₁⟩` of Scott's bar operator. -/
+def barPosTerm : Term :=
+  seqConsTerm (.succ .zero)
+    (seq2Term (.var 1) (.app (.var 2) (.succ .zero)))
+
+theorem barPosTerm_interp (ρ : ℕ → Pomega) :
+    interp barPosTerm ρ = barPos (ρ 1) (ρ 2) := by
+  have hzero : Term.Avoids 7 (.succ .zero) := by simp [Term.Avoids]
+  have hseq : Term.Avoids 7
+      (seq2Term (.var 1) (.app (.var 2) (.succ .zero))) := by
+    change _ ∨ _
+    refine Or.inr ?_
+    refine ⟨?_, ?_, ?_⟩
+    · exact (by omega : (8 : ℕ) ≠ 7)
+    · exact (by omega : (1 : ℕ) ≠ 7)
+    · refine ⟨?_, ?_, enumBottomTerm_avoids 7⟩
+      · exact (by omega : (8 : ℕ) ≠ 7)
+      · exact ⟨(by omega : (2 : ℕ) ≠ 7), trivial⟩
+  have h1 : Term.Avoids 8 (.var 1) := (by omega : (1 : ℕ) ≠ 8)
+  have h2 : Term.Avoids 8 (.app (.var 2) (.succ .zero)) :=
+    ⟨(by omega : (2 : ℕ) ≠ 8), trivial⟩
+  rw [barPosTerm, seqConsTerm_interp _ _ _ hzero hseq,
+    seq2Term_interp _ _ _ h1 h2]
+  simp [interp, barPos, succSet_ofNat]
+
+/-- Closed terms for the two elementary semigroup generators. -/
+def Rterm : Term := .lam 0 (seq2Term .zero (.var 0))
+
+def Lterm : Term :=
+  .lam 0
+    (.app (.app (.var 0) (.succ .zero))
+      (.app (.var 0) (.succ (.succ .zero))))
+
+theorem Rterm_interp : interp Rterm (fun _ => botElem) = Rcomb := by
+  unfold Rterm Rcomb
+  apply congrArg graph
+  funext x
+  change interp (seq2Term .zero (.var 0)) (envSet (fun _ => botElem) 0 x) =
+    seq2 (ofNat 0) x
+  rw [seq2Term_interp]
+  · simp [interp, envSet, Function.update]
+  · trivial
+  · exact Nat.zero_ne_add_one 7
+
+theorem Lterm_interp : interp Lterm (fun _ => botElem) = Lcomb := by
+  unfold Lterm Lcomb
+  simp [interp, envSet, Function.update, succSet_ofNat]
+
+theorem Rcomb_combinatory : IsCombinatory Rcomb := by
+  rw [← Rterm_interp]
+  exact theorem_2_4_closed Rterm
+
+theorem Lcomb_combinatory : IsCombinatory Lcomb := by
+  rw [← Lterm_interp]
+  exact theorem_2_4_closed Lterm
+
 theorem barPos_isScottContinuous_u (x : Pomega) :
     IsScottContinuous (fun u => barPos u x) :=
   theorem_1_3 (seqCons_right_isScottContinuous (ofNat 1))
@@ -814,16 +1382,44 @@ theorem barPos_isScottContinuous_u (x : Pomega) :
 /-- **Scott 1976, (3.15).** Step of `ū = λx. x₀ ⊃ ⟨1, u, x₁⟩, overline{u(x₁)(x₂)}`. -/
 def barStepBody (B u x : Pomega) : Pomega :=
   condSet (funOf x (ofNat 0)) (barPos u x)
-    (funOf B (funOf (funOf u (funOf x (ofNat 1))) (funOf x (ofNat 2))))
+    (funOf (funOf B (funOf u (funOf x (ofNat 1)))) (funOf x (ofNat 2)))
 
 def barStep (B : Pomega) : Pomega :=
   graph (fun u => graph (fun x => barStepBody B u x))
 
+/-- Closed term for the functional whose least fixed point is `barComb`. -/
+def barStepTerm : Term :=
+  .lam 0 (.lam 1 (.lam 2
+    (.cond (.app (.var 2) .zero) barPosTerm
+      (.app
+        (.app (.var 0)
+          (.app (.var 1) (.app (.var 2) (.succ .zero))))
+        (.app (.var 2) (.succ (.succ .zero)))))))
+
+theorem barStepTerm_interp :
+    interp barStepTerm (fun _ => botElem) = graph barStep := by
+  unfold barStepTerm barStep
+  simp only [interp, envSet, Function.update_self,
+    Function.update_of_ne (by decide : (1 : ℕ) ≠ 0),
+    Function.update_of_ne (by decide : (2 : ℕ) ≠ 0),
+    Function.update_of_ne (by decide : (2 : ℕ) ≠ 1)]
+  apply congrArg graph
+  funext B
+  apply congrArg graph
+  funext u
+  apply congrArg graph
+  funext x
+  simp [barStepBody, barPosTerm_interp, interp, envSet, Function.update,
+    succSet_ofNat]
+
 theorem barStepBody_isScottContinuous_B (u x : Pomega) :
     IsScottContinuous (fun B => barStepBody B u x) :=
   theorem_1_3 (condSet_isScottContinuous_right (funOf x (ofNat 0)) (barPos u x))
-    (funOf_isScottContinuous_left
-      (funOf (funOf u (funOf x (ofNat 1))) (funOf x (ofNat 2))))
+    (theorem_1_3
+      (f := fun w => funOf w (funOf x (ofNat 2)))
+      (g := fun B => funOf B (funOf u (funOf x (ofNat 1))))
+      (funOf_isScottContinuous_left (funOf x (ofNat 2)))
+      (funOf_isScottContinuous_left (funOf u (funOf x (ofNat 1)))))
 
 theorem barStep_isScottContinuous : IsScottContinuous barStep :=
   graph_const_isScottContinuous
@@ -835,16 +1431,23 @@ theorem barStep_isScottContinuous : IsScottContinuous barStep :=
 /-- **Scott 1976, (3.15).** The bar combinator as a least fixed point. -/
 def barComb : Pomega := fix barStep
 
+theorem barComb_combinatory : IsCombinatory barComb := by
+  have hY : funOf Ycomb (interp barStepTerm (fun _ => botElem)) = barComb := by
+    rw [barStepTerm_interp, theorem_2_5 barStep_isScottContinuous]
+    rfl
+  exact hY ▸ IsCombinatory.app Ycomb_combinatory (theorem_2_4_closed barStepTerm)
+
 theorem barStepBody_isScottContinuous_u (B x : Pomega) :
     IsScottContinuous (fun u => barStepBody B u x) :=
   theorem_1_3_tuple
     (fun y => condSet_isScottContinuous_mid (funOf x (ofNat 0)) y)
     (fun w => condSet_isScottContinuous_right (funOf x (ofNat 0)) w)
     (barPos_isScottContinuous_u x)
-    (theorem_1_3 (funOf_isScottContinuous B)
-      (theorem_1_3 (f := fun w => funOf w (funOf x (ofNat 2)))
-        (g := fun u => funOf u (funOf x (ofNat 1)))
-        (funOf_isScottContinuous_left (funOf x (ofNat 2)))
+    (theorem_1_3
+      (f := fun w => funOf w (funOf x (ofNat 2)))
+      (g := fun u => funOf B (funOf u (funOf x (ofNat 1))))
+      (funOf_isScottContinuous_left (funOf x (ofNat 2)))
+      (theorem_1_3 (funOf_isScottContinuous B)
         (funOf_isScottContinuous_left (funOf x (ofNat 1)))))
 
 theorem barPos_isScottContinuous_x (u : Pomega) :
@@ -863,13 +1466,13 @@ theorem barStepBody_isScottContinuous_x (B u : Pomega) :
     (fun tes th => condSet_isScottContinuous_right tes th)
     (funOf_isScottContinuous_left (ofNat 0))
     (barPos_isScottContinuous_x u)
-    (theorem_1_3 (funOf_isScottContinuous B)
-      (theorem_1_3_tuple
-        (fun y => funOf_isScottContinuous_left y)
-        (fun w => funOf_isScottContinuous w)
+    (theorem_1_3_tuple
+      (fun y => funOf_isScottContinuous_left y)
+      (fun w => funOf_isScottContinuous w)
+      (theorem_1_3 (funOf_isScottContinuous B)
         (theorem_1_3 (funOf_isScottContinuous u)
-          (funOf_isScottContinuous_left (ofNat 1)))
-        (funOf_isScottContinuous_left (ofNat 2))))
+          (funOf_isScottContinuous_left (ofNat 1))))
+      (funOf_isScottContinuous_left (ofNat 2)))
 
 theorem barStep_app (B u : Pomega) :
     funOf (barStep B) u = graph (fun x => barStepBody B u x) :=
@@ -906,22 +1509,105 @@ theorem eq_3_16_bar (u x : Pomega) :
   rw [barComb_app2, barStepBody, Rcomb_app_zero, eq_2_7_zero]
   exact eq_3_16 u x
 
-/-- **Scott 1976, (3.17).** `ū⁺(v̄⁺(R(x)))` packages `u(v)` on the
-zero-test branch used in the semigroup calculation. -/
-theorem eq_3_17 (u v x : Pomega) :
+/-- Projection calculation used in the proof of Scott 1976, (3.17). -/
+theorem eq_3_17_projections (u v x : Pomega) :
     funOf (barPos u (barPos v (funOf Rcomb x))) (ofNat 1) = u ∧
       funOf (barPos v (funOf Rcomb x)) (ofNat 1) = v ∧
         funOf (barPos v (funOf Rcomb x)) (ofNat 2) = x := by
   refine ⟨barPos_one _ _, barPos_one _ _, ?_⟩
   rw [barPos_two, Rcomb_app, seq2_app_one]
 
-/-- **Scott 1976, Theorem 3.7 (The semigroup theorem), generating equations.**
-`RE ∩ FUN` is generated by `R`, `L`, and `Ḡ` via (3.16) and (3.17). -/
-theorem theorem_3_7 (u v x : Pomega) :
+/-- The pointwise calculations used by Theorem 3.7. -/
+theorem theorem_3_7_equations (u v x : Pomega) :
     funOf Lcomb (funOf (funOf barComb u) (funOf Rcomb x)) = funOf u x ∧
       funOf (barPos v (funOf Rcomb x)) (ofNat 1) = v ∧
         funOf (barPos v (funOf Rcomb x)) (ofNat 2) = x :=
-  ⟨eq_3_16_bar u x, (eq_3_17 u v x).2.1, (eq_3_17 u v x).2.2⟩
+  ⟨eq_3_16_bar u x, (eq_3_17_projections u v x).2.1,
+    (eq_3_17_projections u v x).2.2⟩
+
+/-- Composition in the semigroup `FUN`. -/
+def enumComp (u v : Pomega) : Pomega :=
+  graph (fun x => funOf u (funOf v x))
+
+theorem enumComp_app (u v x : Pomega) :
+    funOf (enumComp u v) x = funOf u (funOf v x) :=
+  beta (theorem_1_3 (funOf_isScottContinuous u) (funOf_isScottContinuous v)) x
+
+theorem barComb_on_R (u x : Pomega) :
+    funOf (funOf barComb u) (funOf Rcomb x) =
+      barPos u (funOf Rcomb x) := by
+  rw [barComb_app2, barStepBody, Rcomb_app_zero, eq_2_7_zero]
+
+theorem barComb_on_barPos_R (u v x : Pomega) :
+    funOf (funOf barComb u) (barPos v (funOf Rcomb x)) =
+      funOf (funOf barComb (funOf u v)) x := by
+  rw [barComb_app2, barStepBody, barPos_zero, eq_2_7_succ,
+    barPos_one, barPos_two, Rcomb_app, seq2_app_one]
+
+/-- **Scott 1976, (3.17).** Operator identity
+`ū ∘ v̄ ∘ R = overline{u(v)}`. -/
+theorem eq_3_17 (u v : Pomega) :
+    enumComp (funOf barComb u) (enumComp (funOf barComb v) Rcomb) =
+      funOf barComb (funOf u v) := by
+  conv_rhs => rw [eq_3_15]
+  unfold enumComp
+  apply congrArg graph
+  funext x
+  change funOf (funOf barComb u)
+    (funOf (lam fun x => funOf (funOf barComb v) (funOf Rcomb x)) x) =
+      barStepBody barComb (funOf u v) x
+  rw [beta (theorem_1_3 (funOf_isScottContinuous (funOf barComb v))
+      (funOf_isScottContinuous Rcomb)) x]
+  rw [barComb_on_R, barComb_on_barPos_R, barComb_app2]
+
+/-- Scott's `Ḡ`. -/
+def Gbar : Pomega := funOf barComb Gcomb
+
+/-- The subsemigroup generated by `R`, `L`, and `Ḡ`. -/
+inductive GeneratedSemigroup : Pomega → Prop
+  | R : GeneratedSemigroup Rcomb
+  | L : GeneratedSemigroup Lcomb
+  | Gbar : GeneratedSemigroup Gbar
+  | comp {u v} : GeneratedSemigroup u → GeneratedSemigroup v →
+      GeneratedSemigroup (enumComp u v)
+
+theorem bar_generated {u : Pomega} (hu : GeneratedFromG u) :
+    GeneratedSemigroup (funOf barComb u) := by
+  induction hu with
+  | G => exact GeneratedSemigroup.Gbar
+  | app _ _ ihu ihv =>
+      rw [← eq_3_17]
+      exact .comp ihu (.comp ihv .R)
+
+theorem eq_3_16_operator (u : Pomega) :
+    enumComp Lcomb (enumComp (funOf barComb u) Rcomb) =
+      graph (fun x => funOf u x) := by
+  unfold enumComp
+  apply congrArg graph
+  funext x
+  change funOf Lcomb
+    (funOf (lam fun x => funOf (funOf barComb u) (funOf Rcomb x)) x) =
+      funOf u x
+  rw [beta (theorem_1_3 (funOf_isScottContinuous (funOf barComb u))
+      (funOf_isScottContinuous Rcomb)) x]
+  exact eq_3_16_bar u x
+
+/-- The substantive generation direction of Scott 1976, Theorem 3.7:
+every element of `RE ∩ FUN` is generated by `R`, `L`, and `Ḡ`. -/
+theorem theorem_3_7_generation {u : Pomega}
+    (huRE : u ∈ RE) (huFUN : u ∈ FUN) : GeneratedSemigroup u := by
+  have hbar : GeneratedSemigroup (funOf barComb u) :=
+    bar_generated ((theorem_3_1 (u := u)).mp huRE)
+  have hgen : GeneratedSemigroup
+      (enumComp Lcomb (enumComp (funOf barComb u) Rcomb)) :=
+    .comp .L (.comp hbar .R)
+  rw [eq_3_16_operator] at hgen
+  simpa [FUN] using huFUN ▸ hgen
+
+/- The converse inclusion needed to package Theorem 3.7 as an equality with
+`RE ∩ FUN` requires a closed-term/combinatory proof for the recursively
+defined `barComb` (equivalently the missing effective compilation result).
+Accordingly no weaker declaration is published as `theorem_3_7`. -/
 
 /-- Combinatory elements lie in every enumeration degree, since `Deg a`
 contains `G` and is closed under application. -/
@@ -933,6 +1619,115 @@ theorem combinatory_mem_Deg (a : Pomega) {u : Pomega}
   | G => exact (Deg_isSubalgebra a).1
   | app _ _ ih ih' => exact (Deg_isSubalgebra a).2 ih ih'
 
+/-- The least combinatory subalgebra containing every member of `xs`. -/
+def GeneratedSubalgebra (xs : List Pomega) : Set Pomega :=
+  {u | ∀ A : Set Pomega, IsSubalgebra A →
+    (∀ x, x ∈ xs → x ∈ A) → u ∈ A}
+
+theorem GeneratedSubalgebra_isSubalgebra (xs : List Pomega) :
+    IsSubalgebra (GeneratedSubalgebra xs) := by
+  constructor
+  · intro A hA _
+    exact hA.1
+  · intro u v hu hv A hA hxs
+    exact hA.2 (hu A hA hxs) (hv A hA hxs)
+
+theorem GeneratedSubalgebra_generator {xs : List Pomega} {x : Pomega}
+    (hx : x ∈ xs) : x ∈ GeneratedSubalgebra xs :=
+  fun _ _ hxs => hxs x hx
+
+theorem combinatory_mem_subalgebra {A : Set Pomega} (hA : IsSubalgebra A)
+    {u : Pomega} (hu : IsCombinatory u) : u ∈ A := by
+  have hgen : GeneratedFromG u := (theorem_3_1 (u := u)).mp hu
+  clear hu
+  induction hgen with
+  | G => exact hA.1
+  | app _ _ ih ih' => exact hA.2 ih ih'
+
+theorem seq2_mem_subalgebra {A : Set Pomega} (hA : IsSubalgebra A)
+    {x y : Pomega} (hx : x ∈ A) (hy : y ∈ A) : seq2 x y ∈ A := by
+  have hS := combinatory_mem_subalgebra hA IsCombinatory.S
+  have hK := combinatory_mem_subalgebra hA IsCombinatory.K
+  have hcond := combinatory_mem_subalgebra hA IsCombinatory.cond
+  have hpred := combinatory_mem_subalgebra hA IsCombinatory.pred
+  have hzero := combinatory_mem_subalgebra hA IsCombinatory.zero
+  have hbot := combinatory_mem_subalgebra hA bot_combinatory
+  have hcondx := hA.2 hcond hx
+  have hyb := hA.2 (hA.2 hcond hy) (hA.2 hpred hzero)
+  have hinter := hA.2 (hA.2 hS (hA.2 hK hyb)) hpred
+  have hF := hA.2 (hA.2 hS (hA.2 hK hcondx)) hinter
+  have hI := hA.2 (hA.2 hS hK) hK
+  rw [seq2_eq_SK]
+  exact hA.2 (hA.2 hS hF) hI
+
+theorem packList_mem_subalgebra {A : Set Pomega} (hA : IsSubalgebra A) :
+    ∀ {xs : List Pomega}, (∀ x, x ∈ xs → x ∈ A) → packList xs ∈ A
+  | [], _ => combinatory_mem_subalgebra hA bot_combinatory
+  | x :: xs, hxs =>
+      seq2_mem_subalgebra hA (hxs x (by simp))
+        (packList_mem_subalgebra hA fun y hy => hxs y (by simp [hy]))
+
+theorem singleGenerator_mem_subalgebra {A : Set Pomega} (hA : IsSubalgebra A)
+    {xs : List Pomega} (hxs : ∀ x, x ∈ xs → x ∈ A) :
+    singleGenerator xs ∈ A := by
+  have hc := combinatory_mem_subalgebra hA IsCombinatory.cond
+  exact hA.2 (hA.2 hc (packList_mem_subalgebra hA hxs)) hA.1
+
+theorem packList_components_mem_Deg {a : Pomega} :
+    ∀ {xs : List Pomega}, packList xs ∈ Deg a →
+      ∀ x, x ∈ xs → x ∈ Deg a
+  | [], _hp, x, hx => by simp at hx
+  | y :: ys, hp, x, hx => by
+      have h0 := combinatory_mem_Deg a (ofNat_combinatory 0)
+      have h1 := combinatory_mem_Deg a (ofNat_combinatory 1)
+      have hy : y ∈ Deg a := by
+        have := (Deg_isSubalgebra a).2 hp h0
+        simpa [packList, seq2_app_zero] using this
+      have htail : packList ys ∈ Deg a := by
+        have := (Deg_isSubalgebra a).2 hp h1
+        simpa [packList, seq2_app_one] using this
+      rcases List.mem_cons.mp hx with rfl | hx
+      · exact hy
+      · exact packList_components_mem_Deg htail x hx
+
+theorem generators_mem_singleGenerator_degree (xs : List Pomega) :
+    ∀ x, x ∈ xs → x ∈ Deg (singleGenerator xs) :=
+  packList_components_mem_Deg (theorem_3_6_finite xs).1
+
+/-- **Scott 1976, Theorem 3.6.** The least subalgebra generated by a finite
+list is exactly the degree of Scott's single packed generator. -/
+theorem theorem_3_6_generated (xs : List Pomega) :
+    GeneratedSubalgebra xs = Deg (singleGenerator xs) := by
+  ext u
+  constructor
+  · intro hu
+    exact hu _ (Deg_isSubalgebra _) (generators_mem_singleGenerator_degree xs)
+  · rintro ⟨r, hr, rfl⟩ A hA hxs
+    exact hA.2 (combinatory_mem_subalgebra hA hr)
+      (singleGenerator_mem_subalgebra hA hxs)
+
+/-- Exact finite-generation classification of enumeration degrees. -/
+theorem theorem_3_6 (A : Set Pomega) :
+    (∃ a, A = Deg a) ↔
+      ∃ xs : List Pomega, A = GeneratedSubalgebra xs := by
+  constructor
+  · rintro ⟨a, rfl⟩
+    refine ⟨[a], ?_⟩
+    ext u
+    constructor
+    · rintro ⟨r, hr, rfl⟩
+      exact (GeneratedSubalgebra_isSubalgebra [a]).2
+        (combinatory_mem_subalgebra (GeneratedSubalgebra_isSubalgebra [a]) hr)
+        (GeneratedSubalgebra_generator (by simp))
+    · intro hu
+      exact hu _ (Deg_isSubalgebra a) (by
+        intro x hx
+        simp at hx
+        subst x
+        exact Deg_self a)
+  · rintro ⟨xs, rfl⟩
+    exact ⟨singleGenerator xs, theorem_3_6_generated xs⟩
+
 /-- **Scott 1976, Theorem 3.6 converse (singleton).** The packed
 generator recovers `x` in its own degree. -/
 theorem theorem_3_6_converse (x : Pomega) :
@@ -943,19 +1738,6 @@ theorem theorem_3_6_converse (x : Pomega) :
     (Deg_isSubalgebra _).2 hp h0
   simpa [packList_cons_zero] using this
 
-/-- Scott pairing of a fixed code is primitive recursive (s-m-n shape). -/
-theorem primrec_applyNat_const (c : ℕ) : Primrec fun n => applyNat c n :=
-  primrec_applyNat.comp (Primrec.const c) Primrec.id
-
-/-- **Scott 1976, Theorem 3.3 (i), primrec shape.** If `c` realises
-`secondRecVal` on codes, then `v = apply(c)` is primitive recursive and
-satisfies the hypothesis of `theorem_3_3`. -/
-theorem theorem_3_3_primrec_shape (c : ℕ)
-    (hc : ∀ n, valNat (applyNat c n) = secondRecVal (valNat n)) (n : ℕ) :
-    valNat (recNat (fun k => applyNat c k) n) =
-      funOf (valNat n) (ofNat (recNat (fun k => applyNat c k) n)) :=
-  theorem_3_3 (fun k => applyNat c k) n (hc n)
-
 /-- Nested positive-branch packaging of (3.17): `ū⁺(v̄⁺(R(x)))`
 has first projection `u` and recovers `u(v)(x)` via `L` after
 replacing the head by `u(v)`. -/
@@ -963,7 +1745,7 @@ theorem eq_3_17_semigroup (u v x : Pomega) :
     funOf (barPos u (barPos v (funOf Rcomb x))) (ofNat 1) = u ∧
       funOf Lcomb (barPos (funOf u v) (funOf Rcomb x)) =
         funOf (funOf u v) x :=
-  ⟨(eq_3_17 u v x).1, eq_3_16 (funOf u v) x⟩
+  ⟨(eq_3_17_projections u v x).1, eq_3_16 (funOf u v) x⟩
 
 /-- **Scott 1976, (4.46).** `vaal` on trees, companion of `val`. -/
 def vaalF (v : Pomega) : Pomega :=
@@ -973,6 +1755,69 @@ def vaalF (v : Pomega) : Pomega :=
         (funOf v (funOf (funOf x (ofNat 1)) (ofNat 1)))))
 
 def vaalC : Pomega := fix vaalF
+
+theorem vaalF_isScottContinuous : IsScottContinuous vaalF :=
+  graph_const_isScottContinuous
+    (fun v x =>
+      condSet (funOf x (ofNat 0)) Gcomb
+        (funOf (funOf v (funOf (funOf x (ofNat 1)) (ofNat 0)))
+          (funOf v (funOf (funOf x (ofNat 1)) (ofNat 1)))))
+    (fun x =>
+      theorem_1_3
+        (condSet_isScottContinuous_right (funOf x (ofNat 0)) Gcomb)
+        (continuous_tuple
+          (fun y => funOf_isScottContinuous_left y)
+          (fun u => funOf_isScottContinuous u)
+          (funOf_isScottContinuous_left
+            (funOf (funOf x (ofNat 1)) (ofNat 0)))
+          (funOf_isScottContinuous_left
+            (funOf (funOf x (ofNat 1)) (ofNat 1)))))
+
+theorem vaalF_body_isScottContinuous (v : Pomega) :
+    IsScottContinuous (fun x =>
+      condSet (funOf x (ofNat 0)) Gcomb
+        (funOf (funOf v (funOf (funOf x (ofNat 1)) (ofNat 0)))
+          (funOf v (funOf (funOf x (ofNat 1)) (ofNat 1))))) :=
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (funOf_isScottContinuous_left (ofNat 0))
+    (const_isScottContinuous Gcomb)
+    (continuous_tuple
+      (fun y => funOf_isScottContinuous_left y)
+      (fun u => funOf_isScottContinuous u)
+      (theorem_1_3 (funOf_isScottContinuous v)
+        (theorem_1_3
+          (f := fun u => funOf u (ofNat 0))
+          (g := fun x => funOf x (ofNat 1))
+          (funOf_isScottContinuous_left (ofNat 0))
+          (funOf_isScottContinuous_left (ofNat 1))))
+      (theorem_1_3 (funOf_isScottContinuous v)
+        (theorem_1_3
+          (f := fun u => funOf u (ofNat 1))
+          (g := fun x => funOf x (ofNat 1))
+          (funOf_isScottContinuous_left (ofNat 1))
+          (funOf_isScottContinuous_left (ofNat 1)))))
+
+theorem vaalF_app (v x : Pomega) :
+    funOf (vaalF v) x =
+      condSet (funOf x (ofNat 0)) Gcomb
+        (funOf (funOf v (funOf (funOf x (ofNat 1)) (ofNat 0)))
+          (funOf v (funOf (funOf x (ofNat 1)) (ofNat 1)))) :=
+  beta (vaalF_body_isScottContinuous v) x
+
+theorem vaalC_fixedPoint : vaalF vaalC = vaalC :=
+  (theorem_1_4 vaalF_isScottContinuous).1
+
+/-- **Scott 1976, (4.46).** Unfolding of `vaal` at a tree code. -/
+theorem vaalC_unfold (x : Pomega) :
+    funOf vaalC x =
+      condSet (funOf x (ofNat 0)) Gcomb
+        (funOf (funOf vaalC (funOf (funOf x (ofNat 1)) (ofNat 0)))
+          (funOf vaalC (funOf (funOf x (ofNat 1)) (ofNat 1)))) := by
+  have h := congrArg (fun v => funOf v x) vaalC_fixedPoint
+  simpa [vaalF_app] using h.symm
 
 /-- **Scott 1976, TOT.** Graphs of total number-theoretic functions:
 `$`-invariant and integer-valued on integers. -/
