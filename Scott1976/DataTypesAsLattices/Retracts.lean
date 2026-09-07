@@ -52,6 +52,12 @@ def arrowR (a b : Pomega) : Pomega :=
 def fstC : Pomega := graph (fun u => funOf u (ofNat 0))
 def sndC : Pomega := graph (fun u => funOf u (ofNat 1))
 
+theorem fstC_app (u : Pomega) : funOf fstC u = funOf u (ofNat 0) :=
+  beta (funOf_isScottContinuous_left (ofNat 0)) u
+
+theorem sndC_app (u : Pomega) : funOf sndC u = funOf u (ofNat 1) :=
+  beta (funOf_isScottContinuous_left (ofNat 1)) u
+
 /-- **Scott 1976, (2.21) / (4.2).** Pairing as a distributive sequence. -/
 def pairSeq (x y : Pomega) : Pomega := seq2 x y
 

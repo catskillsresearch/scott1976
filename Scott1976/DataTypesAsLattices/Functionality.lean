@@ -379,6 +379,179 @@ theorem tensorR_isRetract {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
   rw [tensorR_app, tensorR_app, pairSeq_app_zero, pairSeq_app_one,
     retract_app ha, retract_app hb]
 
+/-- **Scott 1976, (4.12).** `(a ⊗ b) ∘ (a' ⊗ b') = (a ∘ a') ⊗ (b ∘ b')`. -/
+theorem eq_4_12 (a b a' b' : Pomega) :
+    comp (tensorR a b) (tensorR a' b') = tensorR (comp a a') (comp b b') := by
+  apply graph_ext
+  intro u
+  rw [tensorR_app, tensorR_app, pairSeq_app_zero, pairSeq_app_one]
+  simp only [comp_app]
+
+/-- **Scott 1976, Theorem 4.4 (ii).** `u : a ⊗ b` iff `u = ⟨u₀, u₁⟩`
+with `u₀ : a` and `u₁ : b`. -/
+theorem theorem_4_4_typed {a b u : Pomega} :
+    typed u (tensorR a b) ↔
+      u = pairSeq (funOf u (ofNat 0)) (funOf u (ofNat 1)) ∧
+        typed (funOf u (ofNat 0)) a ∧ typed (funOf u (ofNat 1)) b := by
+  constructor
+  · intro hu
+    have hpair : u =
+        pairSeq (funOf a (funOf u (ofNat 0)))
+          (funOf b (funOf u (ofNat 1))) := by
+      simpa [typed, tensorR_app] using hu
+    have h0 : funOf u (ofNat 0) = funOf a (funOf u (ofNat 0)) := by
+      have := congrArg (fun w => funOf w (ofNat 0)) hpair
+      simpa [pairSeq_app_zero] using this
+    have h1 : funOf u (ofNat 1) = funOf b (funOf u (ofNat 1)) := by
+      have := congrArg (fun w => funOf w (ofNat 1)) hpair
+      simpa [pairSeq_app_one] using this
+    refine ⟨hpair.trans (congr (congrArg pairSeq h0.symm) h1.symm), h0, h1⟩
+  · intro ⟨hpair, ha, hb⟩
+    change u = funOf (tensorR a b) u
+    rw [tensorR_app, ← ha, ← hb, ← hpair]
+
+theorem pairSeq_bot : pairSeq botElem botElem = botElem := by
+  have hbody : (fun z => condSet z botElem (condSet (predSet z) botElem botElem)) =
+      fun _ => botElem := by
+    funext z
+    ext n
+    simp [condSet, botElem]
+  simpa [pairSeq, seq2, hbody] using graph_const_bot
+
+/-- **Scott 1976, Theorem 4.4 (i), strictness.** -/
+theorem tensorR_isStrict {a b : Pomega} (ha : IsStrict a) (hb : IsStrict b) :
+    IsStrict (tensorR a b) := by
+  change funOf (tensorR a b) botElem = botElem
+  rw [tensorR_app, funOf_bot, funOf_bot, ha, hb, pairSeq_bot]
+
+/-- **Scott 1976, Theorem 4.4 (iii).** `⊗` preserves `⊑`. -/
+theorem tensorR_retractLe {a b a' b' : Pomega}
+    (hab : retractLe a a') (hbb : retractLe b b') :
+    retractLe (tensorR a b) (tensorR a' b') := by
+  constructor
+  · have h : tensorR (comp a a') (comp b b') = tensorR a b := by
+      rw [← hab.1, ← hbb.1]
+    exact ((eq_4_12 a b a' b').trans h).symm
+  · have h : tensorR (comp a' a) (comp b' b) = tensorR a b := by
+      rw [← hab.2, ← hbb.2]
+    exact ((eq_4_12 a' b' a b).trans h).symm
+
+theorem diagC_app (u : Pomega) : funOf diagC u = pairSeq u u :=
+  beta (continuous_on_diag
+    pairSeq_isScottContinuous_left pairSeq_isScottContinuous_right) u
+
+/-- **Scott 1976, (4.17).** `fst ∘ (a ⊗ b) : (a ⊗ b) ∘→ a`. -/
+theorem eq_4_17 {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    typed (comp fstC (tensorR a b)) (arrowR (tensorR a b) a) := by
+  change comp fstC (tensorR a b) =
+    funOf (arrowR (tensorR a b) a) (comp fstC (tensorR a b))
+  rw [arrowR_app]
+  apply graph_ext
+  intro u
+  have hab := tensorR_isRetract ha hb
+  simp only [comp_app, fstC_app, retract_app hab]
+  rw [tensorR_app, pairSeq_app_zero, retract_app ha]
+
+/-- **Scott 1976, (4.18).** `snd ∘ (a ⊗ b) : (a ⊗ b) ∘→ b`. -/
+theorem eq_4_18 {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    typed (comp sndC (tensorR a b)) (arrowR (tensorR a b) b) := by
+  change comp sndC (tensorR a b) =
+    funOf (arrowR (tensorR a b) b) (comp sndC (tensorR a b))
+  rw [arrowR_app]
+  apply graph_ext
+  intro u
+  have hab := tensorR_isRetract ha hb
+  simp only [comp_app, sndC_app, retract_app hab]
+  rw [tensorR_app, pairSeq_app_one, retract_app hb]
+
+/-- **Scott 1976, (4.19).** `diag ∘ a : a ∘→ a ⊗ a`. -/
+theorem eq_4_19 {a : Pomega} (ha : IsRetract a) :
+    typed (comp diagC a) (arrowR a (tensorR a a)) := by
+  change comp diagC a = funOf (arrowR a (tensorR a a)) (comp diagC a)
+  rw [arrowR_app]
+  apply graph_ext
+  intro u
+  simp only [comp_app, diagC_app, retract_app ha]
+  rw [tensorR_app, pairSeq_app_zero, pairSeq_app_one, retract_app ha]
+
+/-- **Scott 1976, (4.20).** `fst ∘ (f ⊗ f') = f ∘ fst`. -/
+theorem eq_4_20 (f f' : Pomega) :
+    comp fstC (tensorR f f') = comp f fstC := by
+  simp only [comp]
+  apply graph_ext
+  intro u
+  rw [fstC_app, tensorR_app, pairSeq_app_zero, fstC_app]
+
+/-- **Scott 1976, (4.21).** `snd ∘ (f ⊗ f') = f' ∘ snd`. -/
+theorem eq_4_21 (f f' : Pomega) :
+    comp sndC (tensorR f f') = comp f' sndC := by
+  simp only [comp]
+  apply graph_ext
+  intro u
+  rw [sndC_app, tensorR_app, pairSeq_app_one, sndC_app]
+
+/-- **Scott 1976, Theorem 4.4 (iv).** `⊗` is a functor on maps. -/
+theorem tensorR_functor {a b a' b' f f' : Pomega}
+    (_ha : IsRetract a) (_hb : IsRetract b)
+    (_ha' : IsRetract a') (_hb' : IsRetract b')
+    (hf : typed f (arrowR a b)) (hf' : typed f' (arrowR a' b')) :
+    typed (tensorR f f') (arrowR (tensorR a a') (tensorR b b')) := by
+  change tensorR f f' =
+    funOf (arrowR (tensorR a a') (tensorR b b')) (tensorR f f')
+  rw [arrowR_app]
+  have h := eq_4_12 b b' f f'
+  have h' := eq_4_12 f f' a a'
+  have hf1 := typed_of_arrowR hf
+  have hf2 := typed_of_arrowR hf'
+  apply Eq.symm
+  calc
+    comp (tensorR b b') (comp (tensorR f f') (tensorR a a'))
+        = comp (tensorR b b') (tensorR (comp f a) (comp f' a')) := by
+          rw [eq_4_12]
+    _ = tensorR (comp b (comp f a)) (comp b' (comp f' a')) := eq_4_12 _ _ _ _
+    _ = tensorR f f' := by
+      rw [← hf1, ← hf2]
+
+/-- **Scott 1976, (4.26).** Left injection. -/
+def inleftC : Pomega := graph (fun x => pairSeq (ofNat 0) x)
+
+/-- **Scott 1976, (4.27).** Right injection. -/
+def inrightC : Pomega := graph (fun x => pairSeq (ofNat 1) x)
+
+theorem inleftC_app (x : Pomega) :
+    funOf inleftC x = pairSeq (ofNat 0) x :=
+  beta (pairSeq_isScottContinuous_right (ofNat 0)) x
+
+theorem inrightC_app (x : Pomega) :
+    funOf inrightC x = pairSeq (ofNat 1) x :=
+  beta (pairSeq_isScottContinuous_right (ofNat 1)) x
+
+/-- **Scott 1976, (4.32).** ` (a ⊕ b) ∘ inleft ∘ a : a ∘→ (a ⊕ b) `. -/
+theorem eq_4_32 {a b : Pomega} (ha : IsRetract a) :
+    typed (comp (plusR a b) (comp inleftC a)) (arrowR a (plusR a b)) := by
+  change comp (plusR a b) (comp inleftC a) =
+    funOf (arrowR a (plusR a b)) (comp (plusR a b) (comp inleftC a))
+  rw [arrowR_app]
+  apply graph_ext
+  intro x
+  simp only [comp_app, inleftC_app, retract_app ha]
+  rw [plusR_app, plusR_app, pairSeq_app_zero, pairSeq_app_one,
+    condSet_ofNat_zero, retract_app ha]
+  rw [pairSeq_app_zero, pairSeq_app_one, condSet_ofNat_zero, retract_app ha]
+
+/-- **Scott 1976, (4.33).** ` (a ⊕ b) ∘ inright ∘ b : b ∘→ (a ⊕ b) `. -/
+theorem eq_4_33 {a b : Pomega} (hb : IsRetract b) :
+    typed (comp (plusR a b) (comp inrightC b)) (arrowR b (plusR a b)) := by
+  change comp (plusR a b) (comp inrightC b) =
+    funOf (arrowR b (plusR a b)) (comp (plusR a b) (comp inrightC b))
+  rw [arrowR_app]
+  apply graph_ext
+  intro x
+  simp only [comp_app, inrightC_app, retract_app hb]
+  rw [plusR_app, plusR_app, pairSeq_app_zero, pairSeq_app_one,
+    condSet_ofNat_one, retract_app hb]
+  rw [pairSeq_app_zero, pairSeq_app_one, condSet_ofNat_one, retract_app hb]
+
 theorem graph_funOf_ext {f g : Pomega}
     (hf : f = graph (fun x => funOf f x))
     (hg : g = graph (fun x => funOf g x))

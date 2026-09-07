@@ -774,10 +774,118 @@ theorem barPos_two (u x : Pomega) :
     ext k; simp [predSet, ofNat]
   rw [hpred, eq_2_7_succ, seq2_app_one]
 
+theorem seq2_left_isScottContinuous (b : Pomega) :
+    IsScottContinuous (fun a => seq2 a b) :=
+  graph_const_isScottContinuous
+    (fun a z => condSet z a (condSet (predSet z) b botElem))
+    (fun z => condSet_isScottContinuous_mid z _)
+
+theorem seqCons_right_isScottContinuous (x : Pomega) :
+    IsScottContinuous (fun xs => seqCons x xs) :=
+  graph_const_isScottContinuous
+    (fun xs z => condSet z x (funOf xs (predSet z)))
+    (fun z => theorem_1_3 (condSet_isScottContinuous_right z x)
+      (funOf_isScottContinuous_left (predSet z)))
+
+theorem barPos_isScottContinuous_u (x : Pomega) :
+    IsScottContinuous (fun u => barPos u x) :=
+  theorem_1_3 (seqCons_right_isScottContinuous (ofNat 1))
+    (seq2_left_isScottContinuous (funOf x (ofNat 1)))
+
+/-- **Scott 1976, (3.15).** Step of `ū = λx. x₀ ⊃ ⟨1, u, x₁⟩, overline{u(x₁)(x₂)}`. -/
+def barStepBody (B u x : Pomega) : Pomega :=
+  condSet (funOf x (ofNat 0)) (barPos u x)
+    (funOf B (funOf (funOf u (funOf x (ofNat 1))) (funOf x (ofNat 2))))
+
+def barStep (B : Pomega) : Pomega :=
+  graph (fun u => graph (fun x => barStepBody B u x))
+
+theorem barStepBody_isScottContinuous_B (u x : Pomega) :
+    IsScottContinuous (fun B => barStepBody B u x) :=
+  theorem_1_3 (condSet_isScottContinuous_right (funOf x (ofNat 0)) (barPos u x))
+    (funOf_isScottContinuous_left
+      (funOf (funOf u (funOf x (ofNat 1))) (funOf x (ofNat 2))))
+
+theorem barStep_isScottContinuous : IsScottContinuous barStep :=
+  graph_const_isScottContinuous
+    (fun B u => graph (fun x => barStepBody B u x))
+    (fun u => graph_const_isScottContinuous
+      (fun B x => barStepBody B u x)
+      (fun x => barStepBody_isScottContinuous_B u x))
+
+/-- **Scott 1976, (3.15).** The bar combinator as a least fixed point. -/
+def barComb : Pomega := fix barStep
+
+theorem barStepBody_isScottContinuous_u (B x : Pomega) :
+    IsScottContinuous (fun u => barStepBody B u x) :=
+  theorem_1_3_tuple
+    (fun y => condSet_isScottContinuous_mid (funOf x (ofNat 0)) y)
+    (fun w => condSet_isScottContinuous_right (funOf x (ofNat 0)) w)
+    (barPos_isScottContinuous_u x)
+    (theorem_1_3 (funOf_isScottContinuous B)
+      (theorem_1_3 (f := fun w => funOf w (funOf x (ofNat 2)))
+        (g := fun u => funOf u (funOf x (ofNat 1)))
+        (funOf_isScottContinuous_left (funOf x (ofNat 2)))
+        (funOf_isScottContinuous_left (funOf x (ofNat 1)))))
+
+theorem barPos_isScottContinuous_x (u : Pomega) :
+    IsScottContinuous (fun x => barPos u x) :=
+  theorem_1_3 (f := fun xs => seqCons (ofNat 1) xs)
+    (g := fun x => seq2 u (funOf x (ofNat 1)))
+    (seqCons_right_isScottContinuous (ofNat 1))
+    (theorem_1_3 (seq2_right_isScottContinuous u)
+      (funOf_isScottContinuous_left (ofNat 1)))
+
+theorem barStepBody_isScottContinuous_x (B u : Pomega) :
+    IsScottContinuous (fun x => barStepBody B u x) :=
+  theorem_1_3_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun tes z => condSet_isScottContinuous_mid tes z)
+    (fun tes th => condSet_isScottContinuous_right tes th)
+    (funOf_isScottContinuous_left (ofNat 0))
+    (barPos_isScottContinuous_x u)
+    (theorem_1_3 (funOf_isScottContinuous B)
+      (theorem_1_3_tuple
+        (fun y => funOf_isScottContinuous_left y)
+        (fun w => funOf_isScottContinuous w)
+        (theorem_1_3 (funOf_isScottContinuous u)
+          (funOf_isScottContinuous_left (ofNat 1)))
+        (funOf_isScottContinuous_left (ofNat 2))))
+
+theorem barStep_app (B u : Pomega) :
+    funOf (barStep B) u = graph (fun x => barStepBody B u x) :=
+  beta (graph_const_isScottContinuous (fun u x => barStepBody B u x)
+    (fun x => barStepBody_isScottContinuous_u B x)) u
+
+/-- **Scott 1976, (3.15).** Unfolding of the least bar combinator. -/
+theorem eq_3_15 (u : Pomega) :
+    funOf barComb u = graph (fun x => barStepBody barComb u x) := by
+  have hfix : barStep barComb = barComb :=
+    (theorem_1_4 barStep_isScottContinuous).1
+  have ha := barStep_app barComb u
+  rwa [hfix] at ha
+
+theorem barComb_app2 (u x : Pomega) :
+    funOf (funOf barComb u) x = barStepBody barComb u x := by
+  have ha : funOf barComb u = graph (fun z => barStepBody barComb u z) :=
+    eq_3_15 u
+  rw [ha]
+  exact beta (barStepBody_isScottContinuous_x barComb u) x
+
+theorem Rcomb_app_zero (x : Pomega) :
+    funOf (funOf Rcomb x) (ofNat 0) = ofNat 0 := by
+  rw [Rcomb_app, seq2_app_zero]
+
 /-- **Scott 1976, (3.16).** `L(ū⁺(R(x))) = u(x)` on the zero-test branch. -/
 theorem eq_3_16 (u x : Pomega) :
     funOf Lcomb (barPos u (funOf Rcomb x)) = funOf u x := by
   rw [Lcomb_app, barPos_one, barPos_two, Rcomb_app, seq2_app_one]
+
+/-- **Scott 1976, (3.16).** `L ∘ ū ∘ R = λx. u(x)` from the Y-definition. -/
+theorem eq_3_16_bar (u x : Pomega) :
+    funOf Lcomb (funOf (funOf barComb u) (funOf Rcomb x)) = funOf u x := by
+  rw [barComb_app2, barStepBody, Rcomb_app_zero, eq_2_7_zero]
+  exact eq_3_16 u x
 
 /-- **Scott 1976, (3.17).** `ū⁺(v̄⁺(R(x)))` packages `u(v)` on the
 zero-test branch used in the semigroup calculation. -/

@@ -105,8 +105,8 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 3.5 | `theorem_3_5`, `theorem_3_5_unique`, `theorem_3_5_q_app`, `myhillQ` | partial — `q` and `val(p(fin j)) ⊆ q(e j)`; uniqueness of continuous realizers; not the full completeness calculation |
 | Theorem 3.6 | `theorem_3_6`, `theorem_3_6_finite`, `IsSubalgebra`, `singleGenerator` | partial — `Deg a` is a subalgebra; `⟨xs⟩` and `G` lie in `Deg(cond(⟨xs⟩)(G))`; converse `A = Deg(a)` open |
 | `R`,`L` | `Rcomb`, `Lcomb`, `Rcomb_app`, `Lcomb_app` | faithful |
-| (3.15)–(3.17) | `barPos`, `eq_3_16`, `eq_3_17` | partial — zero-test branch of `ū`; full `Y`-definition of `ū` open |
-| Theorem 3.7 | `theorem_3_7` | partial — generating equations (3.16)(3.17) on the zero-test branch |
+| (3.15)–(3.17) | `barComb`, `eq_3_15`, `eq_3_16_bar`, `eq_3_16`, `eq_3_17` | partial — `ū` is `Y(barStep)`; (3.16) from the Y-definition; (3.17) still the zero-test packaging |
+| Theorem 3.7 | `theorem_3_7` | partial — generating equations (3.16)(3.17); (3.16) also from `barComb` |
 
 ### §4 Retracts
 
@@ -117,8 +117,8 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 4.1 | `theorem_4_1`, `theorem_4_1_complete` | partial — complete-lattice fragment on `Fixpoints`; continuous-lattice claim for retract ranges not fully packaged |
 | Theorem 4.2 | `theorem_4_2` | faithful |
 | Theorem 4.3 | `theorem_4_3`, `arrowR_isRetract` | partial — core function-space identities; not every numbered functoriality clause |
-| Theorem 4.4 | `theorem_4_4`, `tensorR_isRetract` | partial — pairing projections and product retract; not full product functoriality |
-| Theorem 4.5 | `theorem_4_5` | partial — strictness at `⊥`; not the non-unique-coproduct remark |
+| Theorem 4.4 | `theorem_4_4`, `theorem_4_4_typed`, `tensorR_isRetract`, `tensorR_isStrict`, `tensorR_retractLe`, `tensorR_functor`, `eq_4_12`, `eq_4_17`–`eq_4_21` | partial — product retract, `⊑`, functor on maps, (4.12)(4.17)–(4.21); mediator uniqueness omitted |
+| Theorem 4.5 | `theorem_4_5`, `eq_4_32`, `eq_4_33`, `inleftC`, `inrightC` | partial — strictness at `⊥`; injections typed; not the non-unique-coproduct remark |
 | Theorem 4.6 | `theorem_4_6` | partial — `Y(F)` is a retract; inverse-limit homeomorphism omitted |
 | (4.38) `tree` | `treeR` | partial — definition only |
 
@@ -131,9 +131,9 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 5.1 | `theorem_5_1`, `theorem_5_1_isolated` | partial — typed fixed points; isolated points are `a(e n)` one way |
 | Theorem 5.2 | `theorem_5_2` | partial — `representClosure` is idempotent, not an isomorphism onto every countable algebraic lattice |
 | Theorem 5.3 | `theorem_5_3`, `theorem_5_3_closure`, `Icomb_subset_arrowR` | faithful |
-| Theorem 5.4 | `theorem_5_4`, `eq_5_12` | partial — `⊠` of closures is a closure; `⊞` still unfolding |
+| Theorem 5.4 | `theorem_5_4`, `eq_5_12`, `eq_5_22` | partial — `⊠` of closures is a closure and typed on `V`; `⊞` still unfolding |
 | Theorem 5.5 | `theorem_5_5`, `theorem_5_5_iff`, `theorem_5_5_universe`, `Vcomb`, `eq_5_14`, `eq_5_19`, `eq_5_21` | faithful — `V` is a closure; `V(a)=a` iff `a` is a closure; `(5.14)=(5.15)` |
-| Theorem 5.6 | `theorem_5_6`, `theorem_5_6_iterates` | faithful — `Y(f):V` whenever `f:V∘→V` |
+| Theorem 5.6 | `theorem_5_6`, `theorem_5_6_iterates`, `eq_5_24` | faithful — `Y(f):V` whenever `f:V∘→V`; `∘→` typed on `V` |
 | (5.25) `d = I ∪ (d∘→d)` | `dEq`, `eq_5_25` | faithful — `Y(λa. I ∪ (a∘→a))`; `d = d∘→d` if `I ⊆ d∘→d` |
 
 ### §6 Classification

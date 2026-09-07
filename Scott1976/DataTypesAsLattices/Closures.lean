@@ -591,6 +591,21 @@ theorem theorem_5_3_closure {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b)
     IsClosure (arrowR a b) :=
   ⟨Icomb_subset_arrowR ha hb, theorem_5_3 ha hb⟩
 
+/-- **Scott 1976, (5.22).** Boxed product of closures is a closure, so
+the map is typed on `V`. -/
+theorem eq_5_22 {a b : Pomega} (ha : typed a Vcomb) (hb : typed b Vcomb) :
+    typed (boxTensor a b) Vcomb :=
+  (theorem_5_5_universe.2 (boxTensor a b)).mp
+    (theorem_5_4 ((theorem_5_5_universe.2 a).mpr ha)
+      ((theorem_5_5_universe.2 b).mpr hb))
+
+/-- **Scott 1976, (5.24).** Function space of closures is a closure. -/
+theorem eq_5_24 {a b : Pomega} (ha : typed a Vcomb) (hb : typed b Vcomb) :
+    typed (arrowR a b) Vcomb :=
+  (theorem_5_5_universe.2 (arrowR a b)).mp
+    (theorem_5_3_closure ((theorem_5_5_universe.2 a).mpr ha)
+      ((theorem_5_5_universe.2 b).mpr hb))
+
 /-- **Scott 1976, (5.25).** Step of `Y(λa. I ∪ (a ∘→ a))`. -/
 def selfArrowStep (a : Pomega) : Pomega := Icomb ∪ arrowR a a
 
