@@ -79,7 +79,7 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | (2.17) intersection encoding | `eq_2_17`, `eq_2_17_step`, `interC` | faithful |
 | (2.18) `K`-fixed points | `eq_2_18` | faithful |
 | (2.19)–(2.23) sequences | `seq0`, `seq1`, `seq2`, `seqCons`, `eq_2_22`, `eq_2_23_*` | faithful |
-| (2.24)–(2.27) `$`, primrec | `dollarC`, `eq_2_25`, `lamOmega`, `primRecVal`/`Hat`/`Step` | partial — `$` and primrec operators; `$ = Y(step)` not proved |
+| (2.24)–(2.27) `$`, primrec | `eq_2_24`, `dollarC`, `eq_2_25`, `lamOmega`, `primRecVal`/`Hat`/`ofNat` | partial — seq recursion (2.24); `$` as graph of `seq`; primrec on integers; `$ = Y(step)` not packaged |
 | (2.28) `Y` commuting | `eq_2_28`, `eq_2_28_commute` | faithful |
 | Theorem 2.1 | `theorem_2_1` | faithful |
 | Theorem 2.2 | `theorem_2_2` | faithful |
@@ -102,8 +102,8 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | `fin` | `fin`, `valNat_fin` | faithful — `val(fin j)=e j` |
 | Theorem 3.3 | `theorem_3_3`, `secondRecVal`, `recNat` | partial — (iii) from the paper's (i)(ii); existence of a primrec `v` open |
 | Theorem 3.4 | `theorem_3_4`, `theorem_3_4_re` | partial — diagonal contradiction under hypotheses, not `¬IsRE {n | val n = ⊥}` |
-| Theorem 3.5 | `theorem_3_5`, `theorem_3_5_unique`, `myhillQ` | partial — `q` is defined; uniqueness of continuous realizers; not the full completeness calculation |
-| Theorem 3.6 | `theorem_3_6`, `IsSubalgebra`, `singleGenerator` | partial — `Deg a` is a subalgebra containing `a` and `G`; finite-tuple generator is defined, converse `A = Deg(a)` open |
+| Theorem 3.5 | `theorem_3_5`, `theorem_3_5_unique`, `theorem_3_5_q_app`, `myhillQ` | partial — `q` and `val(p(fin j)) ⊆ q(e j)`; uniqueness of continuous realizers; not the full completeness calculation |
+| Theorem 3.6 | `theorem_3_6`, `theorem_3_6_finite`, `IsSubalgebra`, `singleGenerator` | partial — `Deg a` is a subalgebra; `⟨xs⟩` and `G` lie in `Deg(cond(⟨xs⟩)(G))`; converse `A = Deg(a)` open |
 | `R`,`L` | `Rcomb`, `Lcomb`, `Rcomb_app`, `Lcomb_app` | faithful |
 | (3.15)–(3.17) | `barPos`, `eq_3_16`, `eq_3_17` | partial — zero-test branch of `ū`; full `Y`-definition of `ū` open |
 | Theorem 3.7 | `theorem_3_7` | partial — generating equations (3.16)(3.17) on the zero-test branch |
@@ -132,8 +132,8 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 5.2 | `theorem_5_2` | partial — `representClosure` is idempotent, not an isomorphism onto every countable algebraic lattice |
 | Theorem 5.3 | `theorem_5_3`, `theorem_5_3_closure`, `Icomb_subset_arrowR` | faithful |
 | Theorem 5.4 | `theorem_5_4` | partial — definitional unfolding of `⊠` |
-| Theorem 5.5 | `theorem_5_5`, `eq_5_18_eq` | partial — `V(a)(x)=a(x)` on closures; not combinator-level `V(a)=a ↔ IsClosure a` |
-| Theorem 5.6 | `theorem_5_6` | partial — prefixpoint form, not `λf:V∘→V. Y(f)` |
+| Theorem 5.5 | `theorem_5_5`, `theorem_5_5_iff`, `Vcomb`, `eq_5_14` | faithful — `V(a)=a` iff `a` is a closure; `(5.14)=(5.15)` |
+| Theorem 5.6 | `theorem_5_6`, `Vapply_closed` | partial — Kleene iterates of `I` stay closures; not the typed combinator `λf:V∘→V. Y(f)` |
 | (5.25) `d = I ∪ (d∘→d)` | `dEq`, `eq_5_25` | faithful — `Y(λa. I ∪ (a∘→a))`; `d = d∘→d` if `I ⊆ d∘→d` |
 
 ### §6 Classification

@@ -662,6 +662,12 @@ theorem theorem_3_5 {val : ℕ → Pomega} {p : ℕ → ℕ} {q : Pomega}
     (hq : ∀ n, val (p n) = funOf q (val n)) :
     ∀ n, val (p n) = funOf q (val n) := hq
 
+/-- Appendix inclusion of Theorem 3.5: `val(p(fin j)) ⊆ q(e j)`. -/
+theorem theorem_3_5_q_app (p : ℕ → ℕ) (j : ℕ) :
+    valNat (p (fin j)) ⊆ funOf (myhillQ valNat p) (e j) := by
+  intro m hm
+  exact ⟨j, subset_rfl, ⟨j, m, rfl, by simpa [valNat_fin] using hm⟩⟩
+
 /-- **Scott 1976, Definition.** Enumeration degree of `a`. -/
 def Deg (a : Pomega) : Set Pomega :=
   {u | ∃ r, IsCombinatory r ∧ u = funOf r a}
@@ -702,6 +708,25 @@ def packList : List Pomega → Pomega
 
 def singleGenerator (xs : List Pomega) : Pomega :=
   funOf (funOf condC (packList xs)) Gcomb
+
+theorem packList_cons_zero (x : Pomega) (xs : List Pomega) :
+    funOf (packList (x :: xs)) (ofNat 0) = x :=
+  seq2_app_zero x (packList xs)
+
+theorem singleGenerator_app_zero (xs : List Pomega) :
+    funOf (singleGenerator xs) zeroC = packList xs :=
+  eq_3_2 (packList xs) Gcomb
+
+/-- **Scott 1976, Theorem 3.6.** `cond(⟨xs⟩)(G)` applied to `0` is the
+packed tuple, and `G` is in its degree. -/
+theorem theorem_3_6_finite (xs : List Pomega) :
+    packList xs ∈ Deg (singleGenerator xs) ∧
+      Gcomb ∈ Deg (singleGenerator xs) := by
+  constructor
+  · refine ⟨funOf (funOf Scomb Icomb_SK) (funOf Kcomb zeroC),
+      .app (.app .S (.app (.app .S .K) .K)) (.app .K .zero), ?_⟩
+    rw [Scomb_beta3, Icomb_SK_app, Kcomb_beta2, singleGenerator_app_zero]
+  · exact (Deg_isSubalgebra (singleGenerator xs)).1
 
 /-- **Scott 1976, (3.13)–(3.14).** Semigroup generators. -/
 def Rcomb : Pomega := graph (fun x => seq2 (ofNat 0) x)

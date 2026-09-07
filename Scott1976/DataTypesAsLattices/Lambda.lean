@@ -1498,6 +1498,58 @@ theorem eq_2_25 (u x : Pomega) :
   rw [dollarC_app]
   exact beta (seqFun_right_isScottContinuous u) x
 
+/-- Shift of a sequence: `(λt. u_{t+1})`. -/
+def seqShift (u : Pomega) : Pomega :=
+  graph (fun z => seqFun u (succSet z))
+
+theorem seqShift_isScottContinuous (u : Pomega) :
+    IsScottContinuous (fun z => seqFun u (succSet z)) :=
+  theorem_1_3 (seqFun_right_isScottContinuous u) succSet_isScottContinuous
+
+theorem seqShift_app (u z : Pomega) :
+    funOf (seqShift u) z = seqFun u (succSet z) :=
+  beta (seqShift_isScottContinuous u) z
+
+/-- **Scott 1976, (2.24).** `seq(u)(x) = x ⊃ u_0, seq(λt. u_{t+1})(x−1)`. -/
+theorem eq_2_24 (u x : Pomega) :
+    seqFun u x =
+      condSet x (funOf u (ofNat 0))
+        (seqFun (seqShift u) (predSet x)) := by
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨i, hi, hki⟩ := Set.mem_iUnion₂.mp hk
+    cases i with
+    | zero => exact Or.inl ⟨hki, hi⟩
+    | succ i =>
+      refine Or.inr ⟨?_, i, hi⟩
+      refine Set.mem_iUnion₂.mpr ⟨i, hi, ?_⟩
+      have : funOf (seqShift u) (ofNat i) = funOf u (ofNat (i + 1)) := by
+        rw [seqShift_app]
+        ext m
+        constructor
+        · intro hm
+          obtain ⟨j, hj, hmj⟩ := Set.mem_iUnion₂.mp hm
+          simp [succSet, ofNat] at hj; subst hj; exact hmj
+        · intro hm
+          exact Set.mem_iUnion₂.mpr ⟨i + 1, ⟨i, rfl, rfl⟩, hm⟩
+      simpa [this] using hki
+  · intro hk
+    rcases hk with ⟨hk0, h0x⟩ | ⟨hpos, t, ht⟩
+    · exact Set.mem_iUnion₂.mpr ⟨0, h0x, hk0⟩
+    · obtain ⟨i, hi, hki⟩ := Set.mem_iUnion₂.mp hpos
+      have : funOf (seqShift u) (ofNat i) = funOf u (ofNat (i + 1)) := by
+        rw [seqShift_app]
+        ext m
+        constructor
+        · intro hm
+          obtain ⟨j, hj, hmj⟩ := Set.mem_iUnion₂.mp hm
+          simp [succSet, ofNat] at hj; subst hj; exact hmj
+        · intro hm
+          exact Set.mem_iUnion₂.mpr ⟨i + 1, ⟨i, rfl, rfl⟩, hm⟩
+      refine Set.mem_iUnion₂.mpr ⟨i + 1, hi, ?_⟩
+      simpa [this] using hki
+
 /-- **Scott 1976, (2.26).** `λn∈ω. τ` is `$` applied to a graph. -/
 def lamOmega (τ : ℕ → Pomega) : Pomega :=
   funOf dollarC (graph (fun z => ⋃ n ∈ z, τ n))
@@ -1521,6 +1573,20 @@ theorem primRecHat_zero (a f : Pomega) : primRecHat a f (ofNat 0) = a := by
     simp [ofNat] at hn; subst hn; simpa [primRecVal] using hkn
   · intro hk
     exact Set.mem_iUnion₂.mpr ⟨0, rfl, hk⟩
+
+/-- **Scott 1976, (2.27).** The distributive extension agrees with the
+integer recursion on singletons. -/
+theorem primRecHat_ofNat (a f : Pomega) : ∀ n,
+    primRecHat a f (ofNat n) = primRecVal a f n
+  | 0 => primRecHat_zero a f
+  | n + 1 => by
+    ext k
+    constructor
+    · intro hk
+      obtain ⟨m, hm, hkm⟩ := Set.mem_iUnion₂.mp hk
+      simp [ofNat] at hm; subst hm; simpa [primRecVal] using hkm
+    · intro hk
+      exact Set.mem_iUnion₂.mpr ⟨n + 1, rfl, hk⟩
 
 theorem iterateBot_param_isScottContinuous
     {g : Pomega → Pomega → Pomega}

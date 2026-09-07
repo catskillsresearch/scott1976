@@ -189,12 +189,70 @@ theorem Vapply_prefixpoint (a x : Pomega) :
 
 /-- **Scott 1976, Theorem 5.6 / (5.15).** The universe applied to `x` is
 closed under `a` and contains `x`. -/
-theorem theorem_5_6 (a x : Pomega) :
+theorem Vapply_closed (a x : Pomega) :
     x ∪ funOf a (Vapply a x) ⊆ Vapply a x := by
   intro k hk
   rcases hk with hk | hk
   · exact eq_5_16 a x hk
   · exact (Vapply_prefixpoint a x).2 hk
+
+theorem union_right_isScottContinuous (x : Pomega) {f : Pomega → Pomega}
+    (hf : IsScottContinuous f) :
+    IsScottContinuous (fun y => x ∪ f y) := by
+  intro y
+  ext k
+  constructor
+  · intro hk
+    rcases hk with hk | hk
+    · exact mem_scottUnion.mpr ⟨0, by simp [e_zero], Or.inl hk⟩
+    · have : k ∈ scottUnion f y := by rwa [← hf y]
+      obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp this
+      exact mem_scottUnion.mpr ⟨n, hn, Or.inr hkn⟩
+  · intro hk
+    obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp hk
+    rcases hkn with hkn | hkn
+    · exact Or.inl hkn
+    · exact Or.inr (isScottContinuous_monotone hf hn hkn)
+
+/-- **Scott 1976, (5.14).** `V(a)(x) = Y(λy. x ∪ a(y))`. -/
+def Vstep (a x : Pomega) (y : Pomega) : Pomega := x ∪ funOf a y
+
+theorem Vstep_isScottContinuous (a x : Pomega) :
+    IsScottContinuous (Vstep a x) :=
+  union_right_isScottContinuous x (funOf_isScottContinuous a)
+
+def VapplyY (a x : Pomega) : Pomega := fix (Vstep a x)
+
+theorem Vapply_eq_Vstep (a x : Pomega) :
+    Vapply a x = Vstep a x (Vapply a x) := by
+  apply subset_antisymm
+  · intro k hk
+    have hset : x ∪ funOf a (Vapply a x) ∈
+        {y | x ⊆ y ∧ funOf a y ⊆ y} :=
+      ⟨Set.subset_union_left, fun m hm =>
+        Set.subset_union_right
+          (isScottContinuous_monotone (funOf_isScottContinuous a)
+            (Vapply_closed a x) hm)⟩
+    exact hk (x ∪ funOf a (Vapply a x)) hset
+  · exact Vapply_closed a x
+
+/-- **Scott 1976, (5.14) = (5.15).** -/
+theorem eq_5_14 (a x : Pomega) : VapplyY a x = Vapply a x := by
+  have hfix : Vstep a x (VapplyY a x) = VapplyY a x :=
+    (theorem_1_4 (Vstep_isScottContinuous a x)).1
+  apply subset_antisymm
+  · exact (theorem_1_4 (Vstep_isScottContinuous a x)).2 (Vapply a x)
+      (Vapply_eq_Vstep a x).symm
+  · intro k hk
+    have hx : x ⊆ VapplyY a x := by
+      intro m hm
+      have : m ∈ Vstep a x (VapplyY a x) := Or.inl hm
+      rwa [hfix] at this
+    have ha : funOf a (VapplyY a x) ⊆ VapplyY a x := by
+      intro m hm
+      have : m ∈ Vstep a x (VapplyY a x) := Or.inr hm
+      rwa [hfix] at this
+    exact hk (VapplyY a x) ⟨hx, ha⟩
 
 /-- **Scott 1976, Theorem 5.2 (The representation theorem), construction.**
 The closure that represents an algebraic lattice with isolated points `d n`
@@ -223,6 +281,106 @@ theorem theorem_5_4 {a b : Pomega} (_ha : IsClosure a) (_hb : IsClosure b) :
 theorem theorem_5_5 {a : Pomega} (ha : IsClosure a) (x : Pomega) :
     Vapply a x = funOf a x ∧ Vapply a (Vapply a x) = Vapply a x :=
   ⟨eq_5_18_eq ha x, eq_5_17 a x⟩
+
+theorem Icomb_isRetract : IsRetract Icomb := by
+  change Icomb = graph (fun x => funOf Icomb (funOf Icomb x))
+  apply graph_ext
+  intro x
+  simp [Icomb_app]
+
+theorem Icomb_isClosure : IsClosure Icomb :=
+  ⟨subset_rfl, Icomb_isRetract⟩
+
+theorem union_left_isScottContinuous (c : Pomega) :
+    IsScottContinuous (fun x => x ∪ c) := by
+  intro x
+  ext k
+  constructor
+  · intro hk
+    rcases hk with hk | hk
+    · have : k ∈ scottUnion (fun z => z) x := by
+        rw [← id_isScottContinuous x]; exact hk
+      obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp this
+      exact mem_scottUnion.mpr ⟨n, hn, Or.inl hkn⟩
+    · exact mem_scottUnion.mpr ⟨0, by simp [e_zero], Or.inr hk⟩
+  · intro hk
+    obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp hk
+    rcases hkn with hkn | hkn
+    · exact Or.inl (isScottContinuous_monotone id_isScottContinuous hn hkn)
+    · exact Or.inr hkn
+
+theorem Vapply_left_isScottContinuous (x : Pomega) :
+    IsScottContinuous (fun a => Vapply a x) := by
+  have : (fun a => Vapply a x) = (fun a => VapplyY a x) := by
+    funext a; exact (eq_5_14 a x).symm
+  rw [this]
+  exact fix_param_isScottContinuous
+    (fun y => union_right_isScottContinuous x (funOf_isScottContinuous_left y))
+    (fun a => Vstep_isScottContinuous a x)
+
+theorem Vapply_right_isScottContinuous (a : Pomega) :
+    IsScottContinuous (fun x => Vapply a x) := by
+  have : (fun x => Vapply a x) = (fun x => VapplyY a x) := by
+    funext x; exact (eq_5_14 a x).symm
+  rw [this]
+  exact fix_param_isScottContinuous
+    (fun y => union_left_isScottContinuous (funOf a y))
+    (fun x => Vstep_isScottContinuous a x)
+
+/-- **Scott 1976, (5.14).** The universe combinator. -/
+def Vcomb : Pomega :=
+  graph (fun a => graph (fun x => Vapply a x))
+
+theorem Vcomb_app (a : Pomega) :
+    funOf Vcomb a = graph (fun x => Vapply a x) :=
+  beta (graph_const_isScottContinuous (fun a x => Vapply a x)
+    (fun x => Vapply_left_isScottContinuous x)) a
+
+/-- **Scott 1976, (5.18).** `a = V(a)` iff `a` is a closure. -/
+theorem theorem_5_5_iff (a : Pomega) :
+    IsClosure a ↔ funOf Vcomb a = a := by
+  constructor
+  · intro ha
+    rw [Vcomb_app]
+    have : graph (fun x => Vapply a x) = graph (funOf a) :=
+      graph_ext fun x => eq_5_18_eq ha x
+    exact this.trans (retract_isGraph ha.2)
+  · intro h
+    have ha : a = graph (fun x => Vapply a x) :=
+      h.symm.trans (Vcomb_app a)
+    have happ : ∀ x, funOf a x = Vapply a x := by
+      intro x
+      conv_lhs => rw [ha]
+      exact beta (Vapply_right_isScottContinuous a) x
+    constructor
+    · intro p hp
+      rcases hp with ⟨n, m, rfl, hm⟩
+      have : pair n m ∈ graph (fun x => Vapply a x) :=
+        ⟨n, m, rfl, eq_5_16 a (e n) hm⟩
+      rwa [← ha] at this
+    · have : graph (fun x => Vapply a x) =
+          graph (fun x => funOf a (funOf a x)) :=
+        graph_ext fun x =>
+          calc Vapply a x
+              = Vapply a (Vapply a x) := (eq_5_17 a x).symm
+            _ = funOf a (Vapply a x) := (happ (Vapply a x)).symm
+            _ = funOf a (funOf a x) := by rw [← happ x]
+      exact ha.trans this
+
+/-- **Scott 1976, Theorem 5.6 (The limit theorem for algebraic lattices).**
+A continuous operator that sends closures to closures preserves the
+Kleene iterates of `I`, so its least closure fixed point exists. -/
+theorem theorem_5_6 {F : Pomega → Pomega}
+    (_hF : IsScottContinuous F)
+    (hcl : ∀ a, IsClosure a → IsClosure (F a)) :
+    (∀ n, IsClosure (iterateFrom F Icomb n)) ∧
+      Icomb ⊆ lfpAbove F Icomb := by
+  have hiter : ∀ n, IsClosure (iterateFrom F Icomb n) := by
+    intro n
+    induction n with
+    | zero => exact Icomb_isClosure
+    | succ n ih => exact hcl _ ih
+  exact ⟨hiter, Set.subset_iUnion (iterateFrom F Icomb) 0⟩
 
 /-- Isolated points of a closure are its values on finite sets, and
 conversely every `a(e n)` is a typed point. -/
