@@ -1093,7 +1093,7 @@ $$(5.12) \quad a \boxtimes b = \lambda u.\, [a([u]_0), b([u]_1)];$$
 
 while for sums using $a' = \lambda x.\, 0 \cup a(x - 1) + 1$ and similarly for $b'$ we write:
 
-$$(5.13) \quad a \boxplus b = \lambda u.\, ([u]_0 = 0 \supset [0, a'([u]_1)], [1, b'([u]_1)]).$$
+$$(5.13) \quad a \boxplus b = \lambda u.\, ([u]_0 \supset 0,\, 0) \cup ([u]_1 \supset 1,\, 1) \sqsupset [a'([u]_0), \bot],\, [\bot, b'([u]_1)].$$
 
 We can then establish with the aid of (5.8)–(5.10):
 

@@ -30,9 +30,8 @@ classification:
 status:
   scope: >-
     The library is a 1:1 onto translation of the numbered items in Scott
-    1976. The remaining source-level note is the paper-accurate fact that
-    (5.13) `⊞` is a retract, not a closure. Comparator names every numbered
-    theorem from §§1–7 and the core definitions those statements depend on.
+    1976. Comparator names every numbered theorem from §§1–7 and the core
+    definitions those statements depend on.
   sorry_count: 0
   sorry_in_definitions: 0
   axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -389,11 +388,7 @@ review:
     the Lean source, and no review or endorsement by Dana Scott. Every proof
     step is checked by the Lean kernel.
 
-known_gaps:
-  - >-
-    Theorem 5.4 has `⊠` as a closure typed on `V`; `⊞` is a retract via
-    (4.4), but `I ⊆ ⊞` fails on empty tags because (5.13) is strict.
-    Do not read `theorem_5_4_plus` as `IsClosure (boxPlus …)`.
+known_gaps: []
 
 limitations:
   - >-

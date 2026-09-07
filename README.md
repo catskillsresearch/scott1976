@@ -10,8 +10,7 @@ The library is a 1:1 onto translation of the numbered definitions, theorems,
 displayed equations, and Tables 1–3, including the continuous decoder
 $\mathcal{H}$ of (4.45). Palomar Challenge / Solution name every numbered
 theorem from §§1–7, and lock the paper's core definitions, so a Comparator
-match requires that whole development. The remaining paper-accurate note is
-that Theorem 5.4's sum `⊞` is a retract, not a closure.
+match requires that whole development.
 
 Standalone package — no dependency on the 1972/1980/1982 formalizations.
 Cross-presentation equivalence theorems live in [`scott_models`](../scott_models);

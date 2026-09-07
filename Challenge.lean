@@ -574,7 +574,7 @@ theorem theorem_5_4 {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
 
 /-- **Scott 1976, Theorem 5.4 (sum half).** -/
 theorem theorem_5_4_plus {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
-    IsRetract (boxPlus a b) := by
+    IsClosure (boxPlus a b) := by
   sorry
 
 /-- **Scott 1976, Theorem 5.5.** `V` is a closure, and its fixed points

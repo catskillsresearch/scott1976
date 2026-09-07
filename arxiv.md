@@ -81,10 +81,7 @@ continuous preimages and equalizers, and restricted equivalences make the
 combinators $I,K,S$ and the iterators functional.
 
 The formalization follows this mathematical decomposition rather than treating
-the forty-odd numbered theorems as unrelated endpoints. It also records where
-a proof route is paper-accurate but weaker than a tempting modern reading:
-most importantly, the sum $\boxplus$ of Theorem 5.4 is the strict retract of
-(4.4)/(5.13), not a closure.
+the forty-odd numbered theorems as unrelated endpoints.
 
 ## 2. Scope and layout
 
@@ -110,12 +107,8 @@ facade. `Solution.lean` imports `Scott1976/*`.
 | `Challenge` / `Solution` | Palomar statement of record and sorry-free realization |
 
 The published scope is the numbered items of §§1–7 together with Tables 1–3.
-Two source-facing notes remain visible in the inventory and are not missing
-proofs:
-
-- Theorem 4.5's informal coproduct non-uniqueness remark is omitted;
-- Theorem 5.4's sum $\boxplus$ is a retract, not a closure, because (5.13) is
-  the strict conditional of (4.4).
+One source-facing note remains visible in the inventory and is not a missing
+proof: Theorem 4.5's informal coproduct non-uniqueness remark is omitted.
 
 The project is standalone. It imports none of the sibling formalizations of
 Scott's later domain-theory papers. Cross-presentation equivalences live in
@@ -261,7 +254,7 @@ Status words:
   modern strengthening; the Lean statement is paper-accurate.
 - `missing` — no faithful Lean declaration yet.
 
-Nothing is `missing`. The only `partial` item is Theorem 5.4's sum.
+Nothing is `missing` or `partial`.
 
 The Palomar Comparator currently selects every numbered theorem:
 
@@ -362,7 +355,7 @@ The Palomar Comparator currently selects every numbered theorem:
 | Theorem 5.1 | `theorem_5_1`, `theorem_5_1_isolated` | faithful — closure fixed points form an algebraic lattice; compacts are the `a(e n)` |
 | Theorem 5.2 | `theorem_5_2` | faithful — every countable algebraic lattice is order-isomorphic to the range of a closure |
 | Theorem 5.3 | `theorem_5_3`, `theorem_5_3_closure`, `Icomb_subset_arrowR` | faithful |
-| Theorem 5.4 | `theorem_5_4`, `theorem_5_4_plus`, `eq_5_12`, `eq_5_22`, `eq_5_23` | partial — `⊠` of closures is a closure and typed on `V`; `⊞` is a retract via (4.4); `I ⊆ ⊞` fails on empty tags because (5.13) is strict |
+| Theorem 5.4 | `theorem_5_4`, `theorem_5_4_plus`, `eq_5_12`, `eq_5_22`, `eq_5_23` | faithful — `⊠` and `⊞` of closures are closures and typed on `V` |
 | Theorem 5.5 | `theorem_5_5`, `theorem_5_5_iff`, `theorem_5_5_universe`, `Vcomb`, `eq_5_14`, `eq_5_19`, `eq_5_21` | faithful — `V` is a closure; `V(a)=a` iff `a` is a closure; `(5.14)=(5.15)` |
 | Theorem 5.6 | `theorem_5_6`, `theorem_5_6_iterates`, `eq_5_24` | faithful — `Y(f):V` whenever `f:V∘→V`; `∘→` typed on `V` |
 | (5.25) `d = I ∪ (d∘→d)` | `dEq`, `eq_5_25` | faithful — `Y(λa. I ∪ (a∘→a))`; `d = d∘→d` if `I ⊆ d∘→d` |
@@ -561,18 +554,19 @@ Computability of $\mathcal{H}$ is then Theorem 2.6 plus continuity of `HF`.
 A closure is a retract containing $I$. Theorem 5.1: the fixed points form an
 algebraic lattice whose compact elements are the $a(e_n)$. Theorem 5.2
 represents every countable algebraic lattice as the range of a closure.
-Theorem 5.3 places $\circ\to$ among closures. Theorem 5.4 splits: the product
-$\boxtimes$ of closures is a closure typed on $V$; the sum $\boxplus$ is the
-strict retract of (5.13), so $I\subseteq\boxplus$ fails on empty tags.
+Theorem 5.3 places $\circ\to$ among closures. Theorem 5.4: the product
+$\boxtimes$ and the sum $\boxplus$ of closures are closures, and both are
+typed on $V$. The displayed (5.13) is the occupancy-tag formula
+$([u]_0\supset 0,0)\cup([u]_1\supset 1,1)\sqsupset[a'([u]_0),\bot],[\bot,b'([u]_1)]$,
+not the earlier OCR misread that dispatched on $[u]_0$ alone.
 
 ```lean
 theorem theorem_5_4_plus {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
-    IsRetract (boxPlus a b)
+    IsClosure (boxPlus a b)
 ```
 
-Do not read this as `IsClosure (boxPlus a b)`. Theorem 5.5: $V$ is a closure,
-and $V(a)=a$ if and only if $a$ is a closure. Theorem 5.6: $Y$ and $\circ\to$
-are typed on $V$.
+Theorem 5.5: $V$ is a closure, and $V(a)=a$ if and only if $a$ is a
+closure. Theorem 5.6: $Y$ and $\circ\to$ are typed on $V`.
 
 ### 6.7 Theorems 6.1–6.7 — classification
 
@@ -617,9 +611,6 @@ Recorded divergences and limitations:
 - Theorem 4.5 packages the four numbered sum identities. Scott's informal
   remark that the coproduct mediator is not unique is not a numbered theorem
   and is omitted.
-- Theorem 5.4's $\boxplus$ is formalized as the retract of (5.13)/(4.4). The
-  inclusion $I\subseteq\boxplus$ fails on empty tags; this is paper-accurate,
-  not a missing proof.
 - Unary `theorem_2_6` is type-locked by Palomar. Finite-arity computability
   is the separate `theorem_2_6_fin`.
 - No external mathematical review has been performed. Every proof is checked

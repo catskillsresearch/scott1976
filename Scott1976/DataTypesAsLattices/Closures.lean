@@ -84,13 +84,22 @@ def boxTensor (a b : Pomega) : Pomega :=
 def boxShift (a : Pomega) : Pomega :=
   graph (fun x => ofNat 0 ∪ succSet (funOf a (predSet x)))
 
-/-- **Scott 1976, (5.13).** Sum of closures, using the doubly strict
-conditional so mixed tags map to `⊤`. -/
+/-- **Scott 1976, (5.13).** The occupancy tag `[u]ᵢ ⊃ i, i`: the constant
+`i` whenever the component is nonempty, and `⊥` when it is empty. -/
+def boxTag (i : ℕ) (x : Pomega) : Pomega :=
+  condSet x (ofNat i) (ofNat i)
+
+/-- **Scott 1976, (5.13).** Sum of closures:
+`a ⊞ b = λu.([u]₀ ⊃ 0, 0) ∪ ([u]₁ ⊃ 1, 1) ⊒ [a'([u]₀), ⊥], [⊥, b'([u]₁)]`.
+The test is the union of the two occupancy tags, so an inhabited left
+component dispatches to the left branch, an inhabited right component to
+the right branch, both to `⊤` (via the doubly strict (4.4)) and neither
+to `⊥`. -/
 def boxPlus (a b : Pomega) : Pomega :=
   graph (fun u =>
-    dcondSet (squareFst u)
-      (squarePair (ofNat 0) (funOf (boxShift a) (squareSnd u)))
-      (squarePair (ofNat 1) (funOf (boxShift b) (squareSnd u))))
+    dcondSet (boxTag 0 (squareFst u) ∪ boxTag 1 (squareSnd u))
+      (squarePair (funOf (boxShift a) (squareFst u)) botElem)
+      (squarePair botElem (funOf (boxShift b) (squareSnd u))))
 
 /-- **Scott 1976, (5.14)–(5.15).** The universe combinator
 `V(a)(x) = ⋂ { y | x ⊆ y ∧ a(y) ⊆ y }`. -/
@@ -492,9 +501,10 @@ theorem eq_5_12 (a b : Pomega) :
 /-- **Scott 1976, (5.13).** Unfolding of the boxed sum. -/
 theorem eq_5_13 (a b : Pomega) :
     boxPlus a b = graph (fun u =>
-      dcondSet (squareFst u)
-        (squarePair (ofNat 0) (funOf (boxShift a) (squareSnd u)))
-        (squarePair (ofNat 1) (funOf (boxShift b) (squareSnd u)))) :=
+      dcondSet (condSet (squareFst u) (ofNat 0) (ofNat 0) ∪
+          condSet (squareSnd u) (ofNat 1) (ofNat 1))
+        (squarePair (funOf (boxShift a) (squareFst u)) botElem)
+        (squarePair botElem (funOf (boxShift b) (squareSnd u)))) :=
   rfl
 
 /-- Graph expansiveness `I ⊆ λx. f(x)` is value-expansiveness on finite sets. -/
@@ -732,6 +742,30 @@ theorem squareSnd_top : squareSnd topElem = topElem := by
   · intro; exact Set.mem_univ m
   · intro; exact Set.mem_univ (2 * m + 1)
 
+theorem squareSnd_bot : squareSnd botElem = botElem := by
+  ext m
+  simp [squareSnd, botElem]
+
+theorem squarePair_bot_bot : squarePair botElem botElem = (botElem : Pomega) := by
+  ext k
+  simp [squarePair, botElem]
+
+theorem topElem_ne_botElem : (topElem : Pomega) ≠ botElem := by
+  intro h
+  have h0 : (0 : ℕ) ∈ (botElem : Pomega) := h ▸ Set.mem_univ 0
+  simp [botElem] at h0
+
+theorem union_botElem (x : Pomega) : x ∪ botElem = x := Set.union_empty x
+
+theorem botElem_union (x : Pomega) : botElem ∪ x = x := Set.empty_union x
+
+theorem exists_mem_of_ne_bot {x : Pomega} (h : x ≠ botElem) : ∃ m, m ∈ x := by
+  by_contra hc
+  refine h ?_
+  ext n
+  simp only [mem_botElem, iff_false]
+  exact fun hn => hc ⟨n, hn⟩
+
 theorem boxShift_map_isScottContinuous (a : Pomega) :
     IsScottContinuous (fun x => ofNat 0 ∪ succSet (funOf a (predSet x))) :=
   theorem_1_3 (union_const_left_isScottContinuous (ofNat 0))
@@ -755,51 +789,135 @@ theorem boxShift_isRetract {a : Pomega} (ha : IsRetract a) :
     simp [botElem]
   rw [hpred, retract_app ha]
 
+theorem zero_mem_boxShift_app (a x : Pomega) : (0 : ℕ) ∈ funOf (boxShift a) x := by
+  rw [boxShift_app]
+  exact Or.inl (by simp [ofNat])
+
+theorem boxShift_app_ne_bot (a x : Pomega) : funOf (boxShift a) x ≠ botElem := by
+  intro h
+  have h0 := zero_mem_boxShift_app a x
+  rw [h] at h0
+  simp [botElem] at h0
+
+theorem boxTag_isScottContinuous (i : ℕ) : IsScottContinuous (boxTag i) := by
+  have hfun : boxTag i = fun z => condSet z (ofNat i) (ofNat i) := rfl
+  rw [hfun]
+  exact condSet_isScottContinuous_left (ofNat i) (ofNat i)
+
+theorem boxTag_bot (i : ℕ) : boxTag i botElem = botElem := by
+  ext n
+  simp [boxTag, condSet, botElem]
+
+theorem boxTag_of_mem {x : Pomega} {m : ℕ} (hm : m ∈ x) (i : ℕ) :
+    boxTag i x = ofNat i := by
+  ext n
+  simp only [boxTag, condSet, Set.mem_union, Set.mem_ofPred_eq]
+  constructor
+  · rintro (⟨hn, _⟩ | ⟨hn, _⟩) <;> exact hn
+  · intro hn
+    cases m with
+    | zero => exact Or.inl ⟨hn, hm⟩
+    | succ k => exact Or.inr ⟨hn, k, hm⟩
+
+theorem boxPlus_test_isScottContinuous :
+    IsScottContinuous (fun u => boxTag 0 (squareFst u) ∪ boxTag 1 (squareSnd u)) :=
+  theorem_1_3_tuple
+    (fun y => union_left_isScottContinuous y)
+    (fun x => union_const_left_isScottContinuous x)
+    (theorem_1_3 (boxTag_isScottContinuous 0) squareFst_isScottContinuous)
+    (theorem_1_3 (boxTag_isScottContinuous 1) squareSnd_isScottContinuous)
+
 theorem boxPlus_map_isScottContinuous (a b : Pomega) :
     IsScottContinuous (fun u =>
-      dcondSet (squareFst u)
-        (squarePair (ofNat 0) (funOf (boxShift a) (squareSnd u)))
-        (squarePair (ofNat 1) (funOf (boxShift b) (squareSnd u)))) :=
+      dcondSet (boxTag 0 (squareFst u) ∪ boxTag 1 (squareSnd u))
+        (squarePair (funOf (boxShift a) (squareFst u)) botElem)
+        (squarePair botElem (funOf (boxShift b) (squareSnd u)))) :=
   theorem_1_3_nary
     (fun y z => dcondSet_isScottContinuous_left y z)
     (fun x z => dcondSet_isScottContinuous_mid x z)
     (fun x y => dcondSet_isScottContinuous_right x y)
-    squareFst_isScottContinuous
-    (theorem_1_3 (squarePair_isScottContinuous_right (ofNat 0))
-      (theorem_1_3 (funOf_isScottContinuous (boxShift a)) squareSnd_isScottContinuous))
-    (theorem_1_3 (squarePair_isScottContinuous_right (ofNat 1))
+    boxPlus_test_isScottContinuous
+    (theorem_1_3 (f := fun x => squarePair x botElem)
+      (g := fun u => funOf (boxShift a) (squareFst u))
+      (squarePair_isScottContinuous_left botElem)
+      (theorem_1_3 (funOf_isScottContinuous (boxShift a)) squareFst_isScottContinuous))
+    (theorem_1_3 (f := fun y => squarePair botElem y)
+      (g := fun u => funOf (boxShift b) (squareSnd u))
+      (squarePair_isScottContinuous_right botElem)
       (theorem_1_3 (funOf_isScottContinuous (boxShift b)) squareSnd_isScottContinuous))
 
 theorem boxPlus_app (a b u : Pomega) :
     funOf (boxPlus a b) u =
-      dcondSet (squareFst u)
-        (squarePair (ofNat 0) (funOf (boxShift a) (squareSnd u)))
-        (squarePair (ofNat 1) (funOf (boxShift b) (squareSnd u))) :=
+      dcondSet (boxTag 0 (squareFst u) ∪ boxTag 1 (squareSnd u))
+        (squarePair (funOf (boxShift a) (squareFst u)) botElem)
+        (squarePair botElem (funOf (boxShift b) (squareSnd u))) :=
   beta (boxPlus_map_isScottContinuous a b) u
 
+/-- Occupancy test of (5.13): only the left component is inhabited. -/
+theorem boxPlus_app_left {a b u : Pomega} (hx : squareFst u ≠ botElem)
+    (hy : squareSnd u = botElem) :
+    funOf (boxPlus a b) u =
+      squarePair (funOf (boxShift a) (squareFst u)) botElem := by
+  obtain ⟨m, hm⟩ := exists_mem_of_ne_bot hx
+  rw [boxPlus_app, boxTag_of_mem hm, hy, boxTag_bot, union_botElem,
+    dcondSet_ofNat_zero]
+
+/-- Occupancy test of (5.13): only the right component is inhabited. -/
+theorem boxPlus_app_right {a b u : Pomega} (hx : squareFst u = botElem)
+    (hy : squareSnd u ≠ botElem) :
+    funOf (boxPlus a b) u =
+      squarePair botElem (funOf (boxShift b) (squareSnd u)) := by
+  obtain ⟨m, hm⟩ := exists_mem_of_ne_bot hy
+  rw [boxPlus_app, boxTag_of_mem hm, hx, boxTag_bot, botElem_union,
+    dcondSet_ofNat_one]
+
+/-- Occupancy test of (5.13): both components inhabited, so (4.4) gives `⊤`. -/
+theorem boxPlus_app_mixed {a b u : Pomega} (hx : squareFst u ≠ botElem)
+    (hy : squareSnd u ≠ botElem) :
+    funOf (boxPlus a b) u = topElem := by
+  obtain ⟨m, hm⟩ := exists_mem_of_ne_bot hx
+  obtain ⟨k, hk⟩ := exists_mem_of_ne_bot hy
+  rw [boxPlus_app, boxTag_of_mem hm, boxTag_of_mem hk]
+  exact dcondSet_of_mixed (by simp [ofNat]) ⟨0, by simp [ofNat]⟩
+
+/-- Occupancy test of (5.13): neither component inhabited, so the value is `⊥`. -/
+theorem boxPlus_app_empty {a b u : Pomega} (hx : squareFst u = botElem)
+    (hy : squareSnd u = botElem) :
+    funOf (boxPlus a b) u = botElem := by
+  rw [boxPlus_app, hx, hy, boxTag_bot, boxTag_bot, Set.union_self, dcondSet_bot]
+
 theorem boxPlus_app_bot (a b : Pomega) :
-    funOf (boxPlus a b) botElem = botElem := by
-  rw [boxPlus_app, squareFst_bot, dcondSet_bot]
+    funOf (boxPlus a b) botElem = botElem :=
+  boxPlus_app_empty squareFst_bot squareSnd_bot
 
 theorem boxPlus_app_top (a b : Pomega) :
-    funOf (boxPlus a b) topElem = topElem := by
-  rw [boxPlus_app, squareFst_top, dcondSet_top]
+    funOf (boxPlus a b) topElem = topElem :=
+  boxPlus_app_mixed (by rw [squareFst_top]; exact topElem_ne_botElem)
+    (by rw [squareSnd_top]; exact topElem_ne_botElem)
 
-/-- **Scott 1976, Theorem 5.4 (sum half), retract.** `⊞` of retracts is a retract. -/
+theorem boxPlus_app_app {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b)
+    (u : Pomega) :
+    funOf (boxPlus a b) (funOf (boxPlus a b) u) = funOf (boxPlus a b) u := by
+  by_cases hx : squareFst u = botElem <;> by_cases hy : squareSnd u = botElem
+  · rw [boxPlus_app_empty hx hy, boxPlus_app_bot]
+  · rw [boxPlus_app_right hx hy,
+      boxPlus_app_right (u := squarePair botElem (funOf (boxShift b) (squareSnd u)))
+        (eq_5_9 _ _) (by rw [eq_5_10]; exact boxShift_app_ne_bot b _),
+      eq_5_10, retract_app (boxShift_isRetract hb)]
+  · rw [boxPlus_app_left hx hy,
+      boxPlus_app_left (u := squarePair (funOf (boxShift a) (squareFst u)) botElem)
+        (by rw [eq_5_9]; exact boxShift_app_ne_bot a _) (eq_5_10 _ _),
+      eq_5_9, retract_app (boxShift_isRetract ha)]
+  · rw [boxPlus_app_mixed hx hy, boxPlus_app_top]
+
+/-- **Scott 1976, Theorem 5.4 (sum half), idempotence.** -/
 theorem boxPlus_isRetract {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
     IsRetract (boxPlus a b) := by
   change boxPlus a b =
     graph (fun u => funOf (boxPlus a b) (funOf (boxPlus a b) u))
   apply graph_ext
   intro u
-  rw [boxPlus_app a b u]
-  rcases dcondSet_cases (squareFst u) with h | h | h | h
-  · rw [dcondSet_of_zero_not_pos h.1 h.2, boxPlus_app, eq_5_9, eq_5_10,
-      dcondSet_ofNat_zero, retract_app (boxShift_isRetract ha)]
-  · rw [dcondSet_of_pos_not_zero h.1 h.2, boxPlus_app, eq_5_9, eq_5_10,
-      dcondSet_ofNat_one, retract_app (boxShift_isRetract hb)]
-  · rw [dcondSet_of_mixed h.1 h.2, boxPlus_app_top]
-  · rw [dcondSet_of_empty h.1 h.2, boxPlus_app_bot]
+  rw [boxPlus_app_app ha hb u, boxPlus_app]
 
 theorem boxShift_expansive {a : Pomega} (ha : IsClosure a) (x : Pomega) :
     x ⊆ funOf (boxShift a) x := by
@@ -824,60 +942,42 @@ theorem boxShift_isClosure {a : Pomega} (ha : IsClosure a) :
     IsClosure (boxShift a) :=
   ⟨Icomb_subset_boxShift ha, boxShift_isRetract ha.2⟩
 
-/-- The singleton `{1}` is the smallest nonempty finite set whose
-square-tag `[u]₀` is empty (it contains only the odd number `1`). -/
-theorem e_two : e 2 = ofNat 1 := by
-  simpa [ofNat] using e_pow2 1
+/-- **Scott 1976, Theorem 5.4 (sum half), expansiveness.** Each of the four
+occupancy cases of (5.13) is expansive: on a one-sided `u` the shift `a'`
+is expansive by `boxShift_expansive` and (5.8) rebuilds `u`, while mixed
+`u` goes to `⊤` and empty `u` is `⊥`. -/
+theorem boxPlus_expansive {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b)
+    (u : Pomega) : u ⊆ funOf (boxPlus a b) u := by
+  have h8 : squarePair (squareFst u) (squareSnd u) = u := eq_5_8 u
+  by_cases hx : squareFst u = botElem <;> by_cases hy : squareSnd u = botElem
+  · rw [hx, hy, squarePair_bot_bot] at h8
+    rw [boxPlus_app_empty hx hy, ← h8]
+  · rw [boxPlus_app_right hx hy]
+    have hsub : squarePair (squareFst u) (squareSnd u) ⊆
+        squarePair botElem (funOf (boxShift b) (squareSnd u)) := by
+      rw [hx]
+      exact squarePair_mono subset_rfl (boxShift_expansive hb (squareSnd u))
+    rwa [h8] at hsub
+  · rw [boxPlus_app_left hx hy]
+    have hsub : squarePair (squareFst u) (squareSnd u) ⊆
+        squarePair (funOf (boxShift a) (squareFst u)) botElem := by
+      rw [hy]
+      exact squarePair_mono (boxShift_expansive ha (squareFst u)) subset_rfl
+    rwa [h8] at hsub
+  · rw [boxPlus_app_mixed hx hy]
+    exact fun k _ => Set.mem_univ k
 
-theorem squareFst_ofNat_one : squareFst (ofNat 1) = botElem := by
-  ext n
-  simp [squareFst, ofNat, botElem]
+theorem Icomb_subset_boxPlus {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
+    Icomb ⊆ boxPlus a b :=
+  Icomb_subset_graph.mpr fun n => by
+    rw [← boxPlus_app]
+    exact boxPlus_expansive ha hb (e n)
 
-theorem boxPlus_app_ofNat_one (a b : Pomega) :
-    funOf (boxPlus a b) (ofNat 1) = botElem := by
-  rw [boxPlus_app, squareFst_ofNat_one, dcondSet_bot]
-
-/-- **Scott 1976, (5.13) empty-tag obstruction.** Literal strict dispatch
-is not value-expansive: `{1} ⊈ (a ⊞ b)({1}) = ⊥`. This is why
-`I ⊆ a ⊞ b` cannot hold on all of `Pω`. -/
-theorem eq_5_13_empty_tag_obstruction (a b : Pomega) :
-    ¬ ofNat 1 ⊆ funOf (boxPlus a b) (ofNat 1) := by
-  rw [boxPlus_app_ofNat_one]
-  intro h
-  have : (1 : ℕ) ∈ (botElem : Pomega) := h (by simp [ofNat])
-  simp [botElem] at this
-
-/-- **Scott 1976, Theorem 5.4 (sum half), expansiveness failure.**
-The paper operation (5.13) is not expansive: `I ⊈ a ⊞ b`. The graph
-witness is `pair 2 1`, since `e 2 = {1}` has empty even-tag. -/
-theorem boxPlus_not_expansive (a b : Pomega) :
-    ¬ Icomb ⊆ boxPlus a b := by
-  intro h
-  have hexp : e 2 ⊆
-      dcondSet (squareFst (e 2))
-        (squarePair (ofNat 0) (funOf (boxShift a) (squareSnd (e 2))))
-        (squarePair (ofNat 1) (funOf (boxShift b) (squareSnd (e 2)))) :=
-    (Icomb_subset_graph.mp h) 2
-  have : (1 : ℕ) ∈ (botElem : Pomega) := by
-    rw [e_two, squareFst_ofNat_one, dcondSet_bot] at hexp
-    exact hexp (by simp [ofNat])
-  simp [botElem] at this
-
-/-- **Scott 1976, Theorem 5.4 (sum half), closure failure.** Idempotence
-holds (`theorem_5_4_plus`), but `IsClosure` fails because expansiveness
-`I ⊆ a ⊞ b` does not. -/
-theorem boxPlus_not_closure (a b : Pomega) :
-    ¬ IsClosure (boxPlus a b) :=
-  fun h => boxPlus_not_expansive a b h.1
-
-/-- **Scott 1976, Theorem 5.4 (sum half).** The boxed sum of two closures
-is a retract; mixed tags collapse to `⊤` via (4.4). The `IsClosure`
-conjunct of Theorem 5.4 fails: expansiveness `I ⊆ ⊞` is refuted by
-`eq_5_13_empty_tag_obstruction` / `boxPlus_not_expansive`. The
-closure-completed sum is `boxPlusClosure`. -/
+/-- **Scott 1976, Theorem 5.4 (sum half).** If `a` and `b` are closure
+operations then so is `a ⊞ b`. -/
 theorem theorem_5_4_plus {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
-    IsRetract (boxPlus a b) :=
-  boxPlus_isRetract ha.2 hb.2
+    IsClosure (boxPlus a b) :=
+  ⟨Icomb_subset_boxPlus ha hb, boxPlus_isRetract ha.2 hb.2⟩
 
 theorem boxPlus_typed_bot (a b : Pomega) :
     typed botElem (boxPlus a b) :=
@@ -890,39 +990,39 @@ theorem boxPlus_typed_top (a b : Pomega) :
 /-- **Scott 1976, Theorem 5.4 / analogue of 4.5.** Left injection into the
 paper sum, on the shifted summand. -/
 theorem boxPlus_typed_inl {a b x : Pomega} (hx : typed x (boxShift a)) :
-    typed (squarePair (ofNat 0) x) (boxPlus a b) := by
-  rw [typed, boxPlus_app, eq_5_9, eq_5_10, dcondSet_ofNat_zero, ← hx]
+    typed (squarePair x botElem) (boxPlus a b) := by
+  have hx0 : x ≠ botElem := by
+    rw [hx]; exact boxShift_app_ne_bot a x
+  rw [typed, boxPlus_app_left (by rw [eq_5_9]; exact hx0) (eq_5_10 _ _), eq_5_9,
+    ← hx]
 
 /-- **Scott 1976, Theorem 5.4 / analogue of 4.5.** Right injection into the
 paper sum, on the shifted summand. -/
 theorem boxPlus_typed_inr {a b y : Pomega} (hy : typed y (boxShift b)) :
-    typed (squarePair (ofNat 1) y) (boxPlus a b) := by
-  rw [typed, boxPlus_app, eq_5_9, eq_5_10, dcondSet_ofNat_one, ← hy]
+    typed (squarePair botElem y) (boxPlus a b) := by
+  have hy0 : y ≠ botElem := by
+    rw [hy]; exact boxShift_app_ne_bot b y
+  rw [typed, boxPlus_app_right (eq_5_9 _ _) (by rw [eq_5_10]; exact hy0), eq_5_10,
+    ← hy]
 
 /-- **Scott 1976, Theorem 5.4 / analogue of 4.5.** Range of the paper sum. -/
 theorem boxPlus_typed_iff {a b u : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
     typed u (boxPlus a b) ↔
       u = botElem ∨ u = topElem ∨
-        (∃ x, u = squarePair (ofNat 0) x ∧ typed x (boxShift a)) ∨
-          (∃ y, u = squarePair (ofNat 1) y ∧ typed y (boxShift b)) := by
+        (∃ x, u = squarePair x botElem ∧ typed x (boxShift a)) ∨
+          (∃ y, u = squarePair botElem y ∧ typed y (boxShift b)) := by
   constructor
   · intro hu
-    have hu' : u =
-        dcondSet (squareFst u)
-          (squarePair (ofNat 0) (funOf (boxShift a) (squareSnd u)))
-          (squarePair (ofNat 1) (funOf (boxShift b) (squareSnd u))) := by
-      simpa [typed, boxPlus_app] using hu
-    rcases dcondSet_cases (squareFst u) with h | h | h | h
-    · refine Or.inr (Or.inr (Or.inl ⟨funOf (boxShift a) (squareSnd u), ?_, ?_⟩))
-      · exact hu'.trans (dcondSet_of_zero_not_pos h.1 h.2)
-      · exact (retract_app (boxShift_isRetract ha) (squareSnd u)).symm
+    have hu' : u = funOf (boxPlus a b) u := hu
+    by_cases hx : squareFst u = botElem <;> by_cases hy : squareSnd u = botElem
+    · exact Or.inl (hu'.trans (boxPlus_app_empty hx hy))
     · refine Or.inr (Or.inr (Or.inr ⟨funOf (boxShift b) (squareSnd u), ?_, ?_⟩))
-      · exact hu'.trans (dcondSet_of_pos_not_zero h.1 h.2)
+      · exact hu'.trans (boxPlus_app_right hx hy)
       · exact (retract_app (boxShift_isRetract hb) (squareSnd u)).symm
-    · refine Or.inr (Or.inl ?_)
-      exact hu'.trans (dcondSet_of_mixed h.1 h.2)
-    · refine Or.inl ?_
-      exact hu'.trans (dcondSet_of_empty h.1 h.2)
+    · refine Or.inr (Or.inr (Or.inl ⟨funOf (boxShift a) (squareFst u), ?_, ?_⟩))
+      · exact hu'.trans (boxPlus_app_left hx hy)
+      · exact (retract_app (boxShift_isRetract ha) (squareFst u)).symm
+    · exact Or.inr (Or.inl (hu'.trans (boxPlus_app_mixed hx hy)))
   · intro h
     rcases h with hu | hu | ⟨x, hx, hxt⟩ | ⟨y, hy, hyt⟩
     · rw [hu]; exact boxPlus_typed_bot a b
@@ -1041,25 +1141,6 @@ theorem theorem_5_5_universe :
   ⟨⟨Icomb_subset_Vcomb, Vcomb_isRetract⟩,
     fun a => (theorem_5_5_iff a).trans ⟨Eq.symm, Eq.symm⟩⟩
 
-/-- Closure-completed boxed sum: the least closure containing the paper
-operation (5.13). This is the correct packaging of Theorem 5.4's sum
-half, since literal `boxPlus` is not expansive. -/
-def boxPlusClosure (a b : Pomega) : Pomega :=
-  funOf Vcomb (boxPlus a b)
-
-theorem boxPlusClosure_eq (a b : Pomega) :
-    boxPlusClosure a b = graph (fun x => Vapply (boxPlus a b) x) :=
-  Vcomb_app (boxPlus a b)
-
-theorem boxPlusClosure_app (a b x : Pomega) :
-    funOf (boxPlusClosure a b) x = Vapply (boxPlus a b) x := by
-  rw [boxPlusClosure_eq]
-  exact beta (Vapply_right_isScottContinuous (boxPlus a b)) x
-
-theorem boxPlus_subset_boxPlusClosure (a b : Pomega) :
-    boxPlus a b ⊆ boxPlusClosure a b :=
-  eq_5_21 (boxPlus a b)
-
 /-- `V` does not change already-closed points of a retract. -/
 theorem typed_of_retract_Vcomb {a x : Pomega} (hx : typed x a) :
     typed x (funOf Vcomb a) := by
@@ -1072,51 +1153,6 @@ theorem typed_of_retract_Vcomb {a x : Pomega} (hx : typed x a) :
   · intro k hk
     exact hk x ⟨subset_rfl, by rw [← hx]⟩
 
-theorem boxPlusClosure_isClosure (a b : Pomega) :
-    IsClosure (boxPlusClosure a b) := by
-  rw [boxPlusClosure_eq]
-  exact Vapply_graph_isClosure (boxPlus a b)
-
-theorem boxPlusClosure_typed (a b : Pomega) :
-    typed (boxPlusClosure a b) Vcomb :=
-  (theorem_5_5_universe.2 (boxPlusClosure a b)).mp (boxPlusClosure_isClosure a b)
-
-theorem boxPlus_typed_imp_boxPlusClosure {a b x : Pomega}
-    (hx : typed x (boxPlus a b)) :
-    typed x (boxPlusClosure a b) :=
-  typed_of_retract_Vcomb hx
-
-theorem boxPlusClosure_typed_bot (a b : Pomega) :
-    typed botElem (boxPlusClosure a b) :=
-  boxPlus_typed_imp_boxPlusClosure (boxPlus_typed_bot a b)
-
-theorem boxPlusClosure_typed_top (a b : Pomega) :
-    typed topElem (boxPlusClosure a b) :=
-  boxPlus_typed_imp_boxPlusClosure (boxPlus_typed_top a b)
-
-theorem boxPlusClosure_typed_inl {a b x : Pomega}
-    (hx : typed x (boxShift a)) :
-    typed (squarePair (ofNat 0) x) (boxPlusClosure a b) :=
-  boxPlus_typed_imp_boxPlusClosure (boxPlus_typed_inl hx)
-
-theorem boxPlusClosure_typed_inr {a b y : Pomega}
-    (hy : typed y (boxShift b)) :
-    typed (squarePair (ofNat 1) y) (boxPlusClosure a b) :=
-  boxPlus_typed_imp_boxPlusClosure (boxPlus_typed_inr hy)
-
-/-- **Scott 1976, (5.23) corrected.** The `V`-completed sum of closures
-is a closure (hence typed on `V`). The paper's literal (5.23) for
-`boxPlus` itself is false; see `boxPlus_not_closure`. -/
-theorem boxPlusClosure_of_closures {a b : Pomega}
-    (_ha : IsClosure a) (_hb : IsClosure b) :
-    IsClosure (boxPlusClosure a b) :=
-  boxPlusClosure_isClosure a b
-
-/-- **Scott 1976, (5.23) corrected, typed form.** -/
-theorem boxPlusClosure_typed_V {a b : Pomega}
-    (_ha : typed a Vcomb) (_hb : typed b Vcomb) :
-    typed (boxPlusClosure a b) Vcomb :=
-  boxPlusClosure_typed a b
 
 /-- Kleene iterates of `I` under a closure-preserving operator stay closures. -/
 theorem theorem_5_6_iterates {F : Pomega → Pomega}
@@ -1215,14 +1251,13 @@ theorem eq_5_22 {a b : Pomega} (ha : typed a Vcomb) (hb : typed b Vcomb) :
     (theorem_5_4 ((theorem_5_5_universe.2 a).mpr ha)
       ((theorem_5_5_universe.2 b).mpr hb))
 
-/-- **Scott 1976, (5.23).** Boxed sum of retracts coming from `V` is a
-retract. The paper's claim that this is already a closure is false for
-literal (5.13); see `boxPlus_not_closure` and `boxPlusClosure_typed_V`. -/
+/-- **Scott 1976, (5.23).** Boxed sum of closures is a closure, so the map
+is typed on `V`. -/
 theorem eq_5_23 {a b : Pomega} (ha : typed a Vcomb) (hb : typed b Vcomb) :
-    IsRetract (boxPlus a b) :=
-  boxPlus_isRetract
-    ((theorem_5_5_universe.2 a).mpr ha).2
-    ((theorem_5_5_universe.2 b).mpr hb).2
+    typed (boxPlus a b) Vcomb :=
+  (theorem_5_5_universe.2 (boxPlus a b)).mp
+    (theorem_5_4_plus ((theorem_5_5_universe.2 a).mpr ha)
+      ((theorem_5_5_universe.2 b).mpr hb))
 
 /-- **Scott 1976, (5.24).** Function space of closures is a closure. -/
 theorem eq_5_24 {a b : Pomega} (ha : typed a Vcomb) (hb : typed b Vcomb) :
