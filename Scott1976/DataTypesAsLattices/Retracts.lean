@@ -615,17 +615,6 @@ theorem bot_isRetract : IsRetract botElem := by
   ext p
   simp [graph, funOf]
 
-theorem funOf_iUnion (xs : ℕ → Pomega) (x : Pomega) :
-    funOf (⋃ n, xs n) x = ⋃ n, funOf (xs n) x := by
-  ext m
-  constructor
-  · intro ⟨n, hn, hk⟩
-    obtain ⟨k, hmem⟩ := Set.mem_iUnion.mp hk
-    exact Set.mem_iUnion.mpr ⟨k, ⟨n, hn, hmem⟩⟩
-  · intro hm
-    obtain ⟨k, ⟨n, hn, hmem⟩⟩ := Set.mem_iUnion.mp hm
-    exact ⟨n, hn, Set.mem_iUnion.mpr ⟨k, hmem⟩⟩
-
 theorem iterates_areRetracts {F : Pomega → Pomega}
     (hret : ∀ a, IsRetract a → IsRetract (F a)) :
     ∀ n, IsRetract (iterateBot F n)

@@ -158,10 +158,9 @@ review:
 
 known_gaps:
   - >-
-    Section 2: `$ = Y(step)` is still not packaged (the (2.24) recursion
-    is proved); Theorem 2.3 is packaged only for arity ≤ 3; Theorem 2.6
-    identifies LAMBDA-definability with combinatory closure, not with
-    mathlib `IsRE`.
+    Section 2: `$ = Y(step)` and (2.27) are proved. Theorem 2.3 is
+    packaged only for arity ≤ 3; Theorem 2.6 identifies LAMBDA-definability
+    with combinatory closure, not with mathlib `IsRE`.
   - >-
     Section 3: `val(fin j)=e j` is proved. Still open: existence of a
     primrec `v` for 3.3(i), `¬IsRE {n | val n = ⊥}`, Myhill–Shepherdson
@@ -173,9 +172,10 @@ known_gaps:
     but not the inverse-limit homeomorphism.
   - >-
     Section 5: algebraicity and the representation isomorphism remain
-    unfinished. `V(a)=a ↔ IsClosure a` is proved. Theorem 5.6 has the
-    Kleene iterates of `I`, not the typed combinator `λf:V∘→V. Y(f)`.
-    (5.25) is the least solution of `d = I ∪ (d∘→d)`.
+    unfinished. `V` is a closure and `V(a)=a ↔ IsClosure a`. Theorem 5.6
+    is the typed combinator `λf:V∘→V. Y(f)`. Theorem 5.4 has `⊠` as a
+    closure; `⊞` is still open. (5.25) is the least solution of
+    `d = I ∪ (d∘→d)`.
   - >-
     Theorem 6.7 proves equalizers are `B_δ` and that countable intersections
     of equalizers are equalizers. The full `B_δ →` equalizer direction and

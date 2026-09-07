@@ -728,6 +728,21 @@ theorem eq_2_13 (F : Set Pomega) (x : Pomega) :
     obtain ⟨u, hu, n, hn, hp⟩ := Set.mem_iUnion₂.mp hm
     exact ⟨n, hn, ⟨u, hu, hp⟩⟩
 
+theorem funOf_bot (x : Pomega) : funOf botElem x = botElem := by
+  ext m
+  simp [funOf, botElem]
+
+theorem funOf_iUnion (xs : ℕ → Pomega) (x : Pomega) :
+    funOf (⋃ n, xs n) x = ⋃ n, funOf (xs n) x := by
+  ext m
+  constructor
+  · intro ⟨n, hn, hk⟩
+    obtain ⟨k, hmem⟩ := Set.mem_iUnion.mp hk
+    exact Set.mem_iUnion.mpr ⟨k, ⟨n, hn, hmem⟩⟩
+  · intro hm
+    obtain ⟨k, ⟨n, hn, hmem⟩⟩ := Set.mem_iUnion.mp hm
+    exact ⟨n, hn, Set.mem_iUnion.mpr ⟨k, hmem⟩⟩
+
 /-- **Scott 1976, (2.14).** `⊥ = (λx. x(x))(λx. x(x))`. -/
 theorem eq_2_14 :
     funOf (graph (fun x => funOf x x)) (graph (fun x => funOf x x)) = botElem := by
@@ -1510,6 +1525,21 @@ theorem seqShift_app (u z : Pomega) :
     funOf (seqShift u) z = seqFun u (succSet z) :=
   beta (seqShift_isScottContinuous u) z
 
+theorem seqShift_left_isScottContinuous : IsScottContinuous seqShift :=
+  graph_const_isScottContinuous (fun u z => seqFun u (succSet z))
+    (fun z => seqFun_left_isScottContinuous (succSet z))
+
+theorem seqShift_ofNat (u : Pomega) (i : ℕ) :
+    funOf (seqShift u) (ofNat i) = funOf u (ofNat (i + 1)) := by
+  rw [seqShift_app]
+  ext m
+  constructor
+  · intro hm
+    obtain ⟨j, hj, hmj⟩ := Set.mem_iUnion₂.mp hm
+    simp [succSet, ofNat] at hj; subst hj; exact hmj
+  · intro hm
+    exact Set.mem_iUnion₂.mpr ⟨i + 1, ⟨i, rfl, rfl⟩, hm⟩
+
 /-- **Scott 1976, (2.24).** `seq(u)(x) = x ⊃ u_0, seq(λt. u_{t+1})(x−1)`. -/
 theorem eq_2_24 (u x : Pomega) :
     seqFun u x =
@@ -1550,6 +1580,160 @@ theorem eq_2_24 (u x : Pomega) :
       refine Set.mem_iUnion₂.mpr ⟨i + 1, hi, ?_⟩
       simpa [this] using hki
 
+/-- **Scott 1976, (2.24).** The step of `$ = Y(λs λu λz. z ⊃ u₀, s(λt. u_{t+1})(z−1))`. -/
+def dollarStepBody (s u z : Pomega) : Pomega :=
+  condSet z (funOf u (ofNat 0))
+    (funOf (funOf s (seqShift u)) (predSet z))
+
+def dollarStep (s : Pomega) : Pomega :=
+  graph (fun u => graph (fun z => dollarStepBody s u z))
+
+theorem dollarStepBody_isScottContinuous_s (u z : Pomega) :
+    IsScottContinuous (fun s => dollarStepBody s u z) := by
+  have hinner : IsScottContinuous
+      (fun s => funOf (funOf s (seqShift u)) (predSet z)) :=
+    theorem_1_3 (f := fun w => funOf w (predSet z))
+      (g := fun s => funOf s (seqShift u))
+      (funOf_isScottContinuous_left (predSet z))
+      (funOf_isScottContinuous_left (seqShift u))
+  exact theorem_1_3 (condSet_isScottContinuous_right z (funOf u (ofNat 0))) hinner
+
+theorem dollarStepBody_isScottContinuous_u (s z : Pomega) :
+    IsScottContinuous (fun u => dollarStepBody s u z) := by
+  have helse : IsScottContinuous
+      (fun u => funOf (funOf s (seqShift u)) (predSet z)) :=
+    theorem_1_3 (f := fun w => funOf w (predSet z))
+      (g := fun u => funOf s (seqShift u))
+      (funOf_isScottContinuous_left (predSet z))
+      (theorem_1_3 (funOf_isScottContinuous s) seqShift_left_isScottContinuous)
+  exact theorem_1_3_tuple
+    (fun y => condSet_isScottContinuous_mid z y)
+    (fun x => condSet_isScottContinuous_right z x)
+    (funOf_isScottContinuous_left (ofNat 0)) helse
+
+theorem dollarStepBody_isScottContinuous_z (s u : Pomega) :
+    IsScottContinuous (fun z => dollarStepBody s u z) :=
+  theorem_1_3_tuple
+    (fun y => condSet_isScottContinuous_left (funOf u (ofNat 0)) y)
+    (fun z => condSet_isScottContinuous_right z (funOf u (ofNat 0)))
+    id_isScottContinuous
+    (theorem_1_3 (funOf_isScottContinuous (funOf s (seqShift u)))
+      predSet_isScottContinuous)
+
+theorem dollarStep_isScottContinuous : IsScottContinuous dollarStep :=
+  graph_const_isScottContinuous
+    (fun s u => graph (fun z => dollarStepBody s u z))
+    (fun u => graph_const_isScottContinuous
+      (fun s z => dollarStepBody s u z)
+      (fun z => dollarStepBody_isScottContinuous_s u z))
+
+theorem dollarStep_app (s u : Pomega) :
+    funOf (dollarStep s) u = graph (fun z => dollarStepBody s u z) :=
+  beta (graph_const_isScottContinuous (fun u z => dollarStepBody s u z)
+    (fun z => dollarStepBody_isScottContinuous_u s z)) u
+
+theorem dollarStep_app2 (s u z : Pomega) :
+    funOf (funOf (dollarStep s) u) z = dollarStepBody s u z := by
+  rw [dollarStep_app]
+  exact beta (dollarStepBody_isScottContinuous_z s u) z
+
+/-- Finite stage of the `$` iteration: `⋃ { uᵢ | i ∈ x, i < n }`. -/
+def seqFunLt (u x : Pomega) (n : ℕ) : Pomega :=
+  ⋃ i ∈ x, ⋃ _ : i < n, funOf u (ofNat i)
+
+theorem mem_seqFunLt {u x : Pomega} {n k : ℕ} :
+    k ∈ seqFunLt u x n ↔ ∃ i ∈ x, i < n ∧ k ∈ funOf u (ofNat i) := by
+  constructor
+  · intro hk
+    obtain ⟨i, hi, hrest⟩ := Set.mem_iUnion₂.mp hk
+    obtain ⟨hlt, hki⟩ := Set.mem_iUnion.mp hrest
+    exact ⟨i, hi, hlt, hki⟩
+  · intro ⟨i, hi, hlt, hki⟩
+    exact Set.mem_iUnion₂.mpr ⟨i, hi, Set.mem_iUnion.mpr ⟨hlt, hki⟩⟩
+
+theorem seqFunLt_zero (u z : Pomega) : seqFunLt u z 0 = botElem := by
+  ext k
+  simp [mem_seqFunLt, botElem]
+
+theorem seqFunLt_succ (u z : Pomega) (n : ℕ) :
+    condSet z (funOf u (ofNat 0)) (seqFunLt (seqShift u) (predSet z) n) =
+      seqFunLt u z (n + 1) := by
+  ext k
+  constructor
+  · intro hk
+    rcases hk with ⟨hk0, h0z⟩ | ⟨hpos, t, ht⟩
+    · exact (mem_seqFunLt).mpr ⟨0, h0z, Nat.succ_pos n, hk0⟩
+    · obtain ⟨i, hi, hlt, hki⟩ := (mem_seqFunLt).mp hpos
+      refine (mem_seqFunLt).mpr ⟨i + 1, hi, Nat.succ_lt_succ hlt, ?_⟩
+      simpa [seqShift_ofNat] using hki
+  · intro hk
+    obtain ⟨i, hi, hlt, hki⟩ := (mem_seqFunLt).mp hk
+    cases i with
+    | zero => exact Or.inl ⟨hki, hi⟩
+    | succ i =>
+      refine Or.inr ⟨?_, i, hi⟩
+      refine (mem_seqFunLt).mpr ⟨i, hi, Nat.lt_of_succ_lt_succ hlt, ?_⟩
+      simpa [seqShift_ofNat] using hki
+
+theorem dollarStep_iterate (n : ℕ) (u z : Pomega) :
+    funOf (funOf (iterateBot dollarStep n) u) z = seqFunLt u z n := by
+  induction n generalizing u z with
+  | zero =>
+    simp [iterateBot, funOf_bot, seqFunLt_zero]
+  | succ n ih =>
+    rw [iterateBot, dollarStep_app2, dollarStepBody, ih, seqFunLt_succ]
+
+theorem seqFun_eq_iUnion_lt (u z : Pomega) :
+    seqFun u z = ⋃ n, seqFunLt u z n := by
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨i, hi, hki⟩ := Set.mem_iUnion₂.mp hk
+    exact Set.mem_iUnion.mpr ⟨i + 1, (mem_seqFunLt).mpr ⟨i, hi, Nat.lt_succ_self i, hki⟩⟩
+  · intro hk
+    obtain ⟨n, hn⟩ := Set.mem_iUnion.mp hk
+    obtain ⟨i, hi, _, hki⟩ := (mem_seqFunLt).mp hn
+    exact Set.mem_iUnion₂.mpr ⟨i, hi, hki⟩
+
+theorem dollarStep_fix_app (u z : Pomega) :
+    funOf (funOf (fix dollarStep) u) z = seqFun u z := by
+  have : funOf (funOf (fix dollarStep) u) z =
+      ⋃ n, funOf (funOf (iterateBot dollarStep n) u) z := by
+    simp [fix, funOf_iUnion]
+  rw [this, seqFun_eq_iUnion_lt]
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨n, hn⟩ := Set.mem_iUnion.mp hk
+    exact Set.mem_iUnion.mpr ⟨n, by simpa [dollarStep_iterate] using hn⟩
+  · intro hk
+    obtain ⟨n, hn⟩ := Set.mem_iUnion.mp hk
+    exact Set.mem_iUnion.mpr ⟨n, by simpa [dollarStep_iterate] using hn⟩
+
+/-- **Scott 1976, (2.24).** `$ = Y(λs λu λz. z ⊃ u₀, s(λt. u_{t+1})(z−1))`. -/
+theorem eq_2_24_Y : dollarC = fix dollarStep := by
+  have hfix : dollarStep (fix dollarStep) = fix dollarStep :=
+    (theorem_1_4 dollarStep_isScottContinuous).1
+  have hbody : ∀ u z, dollarStepBody (fix dollarStep) u z = seqFun u z := by
+    intro u z
+    calc dollarStepBody (fix dollarStep) u z
+        = funOf (funOf (dollarStep (fix dollarStep)) u) z :=
+          (dollarStep_app2 _ _ _).symm
+      _ = funOf (funOf (fix dollarStep) u) z := by rw [hfix]
+      _ = seqFun u z := dollarStep_fix_app u z
+  have : dollarStep (fix dollarStep) =
+      graph (fun u => graph (fun z => seqFun u z)) := by
+    apply congrArg graph
+    funext u
+    apply congrArg graph
+    funext z
+    exact hbody u z
+  exact this.symm.trans hfix
+
+/-- **Scott 1976, (2.24).** `$ = Y(step)` as a combinator application. -/
+theorem eq_2_24_Ycomb : funOf Ycomb (graph dollarStep) = dollarC := by
+  rw [theorem_2_5 dollarStep_isScottContinuous, eq_2_24_Y]
+
 /-- **Scott 1976, (2.26).** `λn∈ω. τ` is `$` applied to a graph. -/
 def lamOmega (τ : ℕ → Pomega) : Pomega :=
   funOf dollarC (graph (fun z => ⋃ n ∈ z, τ n))
@@ -1587,6 +1771,80 @@ theorem primRecHat_ofNat (a f : Pomega) : ∀ n,
       simp [ofNat] at hm; subst hm; simpa [primRecVal] using hkm
     · intro hk
       exact Set.mem_iUnion₂.mpr ⟨n + 1, rfl, hk⟩
+
+theorem predSet_ofNat_succ (n : ℕ) : predSet (ofNat (n + 1)) = ofNat n := by
+  ext k
+  simp [predSet, ofNat]
+
+theorem primRecStep_body_isScottContinuous_n (a f u : Pomega) :
+    IsScottContinuous (fun n =>
+      condSet n a (funOf (funOf f (predSet n)) (funOf u (predSet n)))) :=
+  theorem_1_3_tuple
+    (fun y => condSet_isScottContinuous_left a y)
+    (fun n => condSet_isScottContinuous_right n a)
+    id_isScottContinuous
+    (theorem_1_3_tuple
+      (fun y => funOf_isScottContinuous_left y)
+      (fun x => funOf_isScottContinuous x)
+      (theorem_1_3 (funOf_isScottContinuous f) predSet_isScottContinuous)
+      (theorem_1_3 (funOf_isScottContinuous u) predSet_isScottContinuous))
+
+theorem primRecStep_isScottContinuous (a f : Pomega) :
+    IsScottContinuous (primRecStep a f) :=
+  graph_const_isScottContinuous
+    (fun u n => condSet n a (funOf (funOf f (predSet n)) (funOf u (predSet n))))
+    (fun n => theorem_1_3 (condSet_isScottContinuous_right n a)
+      (theorem_1_3 (funOf_isScottContinuous (funOf f (predSet n)))
+        (funOf_isScottContinuous_left (predSet n))))
+
+theorem primRecStep_app (a f u n : Pomega) :
+    funOf (primRecStep a f u) n =
+      condSet n a (funOf (funOf f (predSet n)) (funOf u (predSet n))) :=
+  beta (primRecStep_body_isScottContinuous_n a f u) n
+
+/-- **Scott 1976, (2.27).** The fixed point of the primrec step agrees
+with integer recursion. -/
+theorem primRecVal_fix (a f : Pomega) : ∀ n,
+    funOf (fix (primRecStep a f)) (ofNat n) = primRecVal a f n
+  | 0 => by
+    have hfix := (theorem_1_4 (primRecStep_isScottContinuous a f)).1
+    calc funOf (fix (primRecStep a f)) (ofNat 0)
+        = funOf (primRecStep a f (fix (primRecStep a f))) (ofNat 0) := by
+          rw [hfix]
+      _ = condSet (ofNat 0) a
+            (funOf (funOf f (predSet (ofNat 0)))
+              (funOf (fix (primRecStep a f)) (predSet (ofNat 0)))) :=
+          primRecStep_app a f _ _
+      _ = a := eq_2_7_zero _ _
+  | n + 1 => by
+    have hfix := (theorem_1_4 (primRecStep_isScottContinuous a f)).1
+    calc funOf (fix (primRecStep a f)) (ofNat (n + 1))
+        = funOf (primRecStep a f (fix (primRecStep a f))) (ofNat (n + 1)) := by
+          rw [hfix]
+      _ = condSet (ofNat (n + 1)) a
+            (funOf (funOf f (predSet (ofNat (n + 1))))
+              (funOf (fix (primRecStep a f)) (predSet (ofNat (n + 1))))) :=
+          primRecStep_app a f _ _
+      _ = funOf (funOf f (ofNat n))
+            (funOf (fix (primRecStep a f)) (ofNat n)) := by
+          rw [eq_2_7_succ, predSet_ofNat_succ]
+      _ = funOf (funOf f (ofNat n)) (primRecVal a f n) := by
+          rw [primRecVal_fix a f n]
+
+/-- **Scott 1976, (2.27).** `p̂ = Y(λu λn∈ω. n ⊃ a, f(n−1)(u(n−1)))`. -/
+theorem eq_2_27 (a f x : Pomega) :
+    primRecHat a f x = funOf (funOf dollarC (fix (primRecStep a f))) x := by
+  rw [eq_2_25]
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨n, hn, hkn⟩ := Set.mem_iUnion₂.mp hk
+    refine Set.mem_iUnion₂.mpr ⟨n, hn, ?_⟩
+    simpa [primRecVal_fix] using hkn
+  · intro hk
+    obtain ⟨n, hn, hkn⟩ := Set.mem_iUnion₂.mp hk
+    refine Set.mem_iUnion₂.mpr ⟨n, hn, ?_⟩
+    simpa [primRecVal_fix] using hkn
 
 theorem iterateBot_param_isScottContinuous
     {g : Pomega → Pomega → Pomega}

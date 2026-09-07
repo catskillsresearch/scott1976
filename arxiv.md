@@ -79,7 +79,7 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | (2.17) intersection encoding | `eq_2_17`, `eq_2_17_step`, `interC` | faithful |
 | (2.18) `K`-fixed points | `eq_2_18` | faithful |
 | (2.19)–(2.23) sequences | `seq0`, `seq1`, `seq2`, `seqCons`, `eq_2_22`, `eq_2_23_*` | faithful |
-| (2.24)–(2.27) `$`, primrec | `eq_2_24`, `dollarC`, `eq_2_25`, `lamOmega`, `primRecVal`/`Hat`/`ofNat` | partial — seq recursion (2.24); `$` as graph of `seq`; primrec on integers; `$ = Y(step)` not packaged |
+| (2.24)–(2.27) `$`, primrec | `eq_2_24`, `eq_2_24_Y`, `eq_2_24_Ycomb`, `dollarC`, `eq_2_25`, `lamOmega`, `eq_2_27`, `primRecVal_fix` | faithful — `$ = Y(step)`; `p̂ = $(Y(primRecStep))` |
 | (2.28) `Y` commuting | `eq_2_28`, `eq_2_28_commute` | faithful |
 | Theorem 2.1 | `theorem_2_1` | faithful |
 | Theorem 2.2 | `theorem_2_2` | faithful |
@@ -131,9 +131,9 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 5.1 | `theorem_5_1`, `theorem_5_1_isolated` | partial — typed fixed points; isolated points are `a(e n)` one way |
 | Theorem 5.2 | `theorem_5_2` | partial — `representClosure` is idempotent, not an isomorphism onto every countable algebraic lattice |
 | Theorem 5.3 | `theorem_5_3`, `theorem_5_3_closure`, `Icomb_subset_arrowR` | faithful |
-| Theorem 5.4 | `theorem_5_4` | partial — definitional unfolding of `⊠` |
-| Theorem 5.5 | `theorem_5_5`, `theorem_5_5_iff`, `Vcomb`, `eq_5_14` | faithful — `V(a)=a` iff `a` is a closure; `(5.14)=(5.15)` |
-| Theorem 5.6 | `theorem_5_6`, `Vapply_closed` | partial — Kleene iterates of `I` stay closures; not the typed combinator `λf:V∘→V. Y(f)` |
+| Theorem 5.4 | `theorem_5_4`, `eq_5_12` | partial — `⊠` of closures is a closure; `⊞` still unfolding |
+| Theorem 5.5 | `theorem_5_5`, `theorem_5_5_iff`, `theorem_5_5_universe`, `Vcomb`, `eq_5_14`, `eq_5_19`, `eq_5_21` | faithful — `V` is a closure; `V(a)=a` iff `a` is a closure; `(5.14)=(5.15)` |
+| Theorem 5.6 | `theorem_5_6`, `theorem_5_6_iterates` | faithful — `Y(f):V` whenever `f:V∘→V` |
 | (5.25) `d = I ∪ (d∘→d)` | `dEq`, `eq_5_25` | faithful — `Y(λa. I ∪ (a∘→a))`; `d = d∘→d` if `I ⊆ d∘→d` |
 
 ### §6 Classification

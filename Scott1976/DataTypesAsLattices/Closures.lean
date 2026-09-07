@@ -270,12 +270,115 @@ theorem theorem_5_2 (d : ℕ → Pomega) (x : Pomega) :
   · intro hm i hi
     exact Set.mem_iUnion₂.mpr ⟨m, hm, hi⟩
 
-/-- **Scott 1976, Theorem 5.4 (product half).** The boxed product of two
-closures is a retract of the same shape as `⊗`. -/
-theorem theorem_5_4 {a b : Pomega} (_ha : IsClosure a) (_hb : IsClosure b) :
+/-- **Scott 1976, (5.12).** Unfolding of the boxed product. -/
+theorem eq_5_12 (a b : Pomega) :
     boxTensor a b = graph (fun u =>
       squarePair (funOf a (squareFst u)) (funOf b (squareSnd u))) :=
   rfl
+
+theorem squareFst_isScottContinuous : IsScottContinuous squareFst := by
+  intro x
+  ext n
+  constructor
+  · intro hn
+    refine mem_scottUnion.mpr ⟨2 ^ (2 * n), ?_, ?_⟩
+    · simpa [e_pow2, Set.singleton_subset_iff, squareFst] using hn
+    · simp [squareFst, e_pow2]
+  · intro hn
+    obtain ⟨m, hm, hnm⟩ := mem_scottUnion.mp hn
+    exact hm hnm
+
+theorem squareSnd_isScottContinuous : IsScottContinuous squareSnd := by
+  intro x
+  ext m
+  constructor
+  · intro hm
+    refine mem_scottUnion.mpr ⟨2 ^ (2 * m + 1), ?_, ?_⟩
+    · simpa [e_pow2, Set.singleton_subset_iff, squareSnd] using hm
+    · simp [squareSnd, e_pow2]
+  · intro hm
+    obtain ⟨k, hk, hkm⟩ := mem_scottUnion.mp hm
+    exact hk hkm
+
+theorem squarePair_mono {x x' y y' : Pomega} (hx : x ⊆ x') (hy : y ⊆ y') :
+    squarePair x y ⊆ squarePair x' y' := by
+  intro k hk
+  rcases hk with ⟨n, hn, hk⟩ | ⟨m, hm, hk⟩
+  · exact Or.inl ⟨n, hx hn, hk⟩
+  · exact Or.inr ⟨m, hy hm, hk⟩
+
+theorem squarePair_isScottContinuous_left (y : Pomega) :
+    IsScottContinuous (fun x => squarePair x y) := by
+  intro x
+  ext k
+  constructor
+  · intro hk
+    rcases hk with ⟨n, hn, hk⟩ | ⟨m, hm, hk⟩
+    · exact mem_scottUnion.mpr ⟨2 ^ n, by simp [e_pow2, Set.singleton_subset_iff, hn],
+        Or.inl ⟨n, by simp [e_pow2], hk⟩⟩
+    · exact mem_scottUnion.mpr ⟨0, by simp [e_zero], Or.inr ⟨m, hm, hk⟩⟩
+  · intro hk
+    obtain ⟨p, hp, hkp⟩ := mem_scottUnion.mp hk
+    rcases hkp with ⟨n, hn, hk⟩ | ⟨m, hm, hk⟩
+    · exact Or.inl ⟨n, hp hn, hk⟩
+    · exact Or.inr ⟨m, hm, hk⟩
+
+theorem squarePair_isScottContinuous_right (x : Pomega) :
+    IsScottContinuous (fun y => squarePair x y) := by
+  intro y
+  ext k
+  constructor
+  · intro hk
+    rcases hk with ⟨n, hn, hk⟩ | ⟨m, hm, hk⟩
+    · exact mem_scottUnion.mpr ⟨0, by simp [e_zero], Or.inl ⟨n, hn, hk⟩⟩
+    · exact mem_scottUnion.mpr ⟨2 ^ m, by simp [e_pow2, Set.singleton_subset_iff, hm],
+        Or.inr ⟨m, by simp [e_pow2], hk⟩⟩
+  · intro hk
+    obtain ⟨p, hp, hkp⟩ := mem_scottUnion.mp hk
+    rcases hkp with ⟨n, hn, hk⟩ | ⟨m, hm, hk⟩
+    · exact Or.inl ⟨n, hn, hk⟩
+    · exact Or.inr ⟨m, hp hm, hk⟩
+
+theorem boxTensor_app (a b u : Pomega) :
+    funOf (boxTensor a b) u =
+      squarePair (funOf a (squareFst u)) (funOf b (squareSnd u)) :=
+  beta (theorem_1_3_tuple
+    (f := fun x y => squarePair (funOf a x) (funOf b y))
+    (fun y => theorem_1_3 (f := fun x => squarePair x (funOf b y)) (g := funOf a)
+      (squarePair_isScottContinuous_left (funOf b y))
+      (funOf_isScottContinuous a))
+    (fun x => theorem_1_3 (f := fun y => squarePair (funOf a x) y) (g := funOf b)
+      (squarePair_isScottContinuous_right (funOf a x))
+      (funOf_isScottContinuous b))
+    squareFst_isScottContinuous squareSnd_isScottContinuous) u
+
+theorem boxTensor_isRetract {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    IsRetract (boxTensor a b) := by
+  change boxTensor a b =
+    graph (fun u => funOf (boxTensor a b) (funOf (boxTensor a b) u))
+  apply graph_ext
+  intro u
+  rw [boxTensor_app, boxTensor_app, eq_5_9, eq_5_10, retract_app ha, retract_app hb]
+
+theorem Icomb_subset_boxTensor {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
+    Icomb ⊆ boxTensor a b := by
+  intro p hp
+  rcases hp with ⟨n, m, rfl, hm⟩
+  have hsub : squarePair (squareFst (e n)) (squareSnd (e n)) ⊆
+      squarePair (funOf a (squareFst (e n))) (funOf b (squareSnd (e n))) := by
+    refine squarePair_mono ?_ ?_
+    · have := funOf_monotone_left ha.1 (squareFst (e n))
+      rwa [Icomb_app] at this
+    · have := funOf_monotone_left hb.1 (squareSnd (e n))
+      rwa [Icomb_app] at this
+  refine ⟨n, m, rfl, ?_⟩
+  exact hsub (by simpa [eq_5_8] using hm)
+
+/-- **Scott 1976, Theorem 5.4 (product half).** The boxed product of two
+closures is a closure. -/
+theorem theorem_5_4 {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
+    IsClosure (boxTensor a b) :=
+  ⟨Icomb_subset_boxTensor ha hb, boxTensor_isRetract ha.2 hb.2⟩
 
 /-- **Scott 1976, Theorem 5.5 / (5.18).** `V` fixes closures on values. -/
 theorem theorem_5_5 {a : Pomega} (ha : IsClosure a) (x : Pomega) :
@@ -367,10 +470,61 @@ theorem theorem_5_5_iff (a : Pomega) :
             _ = funOf a (funOf a x) := by rw [← happ x]
       exact ha.trans this
 
-/-- **Scott 1976, Theorem 5.6 (The limit theorem for algebraic lattices).**
-A continuous operator that sends closures to closures preserves the
-Kleene iterates of `I`, so its least closure fixed point exists. -/
-theorem theorem_5_6 {F : Pomega → Pomega}
+/-- **Scott 1976, (5.19).** `V(a)` is always a closure, so `V(V(a)) = V(a)`. -/
+theorem Vapply_graph_isClosure (a : Pomega) :
+    IsClosure (graph (fun x => Vapply a x)) := by
+  constructor
+  · intro p hp
+    rcases hp with ⟨n, m, rfl, hm⟩
+    exact ⟨n, m, rfl, eq_5_16 a (e n) hm⟩
+  · change graph (fun x => Vapply a x) =
+        graph (fun x =>
+          funOf (graph (fun z => Vapply a z))
+            (funOf (graph (fun z => Vapply a z)) x))
+    apply graph_ext
+    intro x
+    have happ : funOf (graph (fun z => Vapply a z)) =
+        fun z => Vapply a z :=
+      theorem_1_2_i (Vapply_right_isScottContinuous a)
+    simpa [happ] using (eq_5_17 a x).symm
+
+theorem eq_5_19 (a : Pomega) :
+    funOf Vcomb (funOf Vcomb a) = funOf Vcomb a := by
+  have hcl := Vapply_graph_isClosure a
+  have hfix := (theorem_5_5_iff (graph (fun x => Vapply a x))).mp hcl
+  have ha : funOf Vcomb a = graph (fun x => Vapply a x) := Vcomb_app a
+  rw [ha]
+  exact hfix
+
+/-- **Scott 1976, (5.21).** `a ⊆ V(a)`. -/
+theorem eq_5_21 (a : Pomega) : a ⊆ funOf Vcomb a := by
+  rw [Vcomb_app]
+  exact (eq_5_1 a).trans (xi_star fun x => eq_5_18_rev a x)
+
+theorem Vcomb_isRetract : IsRetract Vcomb := by
+  change Vcomb = graph (fun a => funOf Vcomb (funOf Vcomb a))
+  apply graph_ext
+  intro a
+  exact (Vcomb_app a).symm.trans (eq_5_19 a).symm
+
+theorem Icomb_subset_Vcomb : Icomb ⊆ Vcomb := by
+  intro p hp
+  rcases hp with ⟨n, m, rfl, hm⟩
+  have : m ∈ funOf Vcomb (e n) := eq_5_21 (e n) hm
+  have ha : funOf Vcomb (e n) = graph (fun x => Vapply (e n) x) :=
+    Vcomb_app (e n)
+  refine ⟨n, m, rfl, ?_⟩
+  rwa [ha] at this
+
+/-- **Scott 1976, Theorem 5.5.** `V` itself is a closure, and its fixed
+points are exactly the closure operations. -/
+theorem theorem_5_5_universe :
+    IsClosure Vcomb ∧ ∀ a, IsClosure a ↔ typed a Vcomb :=
+  ⟨⟨Icomb_subset_Vcomb, Vcomb_isRetract⟩,
+    fun a => (theorem_5_5_iff a).trans ⟨Eq.symm, Eq.symm⟩⟩
+
+/-- Kleene iterates of `I` under a closure-preserving operator stay closures. -/
+theorem theorem_5_6_iterates {F : Pomega → Pomega}
     (_hF : IsScottContinuous F)
     (hcl : ∀ a, IsClosure a → IsClosure (F a)) :
     (∀ n, IsClosure (iterateFrom F Icomb n)) ∧
@@ -381,6 +535,27 @@ theorem theorem_5_6 {F : Pomega → Pomega}
     | zero => exact Icomb_isClosure
     | succ n ih => exact hcl _ ih
   exact ⟨hiter, Set.subset_iUnion (iterateFrom F Icomb) 0⟩
+
+/-- **Scott 1976, Theorem 5.6 (The limit theorem for algebraic lattices).**
+`(λf : V∘→V. Y(f)) : (V∘→V) ∘→ V`. -/
+theorem theorem_5_6 {f : Pomega} (hf : typed f (arrowR Vcomb Vcomb)) :
+    typed (funOf Ycomb f) Vcomb := by
+  set y := funOf Ycomb f
+  have hy : y = funOf f y := Ycomb_unfold f
+  have hf' : ∀ x, funOf f x = funOf Vcomb (funOf f (funOf Vcomb x)) := by
+    intro x
+    simpa [comp_app] using congrArg (fun w => funOf w x) (typed_of_arrowR hf)
+  have hyV : y = funOf Vcomb (funOf f (funOf Vcomb y)) :=
+    hy.trans (hf' y)
+  have h1 : funOf Vcomb y = funOf Vcomb (funOf f y) :=
+    congrArg (funOf Vcomb) hy
+  have h2 : funOf Vcomb (funOf f y) =
+      funOf Vcomb (funOf Vcomb (funOf f (funOf Vcomb y))) :=
+    congrArg (funOf Vcomb) (hf' y)
+  have h3 : funOf Vcomb (funOf Vcomb (funOf f (funOf Vcomb y))) =
+      funOf Vcomb (funOf f (funOf Vcomb y)) :=
+    retract_app Vcomb_isRetract _
+  exact (h1.trans (h2.trans (h3.trans hyV.symm))).symm
 
 /-- Isolated points of a closure are its values on finite sets, and
 conversely every `a(e n)` is a typed point. -/

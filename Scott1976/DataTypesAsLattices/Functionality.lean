@@ -60,10 +60,6 @@ theorem condSet_ofNat_one (x y : Pomega) : condSet (ofNat 1) x y = y := by
   ext n
   simp [condSet, ofNat]
 
-theorem funOf_bot (x : Pomega) : funOf botElem x = botElem := by
-  ext m
-  simp [funOf, botElem]
-
 theorem funOf_top (x : Pomega) : funOf topElem x = topElem := by
   ext m
   constructor
