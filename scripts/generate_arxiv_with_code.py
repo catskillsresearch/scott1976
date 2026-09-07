@@ -8,7 +8,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Library files in dependency order (matches Scott1976.lean import order).
+# Library files in dependency order (Scott1976.lean imports, with
+# FixedLattices before Retracts).
 FILES = [
     "Scott1976.lean",
     "Scott1976/DataTypesAsLattices/Pomega.lean",
@@ -18,12 +19,12 @@ FILES = [
     "Scott1976/DataTypesAsLattices/Embedding.lean",
     "Scott1976/DataTypesAsLattices/Lambda.lean",
     "Scott1976/DataTypesAsLattices/Computability.lean",
+    "Scott1976/DataTypesAsLattices/Enumeration.lean",
     "Scott1976/DataTypesAsLattices/FixedLattices.lean",
     "Scott1976/DataTypesAsLattices/Retracts.lean",
-    "Scott1976/DataTypesAsLattices/Functionality.lean",
-    "Scott1976/DataTypesAsLattices/Enumeration.lean",
     "Scott1976/DataTypesAsLattices/Closures.lean",
     "Scott1976/DataTypesAsLattices/Classification.lean",
+    "Scott1976/DataTypesAsLattices/Functionality.lean",
     "Scott1976/DataTypesAsLattices/Basic.lean",
 ]
 
@@ -38,7 +39,7 @@ FILE_ROLES: dict[str, str] = {
     "Scott1976/DataTypesAsLattices/Computability.lean": "§2 computability",
     "Scott1976/DataTypesAsLattices/FixedLattices.lean": "Algebraic/continuous lattices",
     "Scott1976/DataTypesAsLattices/Retracts.lean": "§4 retracts",
-    "Scott1976/DataTypesAsLattices/Functionality.lean": "§7 functionality",
+    "Scott1976/DataTypesAsLattices/Functionality.lean": "§4 (4.38)–(4.45) and §7 functionality",
     "Scott1976/DataTypesAsLattices/Enumeration.lean": "§3 enumeration",
     "Scott1976/DataTypesAsLattices/Closures.lean": "§5 closures",
     "Scott1976/DataTypesAsLattices/Classification.lean": "§6 classification",
@@ -95,7 +96,7 @@ def main() -> None:
     parts.append("## Document map\n\n")
     parts.append("| Part | Contents |\n")
     parts.append("| --- | --- |\n")
-    parts.append("| **§1–§6** | Full `arxiv.md` narrative |\n")
+    parts.append("| **§1–§10** | Full `arxiv.md` narrative |\n")
     parts.append("| **Appendix A** | Complete Lean 4 source, one subsection per file |\n\n")
     parts.append("### Appendix A — file index\n\n")
 

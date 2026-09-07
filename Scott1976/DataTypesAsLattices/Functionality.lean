@@ -3248,27 +3248,754 @@ theorem Htyped_app (τ : LambTerm) (t : Pomega) :
   apply congrArg (funOf lambR)
   exact beta (Hinterp_isScottContinuous τ) (funOf envR t)
 
-/-- **Scott 1976, (4.45).** Encoded expressions live in `exp`, and
-`ℋ⟦τ⟧` is typed `env → lamb`. -/
-theorem eq_4_45 (τ : LambTerm) :
-    typed (encodeExp τ) expR ∧
-      typed (Htyped τ) (arrowR envR lambR) :=
-  ⟨encodeExp_typed τ,
-    typed_apply_retract
-      (arrowR_isRetract envR_isRetract lambR_isRetract)⟩
+theorem Htyped_typed (τ : LambTerm) :
+    typed (Htyped τ) (arrowR envR lambR) :=
+  typed_apply_retract
+    (arrowR_isRetract envR_isRetract lambR_isRetract)
 
-/-- Pointwise interpretation of encoded expressions, as an element of
-`Pω`. -/
-def Hpre : Pomega :=
-  graph (fun e =>
-    ⋃ τ : LambTerm, ⋃ (_ : encodeExp τ = e), (Htyped τ : Set ℕ))
+/-- Tag and payload of a seven-sum abstract-syntax code. -/
+def expTag (e : Pomega) : Pomega := funOf e (ofNat 0)
 
-/-- **Scott 1976, (4.45).** `ℋ : exp → (env → lamb)`. -/
+def expPayload (e : Pomega) : Pomega := funOf e (ofNat 1)
+
+/-- Recursive call of a candidate `ℋ` on a subexpression. -/
+def hApply (H e t : Pomega) : Pomega := funOf (funOf H e) t
+
+/-- Environment update continuous in the index: on `n = {n}` this is
+`t[x/n]`; on a larger index it unions the corresponding updates. -/
+def updateEnvUnion (t x idx : Pomega) : Pomega :=
+  minExtend (fun n => updateEnv t x n) idx
+
+theorem updateEnvUnion_ofNat (t x : Pomega) (n : ℕ) :
+    updateEnvUnion t x (ofNat n) = updateEnv t x n := by
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨m, hm, hkm⟩ := Set.mem_iUnion₂.mp hk
+    have : m = n := by
+      simpa [ofNat, Set.singleton_subset_iff] using hm
+    subst m
+    exact hkm
+  · intro hk
+    exact Set.mem_iUnion₂.mpr ⟨n, by simp [ofNat], hk⟩
+
+theorem updateEnvUnion_isScottContinuous_idx (t x : Pomega) :
+    IsScottContinuous (updateEnvUnion t x) :=
+  minExtend_isScottContinuous (fun n => updateEnv t x n)
+
+theorem updateEnv_isScottContinuous_t (x : Pomega) (n : ℕ) :
+    IsScottContinuous (fun t => updateEnv t x n) :=
+  graph_const_isScottContinuous
+    (fun t m => if m = ofNat n then x else funOf t m)
+    (fun m => by
+      by_cases h : m = ofNat n
+      · simpa [h] using const_isScottContinuous (c := x)
+      · simpa [h] using funOf_isScottContinuous_left m)
+
+theorem updateEnvUnion_isScottContinuous_t (x idx : Pomega) :
+    IsScottContinuous (fun t => updateEnvUnion t x idx) := by
+  intro t
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨n, hn, hkn⟩ := Set.mem_iUnion₂.mp hk
+    have : k ∈ scottUnion (fun t => updateEnv t x n) t := by
+      rw [← updateEnv_isScottContinuous_t x n t]; exact hkn
+    obtain ⟨m, hm, hkm⟩ := mem_scottUnion.mp this
+    exact mem_scottUnion.mpr ⟨m, hm, Set.mem_iUnion₂.mpr ⟨n, hn, hkm⟩⟩
+  · intro hk
+    obtain ⟨m, hm, hkm⟩ := mem_scottUnion.mp hk
+    obtain ⟨n, hn, hkn⟩ := Set.mem_iUnion₂.mp hkm
+    exact Set.mem_iUnion₂.mpr ⟨n, hn,
+      isScottContinuous_monotone (updateEnv_isScottContinuous_t x n) hm hkn⟩
+
+def hVar (e t : Pomega) : Pomega := funOf t (expPayload e)
+
+def hZero : Pomega := funOf inleftC (ofNat 0)
+
+def hSucc (H e t : Pomega) : Pomega :=
+  condSet (funOf whichC (hApply H (expPayload e) t))
+    (funOf inleftC (succSet (funOf outC (hApply H (expPayload e) t))))
+    botElem
+
+def hPred (H e t : Pomega) : Pomega :=
+  condSet (funOf whichC (hApply H (expPayload e) t))
+    (funOf inleftC (predSet (funOf outC (hApply H (expPayload e) t))))
+    botElem
+
+def hCond (H e t : Pomega) : Pomega :=
+  funOf lambR
+    (condSet (funOf whichC (hApply H (funOf (expPayload e) (ofNat 0)) t))
+      (condSet (funOf outC (hApply H (funOf (expPayload e) (ofNat 0)) t))
+        (hApply H (funOf (expPayload e) (ofNat 1)) t)
+        (hApply H (funOf (expPayload e) (ofNat 2)) t))
+      (hApply H (funOf (expPayload e) (ofNat 3)) t))
+
+def hApp (H e t : Pomega) : Pomega :=
+  condSet (funOf whichC (hApply H (funOf (expPayload e) (ofNat 0)) t)) botElem
+    (funOf (funOf outC (hApply H (funOf (expPayload e) (ofNat 0)) t))
+      (hApply H (funOf (expPayload e) (ofNat 1)) t))
+
+def hLam (H e t : Pomega) : Pomega :=
+  funOf inrightC
+    (graph (fun x =>
+      hApply H (funOf (expPayload e) (ofNat 1))
+        (updateEnvUnion t x (funOf (expPayload e) (ofNat 0)))))
+
+/-- One continuous step of (4.43), dispatched on the (4.44) tags. -/
+def Hstep (H e t : Pomega) : Pomega :=
+  dcondSet (expTag e) (hVar e t)
+    (dcondSet (predSet (expTag e)) hZero
+      (dcondSet (predSet (predSet (expTag e))) (hSucc H e t)
+        (dcondSet (predSet^[3] (expTag e)) (hPred H e t)
+          (dcondSet (predSet^[4] (expTag e)) (hCond H e t)
+            (dcondSet (predSet^[5] (expTag e)) (hApp H e t)
+              (dcondSet (predSet^[6] (expTag e)) (hLam H e t)
+                topElem))))))
+
+theorem hApply_isScottContinuous_H (e t : Pomega) :
+    IsScottContinuous (fun H => hApply H e t) :=
+  theorem_1_3 (f := fun u => funOf u t) (g := fun H => funOf H e)
+    (funOf_isScottContinuous_left t) (funOf_isScottContinuous_left e)
+
+theorem hSucc_isScottContinuous_H (e t : Pomega) :
+    IsScottContinuous (fun H => hSucc H e t) :=
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (theorem_1_3 (funOf_isScottContinuous whichC) (hApply_isScottContinuous_H _ t))
+    (theorem_1_3 (funOf_isScottContinuous inleftC)
+      (theorem_1_3 succSet_isScottContinuous
+        (theorem_1_3 (funOf_isScottContinuous outC)
+          (hApply_isScottContinuous_H _ t))))
+    (const_isScottContinuous botElem)
+
+theorem hPred_isScottContinuous_H (e t : Pomega) :
+    IsScottContinuous (fun H => hPred H e t) :=
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (theorem_1_3 (funOf_isScottContinuous whichC) (hApply_isScottContinuous_H _ t))
+    (theorem_1_3 (funOf_isScottContinuous inleftC)
+      (theorem_1_3 predSet_isScottContinuous
+        (theorem_1_3 (funOf_isScottContinuous outC)
+          (hApply_isScottContinuous_H _ t))))
+    (const_isScottContinuous botElem)
+
+theorem hCond_isScottContinuous_H (e t : Pomega) :
+    IsScottContinuous (fun H => hCond H e t) :=
+  theorem_1_3 (funOf_isScottContinuous lambR)
+    (continuous_nary
+      (fun y z => condSet_isScottContinuous_left y z)
+      (fun x z => condSet_isScottContinuous_mid x z)
+      (fun x y => condSet_isScottContinuous_right x y)
+      (theorem_1_3 (funOf_isScottContinuous whichC)
+        (hApply_isScottContinuous_H _ t))
+      (continuous_nary
+        (fun y z => condSet_isScottContinuous_left y z)
+        (fun x z => condSet_isScottContinuous_mid x z)
+        (fun x y => condSet_isScottContinuous_right x y)
+        (theorem_1_3 (funOf_isScottContinuous outC)
+          (hApply_isScottContinuous_H _ t))
+        (hApply_isScottContinuous_H _ t)
+        (hApply_isScottContinuous_H _ t))
+      (hApply_isScottContinuous_H _ t))
+
+theorem hApp_isScottContinuous_H (e t : Pomega) :
+    IsScottContinuous (fun H => hApp H e t) :=
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (theorem_1_3 (funOf_isScottContinuous whichC)
+      (hApply_isScottContinuous_H _ t))
+    (const_isScottContinuous botElem)
+    (continuous_tuple
+      (fun y => funOf_isScottContinuous_left y)
+      (fun u => funOf_isScottContinuous u)
+      (theorem_1_3 (funOf_isScottContinuous outC)
+        (hApply_isScottContinuous_H _ t))
+      (hApply_isScottContinuous_H _ t))
+
+theorem hLam_isScottContinuous_H (e t : Pomega) :
+    IsScottContinuous (fun H => hLam H e t) :=
+  theorem_1_3 (funOf_isScottContinuous inrightC)
+    (graph_const_isScottContinuous
+      (fun H x =>
+        hApply H (funOf (expPayload e) (ofNat 1))
+          (updateEnvUnion t x (funOf (expPayload e) (ofNat 0))))
+      (fun _ => hApply_isScottContinuous_H _ _))
+
+theorem Hstep_isScottContinuous_H (e t : Pomega) :
+    IsScottContinuous (fun H => Hstep H e t) :=
+  continuous_nary
+    (fun y z => dcondSet_isScottContinuous_left y z)
+    (fun x z => dcondSet_isScottContinuous_mid x z)
+    (fun x y => dcondSet_isScottContinuous_right x y)
+    (const_isScottContinuous (expTag e)) (const_isScottContinuous (hVar e t))
+    (continuous_nary
+      (fun y z => dcondSet_isScottContinuous_left y z)
+      (fun x z => dcondSet_isScottContinuous_mid x z)
+      (fun x y => dcondSet_isScottContinuous_right x y)
+      (const_isScottContinuous (predSet (expTag e)))
+      (const_isScottContinuous hZero)
+      (continuous_nary
+        (fun y z => dcondSet_isScottContinuous_left y z)
+        (fun x z => dcondSet_isScottContinuous_mid x z)
+        (fun x y => dcondSet_isScottContinuous_right x y)
+        (const_isScottContinuous (predSet (predSet (expTag e))))
+        (hSucc_isScottContinuous_H e t)
+        (continuous_nary
+          (fun y z => dcondSet_isScottContinuous_left y z)
+          (fun x z => dcondSet_isScottContinuous_mid x z)
+          (fun x y => dcondSet_isScottContinuous_right x y)
+          (const_isScottContinuous (predSet^[3] (expTag e)))
+          (hPred_isScottContinuous_H e t)
+          (continuous_nary
+            (fun y z => dcondSet_isScottContinuous_left y z)
+            (fun x z => dcondSet_isScottContinuous_mid x z)
+            (fun x y => dcondSet_isScottContinuous_right x y)
+            (const_isScottContinuous (predSet^[4] (expTag e)))
+            (hCond_isScottContinuous_H e t)
+            (continuous_nary
+              (fun y z => dcondSet_isScottContinuous_left y z)
+              (fun x z => dcondSet_isScottContinuous_mid x z)
+              (fun x y => dcondSet_isScottContinuous_right x y)
+              (const_isScottContinuous (predSet^[5] (expTag e)))
+              (hApp_isScottContinuous_H e t)
+              (continuous_nary
+                (fun y z => dcondSet_isScottContinuous_left y z)
+                (fun x z => dcondSet_isScottContinuous_mid x z)
+                (fun x y => dcondSet_isScottContinuous_right x y)
+                (const_isScottContinuous (predSet^[6] (expTag e)))
+                (hLam_isScottContinuous_H e t)
+                (const_isScottContinuous topElem)))))))
+
+/-- **Scott 1976, (4.45).** Continuous operator whose least fixed point is
+the syntax-directed interpreter. -/
+def HF (H : Pomega) : Pomega :=
+  graph (fun e => graph (fun t => Hstep H e t))
+
+theorem hVar_isScottContinuous_t (e : Pomega) :
+    IsScottContinuous (fun t => hVar e t) :=
+  funOf_isScottContinuous_left (expPayload e)
+
+theorem hSucc_isScottContinuous_t (H e : Pomega) :
+    IsScottContinuous (fun t => hSucc H e t) :=
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (theorem_1_3 (f := funOf whichC) (g := fun t => hApply H (expPayload e) t)
+      (funOf_isScottContinuous whichC)
+      (funOf_isScottContinuous (funOf H (expPayload e))))
+    (theorem_1_3 (f := funOf inleftC)
+      (g := fun t => succSet (funOf outC (hApply H (expPayload e) t)))
+      (funOf_isScottContinuous inleftC)
+      (theorem_1_3 (f := succSet)
+        (g := fun t => funOf outC (hApply H (expPayload e) t))
+        succSet_isScottContinuous
+        (theorem_1_3 (f := funOf outC) (g := fun t => hApply H (expPayload e) t)
+          (funOf_isScottContinuous outC)
+          (funOf_isScottContinuous (funOf H (expPayload e))))))
+    (const_isScottContinuous botElem)
+
+theorem hPred_isScottContinuous_t (H e : Pomega) :
+    IsScottContinuous (fun t => hPred H e t) :=
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (theorem_1_3 (f := funOf whichC) (g := fun t => hApply H (expPayload e) t)
+      (funOf_isScottContinuous whichC)
+      (funOf_isScottContinuous (funOf H (expPayload e))))
+    (theorem_1_3 (f := funOf inleftC)
+      (g := fun t => predSet (funOf outC (hApply H (expPayload e) t)))
+      (funOf_isScottContinuous inleftC)
+      (theorem_1_3 (f := predSet)
+        (g := fun t => funOf outC (hApply H (expPayload e) t))
+        predSet_isScottContinuous
+        (theorem_1_3 (f := funOf outC) (g := fun t => hApply H (expPayload e) t)
+          (funOf_isScottContinuous outC)
+          (funOf_isScottContinuous (funOf H (expPayload e))))))
+    (const_isScottContinuous botElem)
+
+theorem hCond_isScottContinuous_t (H e : Pomega) :
+    IsScottContinuous (fun t => hCond H e t) :=
+  theorem_1_3 (f := funOf lambR)
+    (g := fun t =>
+      condSet (funOf whichC (hApply H (funOf (expPayload e) (ofNat 0)) t))
+        (condSet (funOf outC (hApply H (funOf (expPayload e) (ofNat 0)) t))
+          (hApply H (funOf (expPayload e) (ofNat 1)) t)
+          (hApply H (funOf (expPayload e) (ofNat 2)) t))
+        (hApply H (funOf (expPayload e) (ofNat 3)) t))
+    (funOf_isScottContinuous lambR)
+    (continuous_nary
+      (fun y z => condSet_isScottContinuous_left y z)
+      (fun x z => condSet_isScottContinuous_mid x z)
+      (fun x y => condSet_isScottContinuous_right x y)
+      (theorem_1_3 (f := funOf whichC)
+        (g := fun t => hApply H (funOf (expPayload e) (ofNat 0)) t)
+        (funOf_isScottContinuous whichC)
+        (funOf_isScottContinuous (funOf H (funOf (expPayload e) (ofNat 0)))))
+      (continuous_nary
+        (fun y z => condSet_isScottContinuous_left y z)
+        (fun x z => condSet_isScottContinuous_mid x z)
+        (fun x y => condSet_isScottContinuous_right x y)
+        (theorem_1_3 (f := funOf outC)
+          (g := fun t => hApply H (funOf (expPayload e) (ofNat 0)) t)
+          (funOf_isScottContinuous outC)
+          (funOf_isScottContinuous (funOf H (funOf (expPayload e) (ofNat 0)))))
+        (funOf_isScottContinuous (funOf H (funOf (expPayload e) (ofNat 1))))
+        (funOf_isScottContinuous (funOf H (funOf (expPayload e) (ofNat 2)))))
+      (funOf_isScottContinuous (funOf H (funOf (expPayload e) (ofNat 3)))))
+
+theorem hApp_isScottContinuous_t (H e : Pomega) :
+    IsScottContinuous (fun t => hApp H e t) :=
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (theorem_1_3 (f := funOf whichC)
+      (g := fun t => hApply H (funOf (expPayload e) (ofNat 0)) t)
+      (funOf_isScottContinuous whichC)
+      (funOf_isScottContinuous (funOf H (funOf (expPayload e) (ofNat 0)))))
+    (const_isScottContinuous botElem)
+    (continuous_tuple
+      (fun y => funOf_isScottContinuous_left y)
+      (fun u => funOf_isScottContinuous u)
+      (theorem_1_3 (f := funOf outC)
+        (g := fun t => hApply H (funOf (expPayload e) (ofNat 0)) t)
+        (funOf_isScottContinuous outC)
+        (funOf_isScottContinuous (funOf H (funOf (expPayload e) (ofNat 0)))))
+      (funOf_isScottContinuous (funOf H (funOf (expPayload e) (ofNat 1)))))
+
+theorem hLam_isScottContinuous_t (H e : Pomega) :
+    IsScottContinuous (fun t => hLam H e t) :=
+  theorem_1_3 (f := funOf inrightC)
+    (g := fun t =>
+      graph (fun x =>
+        hApply H (funOf (expPayload e) (ofNat 1))
+          (updateEnvUnion t x (funOf (expPayload e) (ofNat 0)))))
+    (funOf_isScottContinuous inrightC)
+    (graph_const_isScottContinuous
+      (fun t x =>
+        hApply H (funOf (expPayload e) (ofNat 1))
+          (updateEnvUnion t x (funOf (expPayload e) (ofNat 0))))
+      (fun x =>
+        theorem_1_3
+          (f := funOf (funOf H (funOf (expPayload e) (ofNat 1))))
+          (g := fun t => updateEnvUnion t x (funOf (expPayload e) (ofNat 0)))
+          (funOf_isScottContinuous (funOf H (funOf (expPayload e) (ofNat 1))))
+          (updateEnvUnion_isScottContinuous_t x
+            (funOf (expPayload e) (ofNat 0)))))
+
+theorem Hstep_isScottContinuous_t (H e : Pomega) :
+    IsScottContinuous (fun t => Hstep H e t) :=
+  continuous_nary
+    (fun y z => dcondSet_isScottContinuous_left y z)
+    (fun x z => dcondSet_isScottContinuous_mid x z)
+    (fun x y => dcondSet_isScottContinuous_right x y)
+    (const_isScottContinuous (expTag e))
+    (hVar_isScottContinuous_t e)
+    (continuous_nary
+      (fun y z => dcondSet_isScottContinuous_left y z)
+      (fun x z => dcondSet_isScottContinuous_mid x z)
+      (fun x y => dcondSet_isScottContinuous_right x y)
+      (const_isScottContinuous (predSet (expTag e)))
+      (const_isScottContinuous hZero)
+      (continuous_nary
+        (fun y z => dcondSet_isScottContinuous_left y z)
+        (fun x z => dcondSet_isScottContinuous_mid x z)
+        (fun x y => dcondSet_isScottContinuous_right x y)
+        (const_isScottContinuous (predSet (predSet (expTag e))))
+        (hSucc_isScottContinuous_t H e)
+        (continuous_nary
+          (fun y z => dcondSet_isScottContinuous_left y z)
+          (fun x z => dcondSet_isScottContinuous_mid x z)
+          (fun x y => dcondSet_isScottContinuous_right x y)
+          (const_isScottContinuous (predSet^[3] (expTag e)))
+          (hPred_isScottContinuous_t H e)
+          (continuous_nary
+            (fun y z => dcondSet_isScottContinuous_left y z)
+            (fun x z => dcondSet_isScottContinuous_mid x z)
+            (fun x y => dcondSet_isScottContinuous_right x y)
+            (const_isScottContinuous (predSet^[4] (expTag e)))
+            (hCond_isScottContinuous_t H e)
+            (continuous_nary
+              (fun y z => dcondSet_isScottContinuous_left y z)
+              (fun x z => dcondSet_isScottContinuous_mid x z)
+              (fun x y => dcondSet_isScottContinuous_right x y)
+              (const_isScottContinuous (predSet^[5] (expTag e)))
+              (hApp_isScottContinuous_t H e)
+              (continuous_nary
+                (fun y z => dcondSet_isScottContinuous_left y z)
+                (fun x z => dcondSet_isScottContinuous_mid x z)
+                (fun x y => dcondSet_isScottContinuous_right x y)
+                (const_isScottContinuous (predSet^[6] (expTag e)))
+                (hLam_isScottContinuous_t H e)
+                (const_isScottContinuous topElem)))))))
+
+theorem hApply_isScottContinuous_e (H t : Pomega) :
+    IsScottContinuous (fun e => hApply H e t) :=
+  theorem_1_3 (f := fun u => funOf u t) (g := funOf H)
+    (funOf_isScottContinuous_left t) (funOf_isScottContinuous H)
+
+theorem hVar_isScottContinuous_e (t : Pomega) :
+    IsScottContinuous (fun e => hVar e t) :=
+  theorem_1_3 (f := funOf t) (g := expPayload)
+    (funOf_isScottContinuous t) (funOf_isScottContinuous_left (ofNat 1))
+
+theorem predSet_iterate_expTag_isScottContinuous (k : ℕ) :
+    IsScottContinuous (fun e => predSet^[k] (expTag e)) := by
+  induction k with
+  | zero => exact funOf_isScottContinuous_left (ofNat 0)
+  | succ k ih =>
+    have h := theorem_1_3 (f := predSet)
+      (g := fun e => predSet^[k] (expTag e))
+      predSet_isScottContinuous ih
+    convert h using 1
+    funext e
+    exact Function.iterate_succ_apply' predSet k (expTag e)
+
+theorem hApply_payload_isScottContinuous_e (H t : Pomega) (i : ℕ) :
+    IsScottContinuous (fun e =>
+      hApply H (funOf (expPayload e) (ofNat i)) t) :=
+  theorem_1_3 (f := fun e => hApply H e t)
+    (g := fun e => funOf (expPayload e) (ofNat i))
+    (hApply_isScottContinuous_e H t)
+    (theorem_1_3 (f := fun u => funOf u (ofNat i)) (g := expPayload)
+      (funOf_isScottContinuous_left (ofNat i))
+      (funOf_isScottContinuous_left (ofNat 1)))
+
+theorem hSucc_isScottContinuous_e (H t : Pomega) :
+    IsScottContinuous (fun e => hSucc H e t) :=
+  let hrec :=
+    theorem_1_3 (f := fun e => hApply H e t) (g := expPayload)
+      (hApply_isScottContinuous_e H t)
+      (funOf_isScottContinuous_left (ofNat 1))
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (theorem_1_3 (f := funOf whichC) (g := fun e => hApply H (expPayload e) t)
+      (funOf_isScottContinuous whichC) hrec)
+    (theorem_1_3 (f := funOf inleftC)
+      (g := fun e => succSet (funOf outC (hApply H (expPayload e) t)))
+      (funOf_isScottContinuous inleftC)
+      (theorem_1_3 (f := succSet)
+        (g := fun e => funOf outC (hApply H (expPayload e) t))
+        succSet_isScottContinuous
+        (theorem_1_3 (f := funOf outC) (g := fun e => hApply H (expPayload e) t)
+          (funOf_isScottContinuous outC) hrec)))
+    (const_isScottContinuous botElem)
+
+theorem hPred_isScottContinuous_e (H t : Pomega) :
+    IsScottContinuous (fun e => hPred H e t) :=
+  let hrec :=
+    theorem_1_3 (f := fun e => hApply H e t) (g := expPayload)
+      (hApply_isScottContinuous_e H t)
+      (funOf_isScottContinuous_left (ofNat 1))
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (theorem_1_3 (f := funOf whichC) (g := fun e => hApply H (expPayload e) t)
+      (funOf_isScottContinuous whichC) hrec)
+    (theorem_1_3 (f := funOf inleftC)
+      (g := fun e => predSet (funOf outC (hApply H (expPayload e) t)))
+      (funOf_isScottContinuous inleftC)
+      (theorem_1_3 (f := predSet)
+        (g := fun e => funOf outC (hApply H (expPayload e) t))
+        predSet_isScottContinuous
+        (theorem_1_3 (f := funOf outC) (g := fun e => hApply H (expPayload e) t)
+          (funOf_isScottContinuous outC) hrec)))
+    (const_isScottContinuous botElem)
+
+theorem hCond_isScottContinuous_e (H t : Pomega) :
+    IsScottContinuous (fun e => hCond H e t) :=
+  theorem_1_3 (f := funOf lambR)
+    (g := fun e =>
+      condSet (funOf whichC (hApply H (funOf (expPayload e) (ofNat 0)) t))
+        (condSet (funOf outC (hApply H (funOf (expPayload e) (ofNat 0)) t))
+          (hApply H (funOf (expPayload e) (ofNat 1)) t)
+          (hApply H (funOf (expPayload e) (ofNat 2)) t))
+        (hApply H (funOf (expPayload e) (ofNat 3)) t))
+    (funOf_isScottContinuous lambR)
+    (continuous_nary
+      (fun y z => condSet_isScottContinuous_left y z)
+      (fun x z => condSet_isScottContinuous_mid x z)
+      (fun x y => condSet_isScottContinuous_right x y)
+      (theorem_1_3 (f := funOf whichC)
+        (g := fun e => hApply H (funOf (expPayload e) (ofNat 0)) t)
+        (funOf_isScottContinuous whichC)
+        (hApply_payload_isScottContinuous_e H t 0))
+      (continuous_nary
+        (fun y z => condSet_isScottContinuous_left y z)
+        (fun x z => condSet_isScottContinuous_mid x z)
+        (fun x y => condSet_isScottContinuous_right x y)
+        (theorem_1_3 (f := funOf outC)
+          (g := fun e => hApply H (funOf (expPayload e) (ofNat 0)) t)
+          (funOf_isScottContinuous outC)
+          (hApply_payload_isScottContinuous_e H t 0))
+        (hApply_payload_isScottContinuous_e H t 1)
+        (hApply_payload_isScottContinuous_e H t 2))
+      (hApply_payload_isScottContinuous_e H t 3))
+
+theorem hApp_isScottContinuous_e (H t : Pomega) :
+    IsScottContinuous (fun e => hApp H e t) :=
+  continuous_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    (theorem_1_3 (f := funOf whichC)
+      (g := fun e => hApply H (funOf (expPayload e) (ofNat 0)) t)
+      (funOf_isScottContinuous whichC)
+      (hApply_payload_isScottContinuous_e H t 0))
+    (const_isScottContinuous botElem)
+    (continuous_tuple
+      (fun y => funOf_isScottContinuous_left y)
+      (fun u => funOf_isScottContinuous u)
+      (theorem_1_3 (f := funOf outC)
+        (g := fun e => hApply H (funOf (expPayload e) (ofNat 0)) t)
+        (funOf_isScottContinuous outC)
+        (hApply_payload_isScottContinuous_e H t 0))
+      (hApply_payload_isScottContinuous_e H t 1))
+
+theorem hLam_isScottContinuous_e (H t : Pomega) :
+    IsScottContinuous (fun e => hLam H e t) :=
+  theorem_1_3 (f := funOf inrightC)
+    (g := fun e =>
+      graph (fun x =>
+        hApply H (funOf (expPayload e) (ofNat 1))
+          (updateEnvUnion t x (funOf (expPayload e) (ofNat 0)))))
+    (funOf_isScottContinuous inrightC)
+    (graph_const_isScottContinuous
+      (fun e x =>
+        hApply H (funOf (expPayload e) (ofNat 1))
+          (updateEnvUnion t x (funOf (expPayload e) (ofNat 0))))
+      (fun x =>
+        continuous_tuple
+          (fun y =>
+            theorem_1_3 (f := fun u => funOf u y) (g := funOf H)
+              (funOf_isScottContinuous_left y) (funOf_isScottContinuous H))
+          (fun u => funOf_isScottContinuous (funOf H u))
+          (theorem_1_3 (f := fun u => funOf u (ofNat 1)) (g := expPayload)
+            (funOf_isScottContinuous_left (ofNat 1))
+            (funOf_isScottContinuous_left (ofNat 1)))
+          (theorem_1_3 (f := updateEnvUnion t x)
+            (g := fun e => funOf (expPayload e) (ofNat 0))
+            (updateEnvUnion_isScottContinuous_idx t x)
+            (theorem_1_3 (f := fun u => funOf u (ofNat 0)) (g := expPayload)
+              (funOf_isScottContinuous_left (ofNat 0))
+              (funOf_isScottContinuous_left (ofNat 1))))))
+
+theorem Hstep_isScottContinuous_e (H t : Pomega) :
+    IsScottContinuous (fun e => Hstep H e t) :=
+  continuous_nary
+    (fun y z => dcondSet_isScottContinuous_left y z)
+    (fun x z => dcondSet_isScottContinuous_mid x z)
+    (fun x y => dcondSet_isScottContinuous_right x y)
+    (funOf_isScottContinuous_left (ofNat 0))
+    (hVar_isScottContinuous_e t)
+    (continuous_nary
+      (fun y z => dcondSet_isScottContinuous_left y z)
+      (fun x z => dcondSet_isScottContinuous_mid x z)
+      (fun x y => dcondSet_isScottContinuous_right x y)
+      (predSet_iterate_expTag_isScottContinuous 1)
+      (const_isScottContinuous hZero)
+      (continuous_nary
+        (fun y z => dcondSet_isScottContinuous_left y z)
+        (fun x z => dcondSet_isScottContinuous_mid x z)
+        (fun x y => dcondSet_isScottContinuous_right x y)
+        (predSet_iterate_expTag_isScottContinuous 2)
+        (hSucc_isScottContinuous_e H t)
+        (continuous_nary
+          (fun y z => dcondSet_isScottContinuous_left y z)
+          (fun x z => dcondSet_isScottContinuous_mid x z)
+          (fun x y => dcondSet_isScottContinuous_right x y)
+          (predSet_iterate_expTag_isScottContinuous 3)
+          (hPred_isScottContinuous_e H t)
+          (continuous_nary
+            (fun y z => dcondSet_isScottContinuous_left y z)
+            (fun x z => dcondSet_isScottContinuous_mid x z)
+            (fun x y => dcondSet_isScottContinuous_right x y)
+            (predSet_iterate_expTag_isScottContinuous 4)
+            (hCond_isScottContinuous_e H t)
+            (continuous_nary
+              (fun y z => dcondSet_isScottContinuous_left y z)
+              (fun x z => dcondSet_isScottContinuous_mid x z)
+              (fun x y => dcondSet_isScottContinuous_right x y)
+              (predSet_iterate_expTag_isScottContinuous 5)
+              (hApp_isScottContinuous_e H t)
+              (continuous_nary
+                (fun y z => dcondSet_isScottContinuous_left y z)
+                (fun x z => dcondSet_isScottContinuous_mid x z)
+                (fun x y => dcondSet_isScottContinuous_right x y)
+                (predSet_iterate_expTag_isScottContinuous 6)
+                (hLam_isScottContinuous_e H t)
+                (const_isScottContinuous topElem)))))))
+
+theorem HF_inner_isScottContinuous (H : Pomega) :
+    IsScottContinuous (fun e => graph (fun t => Hstep H e t)) :=
+  graph_const_isScottContinuous (fun e t => Hstep H e t)
+    (fun t => Hstep_isScottContinuous_e H t)
+
+theorem HF_isScottContinuous : IsScottContinuous HF :=
+  graph_const_isScottContinuous
+    (fun H e => graph (fun t => Hstep H e t))
+    (fun e => graph_const_isScottContinuous (fun H t => Hstep H e t)
+      (fun t => Hstep_isScottContinuous_H e t))
+
+theorem HF_app (H e : Pomega) :
+    funOf (HF H) e = graph (fun t => Hstep H e t) :=
+  beta (HF_inner_isScottContinuous H) e
+
+theorem HF_app2 (H e t : Pomega) :
+    funOf (funOf (HF H) e) t = Hstep H e t := by
+  rw [HF_app]
+  exact beta (Hstep_isScottContinuous_t H e) t
+
+/-- Raw least fixed point of the (4.43) operator. -/
+def Hfun : Pomega := fix HF
+
+theorem Hfun_fixed : HF Hfun = Hfun :=
+  (theorem_1_4 HF_isScottContinuous).1
+
+theorem Hfun_app2 (e t : Pomega) :
+    funOf (funOf Hfun e) t = Hstep Hfun e t := by
+  have h := congrArg (fun H => funOf (funOf H e) t) Hfun_fixed
+  simpa [HF_app2] using h.symm
+
+theorem Hstep_tag0 (H x t : Pomega) :
+    Hstep H (tagInj 0 x) t = funOf t x := by
+  simp only [Hstep, expTag, expPayload, hVar, tagInj_zero, tagInj_one,
+    dcondSet_ofNat_zero]
+
+theorem Hstep_tag1 (H x t : Pomega) :
+    Hstep H (tagInj 1 x) t = hZero := by
+  simp only [Hstep, expTag, tagInj_zero, predSet_ofNat_succ,
+    dcondSet_ofNat_one, dcondSet_ofNat_zero]
+
+theorem Hstep_tag2 (H x t : Pomega) :
+    Hstep H (tagInj 2 x) t = hSucc H (tagInj 2 x) t := by
+  simp only [Hstep, expTag, tagInj_zero, predSet_ofNat_succ,
+    dcondSet_ofNat_succ, dcondSet_ofNat_zero]
+
+theorem Hstep_tag3 (H x t : Pomega) :
+    Hstep H (tagInj 3 x) t = hPred H (tagInj 3 x) t := by
+  simp only [Hstep, expTag, tagInj_zero, dcondSet_ofNat_succ,
+    predSet_ofNat_succ, predSet_iterate_self,
+    dcondSet_ofNat_zero]
+
+theorem Hstep_tag4 (H x t : Pomega) :
+    Hstep H (tagInj 4 x) t = hCond H (tagInj 4 x) t := by
+  simp only [Hstep, expTag, tagInj_zero, dcondSet_ofNat_succ,
+    predSet_ofNat_succ, predSet_iterate_ofNat (k := 3) (i := 1),
+    predSet_iterate_self, dcondSet_ofNat_zero]
+
+theorem Hstep_tag5 (H x t : Pomega) :
+    Hstep H (tagInj 5 x) t = hApp H (tagInj 5 x) t := by
+  simp only [Hstep, expTag, tagInj_zero, dcondSet_ofNat_succ,
+    predSet_ofNat_succ, predSet_iterate_ofNat (k := 3) (i := 2),
+    predSet_iterate_ofNat (k := 4) (i := 1),
+    predSet_iterate_self, dcondSet_ofNat_zero]
+
+theorem Hstep_tag6 (H x t : Pomega) :
+    Hstep H (tagInj 6 x) t = hLam H (tagInj 6 x) t := by
+  simp only [Hstep, expTag, tagInj_zero, dcondSet_ofNat_succ,
+    predSet_ofNat_succ, predSet_iterate_ofNat (k := 3) (i := 3),
+    predSet_iterate_ofNat (k := 4) (i := 2),
+    predSet_iterate_ofNat (k := 5) (i := 1),
+    predSet_iterate_self, dcondSet_ofNat_zero]
+
+theorem Hfun_interp : ∀ τ : LambTerm, ∀ t : Pomega,
+    funOf (funOf Hfun (encodeExp τ)) t = Hinterp τ t := by
+  intro τ
+  induction τ with
+  | var n =>
+    intro t
+    rw [Hfun_app2, encodeExp, Hstep_tag0]
+    rfl
+  | zero =>
+    intro t
+    rw [Hfun_app2, encodeExp, Hstep_tag1]
+    rfl
+  | succ τ ih =>
+    intro t
+    rw [Hfun_app2, encodeExp, Hstep_tag2]
+    simp only [hSucc, hApply, expPayload, tagInj_one]
+    rw [ih]
+    rfl
+  | pred τ ih =>
+    intro t
+    rw [Hfun_app2, encodeExp, Hstep_tag3]
+    simp only [hPred, hApply, expPayload, tagInj_one]
+    rw [ih]
+    rfl
+  | condq θ τ σ ρ ihθ ihτ ihσ ihρ =>
+    intro t
+    rw [Hfun_app2, encodeExp, Hstep_tag4]
+    simp only [hCond, hApply, expPayload, tagInj_one, seq4_app_zero,
+      seq4_app_one, seq4_app_two, seq4_app_three]
+    rw [ihθ, ihτ, ihσ, ihρ]
+    rfl
+  | app τ σ ihτ ihσ =>
+    intro t
+    rw [Hfun_app2, encodeExp, Hstep_tag5]
+    simp only [hApp, hApply, expPayload, tagInj_one, pairSeq_app_zero,
+      pairSeq_app_one]
+    rw [ihτ, ihσ]
+    rfl
+  | lam n τ ih =>
+    intro t
+    rw [Hfun_app2, encodeExp, Hstep_tag6]
+    simp only [hLam, hApply, expPayload, tagInj_one, pairSeq_app_zero,
+      pairSeq_app_one, updateEnvUnion_ofNat]
+    congr 1
+    apply congrArg graph
+    funext x
+    exact ih _
+
+theorem Hfun_decode (τ : LambTerm) :
+    funOf Hfun (encodeExp τ) = graph (Hinterp τ) := by
+  have hβ : funOf Hfun (encodeExp τ) = graph (fun t => Hstep Hfun (encodeExp τ) t) := by
+    have := congrArg (fun H => funOf H (encodeExp τ)) Hfun_fixed
+    simpa [HF_app] using this.symm
+  refine hβ.trans ?_
+  apply congrArg graph
+  funext t
+  simpa [Hfun_app2] using Hfun_interp τ t
+
+/-- **Scott 1976, (4.45).** `ℋ : exp → (env → lamb)`, the retract of the
+least fixed point of the syntax-directed continuous operator. -/
 def Hcomb : Pomega :=
-  funOf (arrowR expR (arrowR envR lambR)) Hpre
+  funOf (arrowR expR (arrowR envR lambR)) Hfun
 
 theorem Hcomb_typed :
     typed Hcomb (arrowR expR (arrowR envR lambR)) :=
   typed_apply_retract
     (arrowR_isRetract expR_isRetract
       (arrowR_isRetract envR_isRetract lambR_isRetract))
+
+theorem Hcomb_app (e : Pomega) :
+    funOf Hcomb e =
+      funOf (arrowR envR lambR) (funOf Hfun (funOf expR e)) := by
+  rw [Hcomb, arrowR_app]
+  simp only [comp_app]
+
+/-- **Scott 1976, (4.45).** Encoded terms live in `exp`, `ℋ⟦τ⟧` is typed
+`env → lamb`, and the continuous `ℋ` decodes `encodeExp τ` to `ℋ⟦τ⟧`. -/
+theorem eq_4_45 (τ : LambTerm) :
+    typed (encodeExp τ) expR ∧
+      typed (Htyped τ) (arrowR envR lambR) ∧
+        funOf Hcomb (encodeExp τ) = Htyped τ := by
+  refine ⟨encodeExp_typed τ, Htyped_typed τ, ?_⟩
+  rw [Hcomb_app, ← encodeExp_typed τ, Hfun_decode]
+  rfl
+
+theorem Hcomb_decode (τ : LambTerm) :
+    funOf Hcomb (encodeExp τ) = Htyped τ :=
+  (eq_4_45 τ).2.2

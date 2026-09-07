@@ -7,9 +7,11 @@ Lean 4 formalization of Dana Scott's **1976** *Data Types as Lattices*
 (Technical Monograph PRG-5; SIAM J. Comput. 5 (1976), 522–587).
 
 The library is a 1:1 onto translation of the numbered definitions, theorems,
-displayed equations, and Tables 1–3. Palomar Challenge / Solution name every
-numbered theorem from §§1–7, and lock the paper's core definitions, so a
-Comparator match requires that whole development.
+displayed equations, and Tables 1–3, including the continuous decoder
+$\mathcal{H}$ of (4.45). Palomar Challenge / Solution name every numbered
+theorem from §§1–7, and lock the paper's core definitions, so a Comparator
+match requires that whole development. The remaining paper-accurate note is
+that Theorem 5.4's sum `⊞` is a retract, not a closure.
 
 Standalone package — no dependency on the 1972/1980/1982 formalizations.
 Cross-presentation equivalence theorems live in [`scott_models`](../scott_models);
@@ -29,7 +31,8 @@ Original Lean and author-written docs are Apache-2.0. Scott's monograph PDF
 
 | File | Role |
 |---|---|
-| `arxiv.md` | Formalization narrative and theorem inventory |
+| `arxiv.md` | Formalization narrative, dependency blueprints, inventory |
+| `arxiv_with_code.md` | Generated review copy + complete Lean appendix (gitignored) |
 | `sources/Data_Types_as_Lattices.pdf` | Primary source PDF (Scott 1976) |
 | `Scott1976/` | Sorry-free core development |
 | `Challenge.lean` | Palomar statement of record |
@@ -56,6 +59,7 @@ Palomar submission, run:
 
 ```bash
 bash scripts/palomar_preflight.sh
+bash scripts/generate_arxiv_with_code.sh   # → arxiv_with_code.md
 ```
 
 ## Source OCR
