@@ -168,11 +168,11 @@ known_gaps:
     the semigroup converse of 3.7. `ū` is packaged as `Y(barStep)`
     and (3.16) follows from that unfolding.
   - >-
-    Section 4: Theorem 4.1 is a complete-lattice fragment; 4.4 has the
-    product mediator and (4.24) `eval`; (4.25) curry typing is open.
-    4.5 has injections and `which` typed (`bool` is a retract); `⊕`
-    is not proved a retract. 4.6 proves `Y(F)` is a retract but not
-    the inverse-limit homeomorphism.
+    Section 4: Theorem 4.1 is a complete-lattice fragment; 4.3–4.4 are
+    packaged including the product mediator and (4.24)–(4.25). 4.5 has
+    injections and `which` typed; `⊕` is not proved a retract. 4.6
+    proves `Y(F)` is a retract but not the inverse-limit homeomorphism.
+    (4.38) unfolds `tree`; `lamb`/`env`/`ℋ`/`vaal` are defined.
   - >-
     Section 5: algebraicity and the representation isomorphism remain
     unfinished. `V` is a closure and `V(a)=a ↔ IsClosure a`. Theorem 5.6

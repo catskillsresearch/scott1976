@@ -672,6 +672,72 @@ theorem eval_curry {a b c f : Pomega}
   rw [hfapp, tensorR_app, pairSeq_app_zero, pairSeq_app_one, retract_app hb]
   rw [hfu, tensorR_app]
 
+/-- **Scott 1976, (4.25).**
+`curry ∘ ((a ⊗ b) ∘→ c) : ((a ⊗ b) ∘→ c) ∘→ (a ∘→ (b ∘→ c))`. -/
+theorem eq_4_25 {a b c : Pomega}
+    (ha : IsRetract a) (hb : IsRetract b) (hc : IsRetract c) :
+    typed (comp curryC (arrowR (tensorR a b) c))
+      (arrowR (arrowR (tensorR a b) c) (arrowR a (arrowR b c))) := by
+  change comp curryC (arrowR (tensorR a b) c) =
+    funOf (arrowR (arrowR (tensorR a b) c) (arrowR a (arrowR b c)))
+      (comp curryC (arrowR (tensorR a b) c))
+  rw [arrowR_app]
+  have harr := arrowR_isRetract (tensorR_isRetract ha hb) hc
+  apply graph_ext
+  intro u
+  simp only [comp_app]
+  rw [retract_app harr]
+  have hL :
+      funOf curryC (funOf (arrowR (tensorR a b) c) u) =
+        graph (fun x => graph (fun y =>
+          funOf c (funOf u (pairSeq (funOf a x) (funOf b y))))) := by
+    rw [curryC_app]
+    apply graph_ext
+    intro x
+    apply graph_ext
+    intro y
+    rw [arrowR_app]
+    simp only [comp_app]
+    rw [tensorR_app, pairSeq_app_zero, pairSeq_app_one]
+  have hR :
+      funOf (arrowR a (arrowR b c))
+        (funOf curryC (funOf (arrowR (tensorR a b) c) u)) =
+        graph (fun x => graph (fun y =>
+          funOf c (funOf u (pairSeq (funOf a x) (funOf b y))))) := by
+    rw [arrowR_app, hL]
+    apply graph_ext
+    intro x
+    simp only [comp_app]
+    have hmid :
+        funOf (graph (fun x => graph (fun y =>
+          funOf c (funOf u (pairSeq (funOf a x) (funOf b y)))))) (funOf a x) =
+          graph (fun y =>
+            funOf c (funOf u (pairSeq (funOf a (funOf a x)) (funOf b y)))) :=
+      beta (graph_const_isScottContinuous
+        (fun x y => funOf c (funOf u (pairSeq (funOf a x) (funOf b y))))
+        (fun y => theorem_1_3 (funOf_isScottContinuous c)
+          (theorem_1_3 (funOf_isScottContinuous u)
+            (theorem_1_3 (f := fun x => pairSeq x (funOf b y))
+              (g := fun x => funOf a x)
+              (pairSeq_isScottContinuous_left (funOf b y))
+              (funOf_isScottContinuous a))))) (funOf a x)
+    rw [hmid, retract_app ha, arrowR_app]
+    apply graph_ext
+    intro y
+    simp only [comp_app]
+    have hbeta :
+        funOf (graph (fun y =>
+          funOf c (funOf u (pairSeq (funOf a x) (funOf b y))))) (funOf b y) =
+          funOf c (funOf u (pairSeq (funOf a x) (funOf b (funOf b y)))) :=
+      beta (theorem_1_3 (funOf_isScottContinuous c)
+        (theorem_1_3 (funOf_isScottContinuous u)
+          (theorem_1_3 (f := fun y => pairSeq (funOf a x) y)
+            (g := fun y => funOf b y)
+            (pairSeq_isScottContinuous_right (funOf a x))
+            (funOf_isScottContinuous b)))) (funOf b y)
+    rw [hbeta, retract_app hb, retract_app hc]
+  exact hL.trans hR.symm
+
 /-- **Scott 1976, (4.28).** Left projection of a tagged sum. -/
 def outleftC : Pomega :=
   graph (fun u => condSet (funOf u (ofNat 0)) (funOf u (ofNat 1)) botElem)
@@ -1482,5 +1548,91 @@ theorem eq_7_18_ne (j j' m : ℕ) (hne : j ≠ j') :
           sigmaJ_app _ _
       _ = sigmaJ j botElem := by rw [ih]
       _ = botElem := sigmaJ_bot j
+
+theorem tensorR_diag_isScottContinuous :
+    IsScottContinuous (fun z => tensorR z z) :=
+  graph_const_isScottContinuous
+    (fun z u =>
+      pairSeq (funOf z (funOf u (ofNat 0))) (funOf z (funOf u (ofNat 1))))
+    (fun u =>
+      continuous_tuple
+        (fun y => pairSeq_isScottContinuous_left y)
+        (fun x => pairSeq_isScottContinuous_right x)
+        (funOf_isScottContinuous_left (funOf u (ofNat 0)))
+        (funOf_isScottContinuous_left (funOf u (ofNat 1))))
+
+theorem plusR_right_isScottContinuous (a : Pomega) :
+    IsScottContinuous (fun b => plusR a b) :=
+  graph_const_isScottContinuous
+    (fun b u =>
+      condSet (funOf u (ofNat 0))
+        (pairSeq (ofNat 0) (funOf a (funOf u (ofNat 1))))
+        (pairSeq (ofNat 1) (funOf b (funOf u (ofNat 1)))))
+    (fun u =>
+      theorem_1_3 (condSet_isScottContinuous_right
+          (funOf u (ofNat 0))
+          (pairSeq (ofNat 0) (funOf a (funOf u (ofNat 1)))))
+        (theorem_1_3 (pairSeq_isScottContinuous_right (ofNat 1))
+          (funOf_isScottContinuous_left (funOf u (ofNat 1)))))
+
+theorem treeF_isScottContinuous : IsScottContinuous treeF :=
+  theorem_1_3 (f := fun b => plusR botElem b) (g := fun z => tensorR z z)
+    (plusR_right_isScottContinuous botElem)
+    tensorR_diag_isScottContinuous
+
+/-- **Scott 1976, (4.38).** `tree = nil ⊕ (tree ⊗ tree)`. -/
+theorem eq_4_38 : treeR = plusR botElem (tensorR treeR treeR) := by
+  have hY : treeR = fix treeF := theorem_2_5 treeF_isScottContinuous
+  have hfix : treeF treeR = treeR := by
+    rw [hY]
+    exact (theorem_1_4 treeF_isScottContinuous).1
+  exact hfix.symm
+
+theorem typed_bot_bot : typed botElem botElem := by
+  change botElem = funOf botElem botElem
+  rw [funOf_bot]
+
+/-- **Scott 1976, after (4.38).** The atom `⟨0⟩ : tree`. -/
+theorem tree_atom : typed (pairSeq (ofNat 0) botElem) treeR := by
+  rw [eq_4_38]
+  exact plusR_typed_inl typed_bot_bot
+
+/-- **Scott 1976, after (4.38).** Binary trees are in `tree`. -/
+theorem tree_node {x y : Pomega} (hx : typed x treeR) (hy : typed y treeR) :
+    typed (pairSeq (ofNat 1) (pairSeq x y)) treeR := by
+  rw [eq_4_38]
+  exact plusR_typed_inr ((typed_pairSeq_tensorR treeR treeR x y).mpr ⟨hx, hy⟩)
+
+/-- **Scott 1976, (4.43).** Modified LAMBDA terms for the `lamb` model. -/
+inductive LambTerm where
+  | var : ℕ → LambTerm
+  | zero : LambTerm
+  | succ : LambTerm → LambTerm
+  | pred : LambTerm → LambTerm
+  | condq : LambTerm → LambTerm → LambTerm → LambTerm → LambTerm
+  | app : LambTerm → LambTerm → LambTerm
+  | lam : ℕ → LambTerm → LambTerm
+
+/-- **Scott 1976, (4.42)–(4.43).** Semantics `ℋ⟦τ⟧ : env → lamb`. -/
+def Hinterp : LambTerm → Pomega → Pomega
+  | .var n, t => funOf t (ofNat n)
+  | .zero, _ => funOf inleftC (ofNat 0)
+  | .succ τ, t =>
+      condSet (funOf whichC (Hinterp τ t))
+        (funOf inleftC (succSet (funOf outC (Hinterp τ t))))
+        botElem
+  | .pred τ, t =>
+      condSet (funOf whichC (Hinterp τ t))
+        (funOf inleftC (predSet (funOf outC (Hinterp τ t))))
+        botElem
+  | .condq θ τ σ ρ, t =>
+      funOf lambR (condSet (funOf whichC (Hinterp θ t))
+        (condSet (funOf outC (Hinterp θ t)) (Hinterp τ t) (Hinterp σ t))
+        (Hinterp ρ t))
+  | .app τ σ, t =>
+      condSet (funOf whichC (Hinterp τ t)) botElem
+        (funOf (funOf outC (Hinterp τ t)) (Hinterp σ t))
+  | .lam n τ, t =>
+      funOf inrightC (graph (fun x => Hinterp τ (updateEnv t x n)))
 
 end Scott1976.DataTypesAsLattices

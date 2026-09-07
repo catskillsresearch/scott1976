@@ -394,6 +394,15 @@ theorem Icomb_isRetract : IsRetract Icomb := by
 theorem Icomb_isClosure : IsClosure Icomb :=
   ⟨subset_rfl, Icomb_isRetract⟩
 
+/-- **Scott 1976, (5.1).** Every set is below its graph, so `fun` is a closure. -/
+theorem Icomb_subset_funRetract : Icomb ⊆ funRetract := by
+  intro p hp
+  rcases hp with ⟨n, m, rfl, hm⟩
+  exact ⟨n, m, rfl, eq_5_1 (e n) hm⟩
+
+theorem funRetract_isClosure : IsClosure funRetract :=
+  ⟨Icomb_subset_funRetract, funRetract_isRetract⟩
+
 theorem union_left_isScottContinuous (c : Pomega) :
     IsScottContinuous (fun x => x ∪ c) := by
   intro x
@@ -586,6 +595,10 @@ theorem Icomb_subset_arrowR {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b)
   have hsub : e n ⊆ comp b (comp (e n) a) := by
     rw [← h3]; exact h1.trans h2
   exact ⟨n, m, rfl, hsub hm⟩
+
+/-- **Scott 1976, (5.2).** `I ⊆ I ∘→ I`. -/
+theorem eq_5_2 : Icomb ⊆ arrowR Icomb Icomb :=
+  Icomb_subset_arrowR Icomb_isClosure Icomb_isClosure
 
 theorem theorem_5_3_closure {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
     IsClosure (arrowR a b) :=

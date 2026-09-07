@@ -44,6 +44,11 @@ def typed (u a : Pomega) : Prop :=
 def funRetract : Pomega :=
   graph (fun u => graph (fun x => funOf u x))
 
+theorem funRetract_app (u : Pomega) :
+    funOf funRetract u = graph (fun x => funOf u x) :=
+  beta (graph_const_isScottContinuous (fun u x => funOf u x)
+    (fun x => funOf_isScottContinuous_left x)) u
+
 /-- **Scott 1976, (4.8).** Function space of retracts `a ∘→ b = λu. b ∘ u ∘ a`. -/
 def arrowR (a b : Pomega) : Pomega :=
   graph (fun u => comp b (comp u a))
@@ -361,6 +366,14 @@ theorem graph_ext {f g : Pomega → Pomega} (h : ∀ x, f x = g x) :
     graph f = graph g := by
   simp [graph, h]
 
+theorem funRetract_isRetract : IsRetract funRetract := by
+  apply graph_ext
+  intro u
+  rw [funRetract_app, funRetract_app]
+  apply graph_ext
+  intro x
+  exact (beta (funOf_isScottContinuous u) x).symm
+
 theorem retract_app {a : Pomega} (ha : IsRetract a) (x : Pomega) :
     funOf a (funOf a x) = funOf a x := by
   have := congrArg (fun u => funOf u x) ha
@@ -597,6 +610,26 @@ def intR : Pomega :=
   graph fun u =>
     condSet u (ofNat 0) (condSet (predSet u) u topElem)
 
+theorem intR_map_isScottContinuous :
+    IsScottContinuous (fun u =>
+      condSet u (ofNat 0) (condSet (predSet u) u topElem)) :=
+  theorem_1_3_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    id_isScottContinuous
+    (const_isScottContinuous (ofNat 0))
+    (theorem_1_3_tuple
+      (fun y => condSet_isScottContinuous_left y topElem)
+      (fun tes => condSet_isScottContinuous_mid tes topElem)
+      predSet_isScottContinuous
+      id_isScottContinuous)
+
+theorem intR_app (u : Pomega) :
+    funOf intR u =
+      condSet u (ofNat 0) (condSet (predSet u) u topElem) :=
+  beta intR_map_isScottContinuous u
+
 /-- **Scott 1976, Theorem 4.4 (ii), pairing form.** A pair-as-function
 projects to its components. -/
 theorem theorem_4_4_ii (x y : Pomega) :
@@ -769,5 +802,18 @@ theorem boolR_isRetract : IsRetract boolR := by
 /-- **Scott 1976, (4.6).** The open-set retract. -/
 def openR : Pomega :=
   graph (fun u => {m | ∃ n, e n ⊆ e m ∧ n ∈ u})
+
+/-- **Scott 1976, (4.39).** `lamb = int ⊕ (lamb ∘→ lamb)`. -/
+def lambF (z : Pomega) : Pomega := plusR intR (arrowR z z)
+
+def lambR : Pomega := funOf Ycomb (graph lambF)
+
+/-- **Scott 1976, (4.40).** `env = λt. lamb ∘ seq(t)`. -/
+def envR : Pomega :=
+  graph (fun t => graph (fun n => funOf lambR (funOf t n)))
+
+/-- **Scott 1976, (4.41).** Environment update `t[x/n]`. -/
+def updateEnv (t x : Pomega) (n : ℕ) : Pomega :=
+  graph (fun m => if m = ofNat n then x else funOf t m)
 
 end Scott1976.DataTypesAsLattices

@@ -106,7 +106,7 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 3.6 | `theorem_3_6`, `theorem_3_6_finite`, `IsSubalgebra`, `singleGenerator` | partial — `Deg a` is a subalgebra; `⟨xs⟩` and `G` lie in `Deg(cond(⟨xs⟩)(G))`; converse `A = Deg(a)` open |
 | `R`,`L` | `Rcomb`, `Lcomb`, `Rcomb_app`, `Lcomb_app` | faithful |
 | (3.15)–(3.17) | `barComb`, `eq_3_15`, `eq_3_16_bar`, `eq_3_16`, `eq_3_17` | partial — `ū` is `Y(barStep)`; (3.16) from the Y-definition; (3.17) still the zero-test packaging |
-| Theorem 3.7 | `theorem_3_7` | partial — generating equations (3.16)(3.17); (3.16) also from `barComb` |
+| Theorem 3.7 | `theorem_3_7` | partial — generating equations (3.16) from `barComb` and (3.17) on the zero-test branch |
 
 ### §4 Retracts
 
@@ -116,18 +116,21 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | (4.1)–(4.10) combinators | `funRetract`, `arrowR`, `tensorR`, `plusR`, … | faithful |
 | Theorem 4.1 | `theorem_4_1`, `theorem_4_1_complete` | partial — complete-lattice fragment on `Fixpoints`; continuous-lattice claim for retract ranges not fully packaged |
 | Theorem 4.2 | `theorem_4_2` | faithful |
-| Theorem 4.3 | `theorem_4_3`, `arrowR_isRetract` | partial — core function-space identities; not every numbered functoriality clause |
-| Theorem 4.4 | `theorem_4_4`, `theorem_4_4_typed`, `theorem_4_4_med`, `theorem_4_4_med_unique`, `tensorR_isRetract`, `tensorR_isStrict`, `tensorR_retractLe`, `tensorR_functor`, `eq_4_12`, `eq_4_17`–`eq_4_21`, `eq_4_24`, `eval_curry` | partial — product retract, mediator existence/uniqueness, CCC `eval`; (4.25) curry typing omitted |
+| Theorem 4.3 | `theorem_4_3`, `arrowR_isRetract` | faithful — (i)–(v) packaged |
+| Theorem 4.4 | `theorem_4_4`, `theorem_4_4_typed`, `theorem_4_4_med`, `theorem_4_4_med_unique`, `tensorR_isRetract`, `tensorR_isStrict`, `tensorR_retractLe`, `tensorR_functor`, `eq_4_12`, `eq_4_17`–`eq_4_21`, `eq_4_24`, `eq_4_25`, `eval_curry` | faithful — product, mediator, CCC `eval`/`curry` |
 | Theorem 4.5 | `theorem_4_5`, `eq_4_32`, `eq_4_33`, `eq_4_36`, `inleftC`, `inrightC`, `outleftC`, `outrightC`, `whichC`, `outC`, `boolR_isRetract` | partial — strictness at `⊥`; injections and `which` typed; `⊕` is not proved a retract; not the non-unique-coproduct remark |
 | Theorem 4.6 | `theorem_4_6` | partial — `Y(F)` is a retract; inverse-limit homeomorphism omitted |
-| (4.38) `tree` | `treeR` | partial — definition only |
+| (4.38) `tree` | `treeR`, `eq_4_38`, `tree_atom`, `tree_node` | faithful — `tree = nil ⊕ (tree ⊗ tree)`; atom and binary nodes |
+| (4.39)–(4.43) `lamb` | `lambR`, `envR`, `updateEnv`, `LambTerm`, `Hinterp` | partial — data types and `ℋ` by recursion on terms; not the `Pω^Exp` fixpoint packaging |
+| (4.44) `exp` | — | missing — abstract syntax retract |
+| (4.46) `vaal` | `vaalC` | partial — least-fixed-point definition |
 
 ### §5 Closures
 
 | Item | Lean | Status |
 |---|---|---|
 | Def. closure `I ⊆ a = a∘a` | `IsClosure` | faithful |
-| (5.1)–(5.13) pairing/box | `eq_5_1`, `squarePair`, `boxTensor`, `boxPlus` | faithful |
+| (5.1)–(5.13) pairing/box | `eq_5_1`, `eq_5_2`, `squarePair`, `boxTensor`, `boxPlus`, `funRetract_isClosure`, `boool` | faithful |
 | Theorem 5.1 | `theorem_5_1`, `theorem_5_1_isolated` | partial — typed fixed points; isolated points are `a(e n)` one way |
 | Theorem 5.2 | `theorem_5_2` | partial — `representClosure` is idempotent, not an isomorphism onto every countable algebraic lattice |
 | Theorem 5.3 | `theorem_5_3`, `theorem_5_3_closure`, `Icomb_subset_arrowR` | faithful |
