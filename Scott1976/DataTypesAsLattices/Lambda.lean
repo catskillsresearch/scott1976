@@ -954,6 +954,15 @@ theorem condC_beta3 (x y z : Pomega) :
   rw [condC_beta2]
   exact beta (condSet_isScottContinuous_left x y) z
 
+/-- **Scott 1976, §2.** The subspace `FUN` of graphs. -/
+def FUN : Set Pomega := {u | u = graph (funOf u)}
+
+/-- **Scott 1976, (2.15)** as a combinator: `cond(x)(y)(K(0)) = x ∪ y`. -/
+theorem union_via_cond (x y : Pomega) :
+    funOf (funOf (funOf condC x) y) (funOf Kcomb zeroC) = x ∪ y := by
+  rw [condC_beta3, Kcomb_beta]
+  exact eq_2_15 x y
+
 theorem SKK_eq_I : funOf (funOf Scomb Kcomb) Kcomb = graph (fun x => x) := by
   rw [Scomb_beta2]
   apply congrArg graph
@@ -1249,6 +1258,93 @@ theorem interStep_isScottContinuous :
 
 def interC : Pomega := fix interStep
 
+theorem interC_unfold : interC = interStep interC :=
+  (theorem_1_4 interStep_isScottContinuous).1.symm
+
+theorem interC_else_isScottContinuous (y : Pomega) :
+    IsScottContinuous (fun x =>
+      succSet (funOf (funOf interC (predSet x)) (predSet y))) := by
+  refine theorem_1_3 (f := succSet) (g := fun x =>
+      funOf (funOf interC (predSet x)) (predSet y))
+    succSet_isScottContinuous ?_
+  refine theorem_1_3
+    (f := fun t => funOf t (predSet y))
+    (g := fun x => funOf interC (predSet x))
+    (funOf_isScottContinuous_left (predSet y)) ?_
+  exact theorem_1_3 (funOf_isScottContinuous interC) predSet_isScottContinuous
+
+theorem interC_body_isScottContinuous :
+    IsScottContinuous (fun x =>
+      graph (fun y =>
+        condSet x (condSet y (ofNat 0) botElem)
+          (succSet (funOf (funOf interC (predSet x)) (predSet y))))) :=
+  graph_const_isScottContinuous
+    (fun x y =>
+      condSet x (condSet y (ofNat 0) botElem)
+        (succSet (funOf (funOf interC (predSet x)) (predSet y))))
+    (fun y =>
+      theorem_1_3_tuple
+        (fun els => condSet_isScottContinuous_left
+          (condSet y (ofNat 0) botElem) els)
+        (fun tes => condSet_isScottContinuous_right tes
+          (condSet y (ofNat 0) botElem))
+        id_isScottContinuous
+        (interC_else_isScottContinuous y))
+
+theorem interC_app_graph (x : Pomega) :
+    funOf interC x =
+      graph (fun y =>
+        condSet x (condSet y (ofNat 0) botElem)
+          (succSet (funOf (funOf interC (predSet x)) (predSet y)))) := by
+  nth_rw 1 [interC_unfold]
+  exact beta interC_body_isScottContinuous x
+
+theorem interC_then_else_isScottContinuous (x : Pomega) :
+    IsScottContinuous (fun y =>
+      condSet x (condSet y (ofNat 0) botElem)
+        (succSet (funOf (funOf interC (predSet x)) (predSet y)))) :=
+  theorem_1_3_tuple
+    (fun els => condSet_isScottContinuous_mid x els)
+    (fun th => condSet_isScottContinuous_right x th)
+    (condSet_isScottContinuous_left (ofNat 0) botElem)
+    (theorem_1_3 succSet_isScottContinuous
+      (theorem_1_3 (funOf_isScottContinuous (funOf interC (predSet x)))
+        predSet_isScottContinuous))
+
+theorem interC_app (x y : Pomega) :
+    funOf (funOf interC x) y =
+      condSet x (condSet y (ofNat 0) botElem)
+        (succSet (funOf (funOf interC (predSet x)) (predSet y))) := by
+  rw [interC_app_graph]
+  exact beta (interC_then_else_isScottContinuous x) y
+
+/-- **Scott 1976, (2.17).** `x ∩ y = Y(λf λx λy. x ⊃ (y ⊃ 0, ⊥), f(x−1)(y−1)+1)(x)(y)`. -/
+theorem eq_2_17 (x y : Pomega) :
+    funOf (funOf interC x) y = x ∩ y := by
+  have hmem : ∀ n x y, n ∈ funOf (funOf interC x) y ↔ n ∈ x ∩ y := by
+    intro n
+    induction n using Nat.strong_induction_on with
+    | h n ih =>
+      intro x y
+      rw [interC_app]
+      constructor
+      · intro hn
+        rcases hn with ⟨hL, h0x⟩ | ⟨⟨k, hk, rfl⟩, _t, _ht⟩
+        · rcases hL with ⟨hk0, h0y⟩ | ⟨hbot, _⟩
+          · simp [ofNat] at hk0; subst hk0
+            exact ⟨h0x, h0y⟩
+          · simp [botElem] at hbot
+        · have hk' : k ∈ predSet x ∩ predSet y :=
+            (ih k (Nat.lt_succ_self k) (predSet x) (predSet y)).mp hk
+          exact ⟨hk'.1, hk'.2⟩
+      · intro ⟨hnx, hny⟩
+        cases n with
+        | zero => exact Or.inl ⟨Or.inl ⟨rfl, hny⟩, hnx⟩
+        | succ k =>
+          refine Or.inr ⟨⟨k, ?_, rfl⟩, k, hnx⟩
+          exact (ih k (Nat.lt_succ_self k) (predSet x) (predSet y)).mpr ⟨hnx, hny⟩
+  ext n
+  exact hmem n x y
 
 theorem triangle_eq_zero {w : ℕ} (h : triangle w = 0) : w = 0 := by
   match w with

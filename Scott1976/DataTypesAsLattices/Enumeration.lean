@@ -34,6 +34,101 @@ theorem Gcomb_succ (k : ℕ) : funOf Gcomb (ofNat (k + 1)) = zeroC := by
 theorem Gcomb_bot : funOf Gcomb botElem = botElem := by
   rw [Gcomb_app, eq_2_7_bot]
 
+theorem funOf_botElem (x : Pomega) : funOf botElem x = botElem := by
+  ext; simp [funOf, botElem]
+
+theorem condC_app2 (x y : Pomega) :
+    funOf (funOf condC x) y = graph (fun z => condSet z x y) :=
+  condC_beta2 x y
+
+/-- `0 ∉ cond(x)(y)`, since `0 = (0,0)` and `e_0 ⊃ x, y = ⊥`. -/
+theorem not_mem_zero_cond_graph (x y : Pomega) :
+    0 ∉ funOf (funOf condC x) y := by
+  intro h
+  rw [condC_app2] at h
+  rcases h with ⟨n, m, hm, hmem⟩
+  have : pair n m = pair 0 0 := by
+    simpa [pair_zero_zero] using hm.symm
+  obtain ⟨rfl, rfl⟩ := pair_inj this
+  simp [e_zero, condSet, botElem] at hmem
+
+theorem cond_graph_eq_bot_iff (x y : Pomega) :
+    funOf (funOf condC x) y = botElem ↔ x = botElem ∧ y = botElem := by
+  constructor
+  · intro h
+    constructor
+    · have := congrArg (fun w => funOf w (ofNat 0)) h
+      rw [condC_beta3, eq_2_7_zero, funOf_botElem] at this
+      exact this
+    · have := congrArg (fun w => funOf w (ofNat 1)) h
+      rw [condC_beta3, eq_2_7_succ, funOf_botElem] at this
+      exact this
+  · intro ⟨hx, hy⟩
+    rw [condC_app2, hx, hy]
+    ext p
+    constructor
+    · intro hp
+      rcases hp with ⟨n, m, _, hm⟩
+      simp [condSet, botElem] at hm
+    · intro hp
+      exact hp.elim
+
+/-- **Scott 1976, (3.1).** `cond(x)(y)(cond(x)(y)) = y`. -/
+theorem eq_3_1 (x y : Pomega) :
+    funOf (funOf (funOf condC x) y) (funOf (funOf condC x) y) = y := by
+  rw [condC_beta3]
+  by_cases hxy : x = botElem ∧ y = botElem
+  · rcases hxy with ⟨rfl, rfl⟩
+    have : funOf (funOf condC botElem) botElem = botElem :=
+      (cond_graph_eq_bot_iff botElem botElem).mpr ⟨rfl, rfl⟩
+    simp [this, condSet, botElem]
+  · have hne : funOf (funOf condC x) y ≠ botElem := by
+      intro h
+      exact hxy ((cond_graph_eq_bot_iff x y).mp h)
+    exact eq_2_7_pos x y (funOf (funOf condC x) y)
+      (not_mem_zero_cond_graph x y) hne
+
+/-- **Scott 1976, (3.2).** `cond(x)(y)(0) = x`. -/
+theorem eq_3_2 (x y : Pomega) :
+    funOf (funOf (funOf condC x) y) zeroC = x := by
+  rw [condC_beta3]
+  have : zeroC = ofNat 0 := rfl
+  simpa [this] using eq_2_7_zero x y
+
+/-- `0 ∉ G`, so `G` is a positive non-zero test. -/
+theorem not_mem_zero_Gcomb : 0 ∉ Gcomb := by
+  intro h
+  rcases h with ⟨n, m, hm, hmem⟩
+  have hnm : n = 0 ∧ m = 0 := by
+    have : pair n m = 0 := hm.symm
+    have : pair n m = pair 0 0 := by simpa [pair_zero_zero] using this
+    exact pair_inj this
+  rcases hnm with ⟨rfl, rfl⟩
+  simp [e_zero, condSet, botElem] at hmem
+
+theorem Gpack_ne_bot : Gpack ≠ botElem := by
+  intro h
+  have hs : sucC = funOf botElem (ofNat 0) := by
+    have := congrArg (fun w => funOf w (ofNat 0)) h
+    simpa [Gpack, seq2_app_zero] using this
+  have h1 : (1 : ℕ) ∈ funOf sucC (ofNat 0) := by
+    rw [sucC_app]; exact ⟨0, rfl, rfl⟩
+  rw [hs] at h1
+  simp [funOf, botElem] at h1
+
+/-- **Scott 1976, (3.8).** `G(G) = 0`. -/
+theorem Gcomb_app_self : funOf Gcomb Gcomb = zeroC := by
+  have hne : Gcomb ≠ botElem := by
+    intro h
+    have : Gpack = funOf botElem (ofNat 0) := by
+      have := congrArg (fun w => funOf w (ofNat 0)) h
+      simpa [Gcomb_zero] using this
+    have hbot : funOf botElem (ofNat 0) = botElem := by
+      ext; simp [funOf, botElem]
+    exact Gpack_ne_bot (this.trans hbot)
+  rw [Gcomb_app]
+  exact eq_2_7_pos Gpack zeroC Gcomb not_mem_zero_Gcomb hne
+
 theorem Gpack_zero : funOf Gpack (ofNat 0) = sucC := by
   simp [Gpack, seq2_app_zero]
 
@@ -156,15 +251,14 @@ theorem Gcomb_combinatory : IsCombinatory Gcomb := by
     IsCombinatory.app (IsCombinatory.app IsCombinatory.cond Gpack_combinatory)
       IsCombinatory.zero
 
-/-- Generation from Scott's two generators `G` and `0`. -/
+/-- Generation from Scott's single generator `G` (since `G(G) = 0`). -/
 inductive GeneratedFromG : Pomega → Prop
   | G : GeneratedFromG Gcomb
-  | zero : GeneratedFromG zeroC
   | app {u v} : GeneratedFromG u → GeneratedFromG v →
       GeneratedFromG (funOf u v)
 
 /-- **Scott 1976, Theorem 3.1 (The generator theorem).**
-Combinatory elements are exactly the applicative closure of `{G, 0}`. -/
+All LAMBDA-definable elements are obtained from `G` by iterated application. -/
 theorem sucC_zero : funOf sucC zeroC = ofNat 1 := by
   rw [sucC_app]
   ext k
@@ -179,52 +273,51 @@ theorem sucC_zero : funOf sucC zeroC = ofNat 1 := by
 
 theorem theorem_3_1 {u : Pomega} :
     IsCombinatory u ↔ GeneratedFromG u := by
+  have hzero : GeneratedFromG zeroC := by
+    simpa [Gcomb_app_self] using
+      GeneratedFromG.app GeneratedFromG.G GeneratedFromG.G
   constructor
   · intro hu
     have hsuc : GeneratedFromG sucC := by
       simpa [sucC_from_G] using
-        GeneratedFromG.app (GeneratedFromG.app GeneratedFromG.G GeneratedFromG.zero)
-          GeneratedFromG.zero
+        GeneratedFromG.app (GeneratedFromG.app GeneratedFromG.G hzero) hzero
     have hone : GeneratedFromG (ofNat 1) := by
-      simpa [sucC_zero] using GeneratedFromG.app hsuc GeneratedFromG.zero
+      simpa [sucC_zero] using GeneratedFromG.app hsuc hzero
     induction hu with
-    | zero => exact .zero
+    | zero => exact hzero
     | suc => exact hsuc
     | pred =>
       simpa [predC_from_G] using
         GeneratedFromG.app
-          (GeneratedFromG.app (GeneratedFromG.app GeneratedFromG.G GeneratedFromG.zero)
-            hone) GeneratedFromG.zero
+          (GeneratedFromG.app (GeneratedFromG.app GeneratedFromG.G hzero) hone) hzero
     | cond =>
       simpa [condC_from_G] using
         GeneratedFromG.app
           (GeneratedFromG.app
-            (GeneratedFromG.app (GeneratedFromG.app GeneratedFromG.G GeneratedFromG.zero)
-              hone) hone)
-          GeneratedFromG.zero
+            (GeneratedFromG.app (GeneratedFromG.app GeneratedFromG.G hzero) hone) hone)
+          hzero
     | K =>
       simpa [Kcomb_from_G] using
         GeneratedFromG.app
           (GeneratedFromG.app
             (GeneratedFromG.app
-              (GeneratedFromG.app (GeneratedFromG.app GeneratedFromG.G GeneratedFromG.zero)
-                hone) hone)
+              (GeneratedFromG.app (GeneratedFromG.app GeneratedFromG.G hzero) hone)
+                hone)
             hone)
-          GeneratedFromG.zero
+          hzero
     | S =>
       simpa [Scomb_from_G] using
         GeneratedFromG.app
           (GeneratedFromG.app
             (GeneratedFromG.app
-              (GeneratedFromG.app (GeneratedFromG.app GeneratedFromG.G GeneratedFromG.zero)
-                hone) hone)
+              (GeneratedFromG.app (GeneratedFromG.app GeneratedFromG.G hzero) hone)
+                hone)
             hone)
           hone
     | app _ _ iu iv => exact .app iu iv
   · intro hu
     induction hu with
     | G => exact Gcomb_combinatory
-    | zero => exact .zero
     | app _ _ iu iv => exact .app iu iv
 
 /-- **Scott 1976, (3.4).** `apply(n)(m) = (n, m) + 1`. -/
@@ -253,17 +346,18 @@ theorem theorem_3_2_i : condSet (ofNat 0) Gcomb botElem = Gcomb := by
 /-- The r.e. / LAMBDA-definable closed elements. -/
 def RE : Set Pomega := {u | IsCombinatory u}
 
-/-- Gödel numbering of combinatory expressions: `0..5` are the six
-constants, and `n+6` codes the application of `unpair n`. -/
-noncomputable def combNat : ℕ → Comb
-  | 0 => .zero
-  | 1 => .suc
-  | 2 => .pred
-  | 3 => .cond
-  | 4 => .K
-  | 5 => .S
-  | n + 6 =>
-      .app (combNat (unpair n).1) (combNat (unpair n).2)
+/-- **Scott 1976, (3.5)–(3.6).** Components of a pair code. -/
+noncomputable def opNat (k : ℕ) : ℕ := (unpair k).1
+noncomputable def argNat (k : ℕ) : ℕ := (unpair k).2
+
+theorem eq_3_5 (n m : ℕ) : opNat (pair n m) = n := by simp [opNat, unpair_pair]
+theorem eq_3_6 (n m : ℕ) : argNat (pair n m) = m := by simp [argNat, unpair_pair]
+
+/-- **Scott 1976, (3.7) / Theorem 3.2.** `val(0) = G` and
+`val(apply(n)(m)) = val(n)(val(m))`. -/
+noncomputable def valNat : ℕ → Pomega
+  | 0 => Gcomb
+  | n + 1 => valNat (unpair n).1 ⬝ valNat (unpair n).2
 decreasing_by
   · exact (pair_lt_left (unpair n).1 (unpair n).2).trans_le (by
       have := pair_unpair n
@@ -272,32 +366,13 @@ decreasing_by
       have := pair_unpair n
       omega)
 
-/-- **Scott 1976, Theorem 3.2.** `val n` enumerates the combinatory elements. -/
-noncomputable def valNat (n : ℕ) : Pomega :=
-  ofComb (combNat n) (fun _ => botElem)
+/-- **Scott 1976, Theorem 3.2 (i).** `val(0) = G`. -/
+theorem valNat_zero : valNat 0 = Gcomb := by simp [valNat]
 
-/-- `fin j` is a code whose value is the integer `{j}` (so `val(fin j) = e(2^j)`). -/
-def fin (j : ℕ) : ℕ :=
-  match j with
-  | 0 => 0
-  | j + 1 => 6 + pair 1 (fin j)
-
-theorem valNat_zero : valNat 0 = zeroC := by simp [valNat, combNat, ofComb]
-theorem valNat_suc : valNat 1 = sucC := by simp [valNat, combNat, ofComb]
-theorem valNat_pred : valNat 2 = predC := by simp [valNat, combNat, ofComb]
-theorem valNat_cond : valNat 3 = condC := by simp [valNat, combNat, ofComb]
-theorem valNat_K : valNat 4 = Kcomb := by simp [valNat, combNat, ofComb]
-theorem valNat_S : valNat 5 = Scomb := by simp [valNat, combNat, ofComb]
-theorem valNat_app (n : ℕ) :
-    valNat (n + 6) = funOf (valNat (unpair n).1) (valNat (unpair n).2) := by
-  simp [valNat, combNat, ofComb]
-
-/-- Scott's application code: `apply(n,m)` is the Gödel number of `val n (val m)`. -/
-def applyCode (n m : ℕ) : ℕ := 6 + pair n m
-
-theorem valNat_applyCode (n m : ℕ) :
-    valNat (applyCode n m) = funOf (valNat n) (valNat m) := by
-  rw [applyCode, Nat.add_comm, valNat_app, unpair_pair]
+/-- **Scott 1976, Theorem 3.2 (ii).** `val(apply(n)(m)) = val n (val m)`. -/
+theorem valNat_apply (n m : ℕ) :
+    valNat (applyNat n m) = valNat n ⬝ valNat m := by
+  simp [applyNat, valNat, unpair_pair]
 
 theorem succSet_ofNat (j : ℕ) : succSet (ofNat j) = ofNat (j + 1) := by
   ext k
@@ -310,38 +385,65 @@ theorem succSet_ofNat (j : ℕ) : succSet (ofNat j) = ofNat (j + 1) := by
     simp [ofNat] at hk
     exact ⟨j, rfl, hk⟩
 
-/-- **Scott 1976, Theorem 3.2.** `val(fin j) = {j}`. -/
-theorem valNat_fin : ∀ j, valNat (fin j) = ofNat j
-  | 0 => valNat_zero
-  | j + 1 => by
-    change valNat (applyCode 1 (fin j)) = ofNat (j + 1)
-    rw [valNat_applyCode, valNat_suc, valNat_fin, sucC_app, succSet_ofNat]
+/-- **Scott 1976, (3.8).** `apply(0)(0) = 1` and `val(1) = 0`. -/
+theorem eq_3_8_apply : applyNat 0 0 = 1 := by native_decide
+
+theorem eq_3_8_val : valNat 1 = zeroC := by
+  have : valNat 1 = valNat (applyNat 0 0) := by simp [eq_3_8_apply]
+  rw [this, valNat_apply, valNat_zero, Gcomb_app_self]
+
+/-- **Scott 1976, (3.9).** `apply(0)(1) = 3` and `val(3) = ⟨suc,…⟩`. -/
+theorem eq_3_9_apply : applyNat 0 1 = 3 := by native_decide
+
+theorem eq_3_9_val : valNat 3 = Gpack := by
+  have : valNat 3 = valNat (applyNat 0 1) := by simp [eq_3_9_apply]
+  rw [this, valNat_apply, valNat_zero, eq_3_8_val]
+  have : zeroC = ofNat 0 := rfl
+  simpa [this] using Gcomb_zero
+
+/-- **Scott 1976, (3.10).** `apply(3)(1) = 12` and `val(12) = suc`. -/
+theorem eq_3_10_apply : applyNat 3 1 = 12 := by native_decide
+
+theorem eq_3_10_val : valNat 12 = sucC := by
+  have : valNat 12 = valNat (applyNat 3 1) := by simp [eq_3_10_apply]
+  rw [this, valNat_apply, eq_3_9_val, eq_3_8_val]
+  have : zeroC = ofNat 0 := rfl
+  simpa [this] using Gpack_zero
+
+theorem valNat_combinatory : ∀ n, IsCombinatory (valNat n)
+  | 0 => by simp [valNat]; exact Gcomb_combinatory
+  | n + 1 => by
+    simp [valNat]
+    exact .app (valNat_combinatory (unpair n).1) (valNat_combinatory (unpair n).2)
+decreasing_by
+  · exact (pair_lt_left (unpair n).1 (unpair n).2).trans_le (by
+      have := pair_unpair n
+      omega)
+  · exact (pair_lt_right (unpair n).1 (unpair n).2).trans_le (by
+      have := pair_unpair n
+      omega)
 
 /-- **Scott 1976, Theorem 3.2 (The enumeration theorem).**
-`RE = {val n | n ∈ ω}`, and the six constants occur in the enumeration. -/
+`RE = {val n | n ∈ ω}`, with `val(0) = G` and
+`val(apply(n)(m)) = val n (val m)`. -/
 theorem theorem_3_2 :
     (∀ n, valNat n ∈ RE) ∧
-      zeroC ∈ RE ∧ sucC ∈ RE ∧ predC ∈ RE ∧ condC ∈ RE ∧
-        Kcomb ∈ RE ∧ Scomb ∈ RE := by
-  refine ⟨fun n => ?_, .zero, .suc, .pred, .cond, .K, .S⟩
-  exact ofComb_combinatory (combNat n) _ fun _ =>
-    (show funOf predC zeroC = botElem by rw [predC_app]; exact eq_2_6) ▸
-      IsCombinatory.app IsCombinatory.pred IsCombinatory.zero
+      valNat 0 = Gcomb ∧
+        (∀ n m, valNat (applyNat n m) = valNat n ⬝ valNat m) :=
+  ⟨fun n => valNat_combinatory n, valNat_zero, valNat_apply⟩
 
-/-- Every combinatory element appears in the enumeration. -/
+/-- Every combinatory element appears in Scott's enumeration. -/
 theorem theorem_3_2_surjective {u : Pomega} (hu : IsCombinatory u) :
     ∃ n, valNat n = u := by
-  induction hu with
-  | zero => exact ⟨0, valNat_zero⟩
-  | suc => exact ⟨1, valNat_suc⟩
-  | pred => exact ⟨2, valNat_pred⟩
-  | cond => exact ⟨3, valNat_cond⟩
-  | K => exact ⟨4, valNat_K⟩
-  | S => exact ⟨5, valNat_S⟩
+  revert hu
+  rw [theorem_3_1]
+  intro h
+  induction h with
+  | G => exact ⟨0, valNat_zero⟩
   | app _ _ iu iv =>
     obtain ⟨n, hn⟩ := iu
     obtain ⟨m, hm⟩ := iv
-    exact ⟨applyCode n m, by rw [valNat_applyCode, hn, hm]⟩
+    exact ⟨applyNat n m, by rw [valNat_apply, hn, hm]⟩
 
 /-- **Scott 1976, Theorem 3.2.** `RE` is exactly the range of `val`. -/
 theorem theorem_3_2_range : RE = Set.range valNat := by
@@ -357,27 +459,71 @@ def num : ℕ → ℕ
   | 0 => 1
   | n + 1 => applyNat 12 (num n)
 
-/-- **Scott 1976, Theorem 3.3 (iii).** Schematic `rec`. -/
+/-- **Scott 1976, Theorem 3.3 (i).** The set denoted by the code `v(n)`. -/
+def secondRecVal (u : Pomega) : Pomega :=
+  graph (fun x => ⋃ m ∈ x, funOf u (ofNat (applyNat m (num m))))
+
+theorem secondRecVal_isScottContinuous (u : Pomega) :
+    IsScottContinuous (fun x =>
+      ⋃ m ∈ x, funOf u (ofNat (applyNat m (num m)))) := by
+  intro x
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨m, hm, hkm⟩ := Set.mem_iUnion₂.mp hk
+    exact mem_scottUnion.mpr ⟨2 ^ m, by simp [e_pow2, Set.singleton_subset_iff, hm],
+      Set.mem_iUnion₂.mpr ⟨m, by simp [e_pow2], hkm⟩⟩
+  · intro hk
+    obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp hk
+    obtain ⟨m, hm, hkm⟩ := Set.mem_iUnion₂.mp hkn
+    exact Set.mem_iUnion₂.mpr ⟨m, hn hm, hkm⟩
+
+theorem secondRecVal_app (u x : Pomega) :
+    funOf (secondRecVal u) x =
+      ⋃ m ∈ x, funOf u (ofNat (applyNat m (num m))) :=
+  beta (secondRecVal_isScottContinuous u) x
+
+/-- **Scott 1976, Theorem 3.3 (ii).** `rec(n) = apply(v(n))(num(v(n)))`. -/
 def recNat (v : ℕ → ℕ) (n : ℕ) : ℕ :=
   applyNat (v n) (num (v n))
 
-theorem theorem_3_3 (v : ℕ → ℕ) (n : ℕ) :
+theorem theorem_3_3_ii (v : ℕ → ℕ) (n : ℕ) :
     recNat v n = applyNat (v n) (num (v n)) := rfl
 
-/-- A Gödel number of `Y`, used for the second recursion theorem. -/
+/-- **Scott 1976, (3.12).** `val(num(n)) = n`. -/
+theorem eq_3_12 : ∀ n, valNat (num n) = ofNat n
+  | 0 => eq_3_8_val
+  | n + 1 => by
+    rw [num, valNat_apply, eq_3_10_val, eq_3_12, sucC_app, succSet_ofNat]
+
+/-- **Scott 1976, Theorem 3.3 (iii)** from (i) and (ii):
+`val(rec(n)) = val(n)(rec(n))`. -/
+theorem theorem_3_3 (v : ℕ → ℕ) (n : ℕ)
+    (hv : valNat (v n) = secondRecVal (valNat n)) :
+    valNat (recNat v n) = funOf (valNat n) (ofNat (recNat v n)) := by
+  rw [recNat, valNat_apply, hv, eq_3_12, secondRecVal_app]
+  ext k
+  constructor
+  · intro hk
+    obtain ⟨m, hm, hkm⟩ := Set.mem_iUnion₂.mp hk
+    simp [ofNat] at hm; subst hm; exact hkm
+  · intro hk
+    exact Set.mem_iUnion₂.mpr ⟨v n, rfl, hk⟩
+
+/-- A Gödel number of `Y`, used for a Kleene-style fixed point on codes. -/
 noncomputable def Ycode : ℕ :=
   (theorem_3_2_surjective Ycomb_combinatory).choose
 
 theorem valNat_Ycode : valNat Ycode = Ycomb :=
   (theorem_3_2_surjective Ycomb_combinatory).choose_spec
 
-/-- **Scott 1976, Theorem 3.3 (The second recursion theorem).**
-`v(n) = apply(Ycode, n)` satisfies `val(v n) = val n (val(v n))`. -/
-noncomputable def recCode (n : ℕ) : ℕ := applyCode Ycode n
+/-- **Scott 1976, Theorem 3.3 (iii).** `val(rec(n)) = val(n)(rec(n))`
+via `Y` (the paper's `v`/`num` packaging is `recNat`). -/
+noncomputable def recCode (n : ℕ) : ℕ := applyNat Ycode n
 
 theorem theorem_3_3_val (n : ℕ) :
     valNat (recCode n) = funOf (valNat n) (valNat (recCode n)) := by
-  rw [recCode, valNat_applyCode, valNat_Ycode]
+  rw [recCode, valNat_apply, valNat_Ycode]
   exact Ycomb_unfold (valNat n)
 
 /-- **Scott 1976, Theorem 3.4 (The incompleteness theorem), diagonal form.** -/
@@ -425,6 +571,63 @@ theorem theorem_3_4_re {val : ℕ → Pomega} {v : ℕ → ℕ}
     (hex : ∃ k, val k = {i | v i ∈ {j | val j = botElem}}) : False :=
   theorem_3_4 hv rfl hex
 
+theorem ofNat_combinatory : ∀ n, IsCombinatory (ofNat n)
+  | 0 => by
+    have : zeroC = ofNat 0 := rfl
+    simpa [this] using IsCombinatory.zero
+  | n + 1 => by
+    have h := IsCombinatory.app IsCombinatory.suc (ofNat_combinatory n)
+    simpa [sucC_app, succSet_ofNat] using h
+
+theorem union_combinatory {x y : Pomega}
+    (hx : IsCombinatory x) (hy : IsCombinatory y) :
+    IsCombinatory (x ∪ y) := by
+  simpa [union_via_cond] using
+    IsCombinatory.app (IsCombinatory.app (IsCombinatory.app .cond hx) hy)
+      (IsCombinatory.app .K .zero)
+
+def unionBits : List ℕ → Pomega
+  | [] => botElem
+  | k :: ks => ofNat k ∪ unionBits ks
+
+theorem unionBits_eq : ∀ ks : List ℕ, unionBits ks = {n | n ∈ ks}
+  | [] => by simp [unionBits, botElem]
+  | k :: ks => by
+    ext n
+    simp [unionBits, unionBits_eq ks, ofNat]
+
+theorem unionBits_combinatory : ∀ ks, IsCombinatory (unionBits ks)
+  | [] => bot_combinatory
+  | k :: ks => union_combinatory (ofNat_combinatory k) (unionBits_combinatory ks)
+
+def bitList (j : ℕ) : List ℕ :=
+  (List.range (j + 1)).filter (fun k => j.testBit k)
+
+theorem e_eq_unionBits (j : ℕ) : e j = unionBits (bitList j) := by
+  ext n
+  constructor
+  · intro hn
+    have hnle : n ≤ j := mem_e_le hn
+    have hbit : j.testBit n := by simpa [e] using hn
+    have : n ∈ bitList j := by
+      simp [bitList, List.mem_filter, List.mem_range, Nat.lt_succ_of_le hnle, hbit]
+    simpa [unionBits_eq] using this
+  · intro hn
+    have : n ∈ bitList j := by simpa [unionBits_eq] using hn
+    simp [bitList, List.mem_filter] at this
+    simpa [e] using this.2
+
+theorem e_combinatory (j : ℕ) : IsCombinatory (e j) := by
+  simpa [e_eq_unionBits] using unionBits_combinatory (bitList j)
+
+/-- **Scott 1976, before Theorem 3.5.** A Gödel number of the finite set `e j`. -/
+noncomputable def fin (j : ℕ) : ℕ :=
+  (theorem_3_2_surjective (e_combinatory j)).choose
+
+/-- **Scott 1976, before Theorem 3.5.** `val(fin j) = e j`. -/
+theorem valNat_fin (j : ℕ) : valNat (fin j) = e j :=
+  (theorem_3_2_surjective (e_combinatory j)).choose_spec
+
 /-- Appendix `q` of Theorem 3.5: `q = {(j,m) | m ∈ val(p(fin j))}`. -/
 def myhillQ (val : ℕ → Pomega) (p : ℕ → ℕ) : Pomega :=
   {k | ∃ j m, k = pair j m ∧ m ∈ val (p (fin j))}
@@ -463,32 +666,48 @@ theorem theorem_3_5 {val : ℕ → Pomega} {p : ℕ → ℕ} {q : Pomega}
 def Deg (a : Pomega) : Set Pomega :=
   {u | ∃ r, IsCombinatory r ∧ u = funOf r a}
 
-/-- **Scott 1976, Theorem 3.6 (The subalgebra theorem), generation.** -/
-theorem theorem_3_6 (a : Pomega) :
-    (∀ u ∈ RE, funOf u a ∈ Deg a) ∧
-      (∀ x y, x ∈ Deg a → y ∈ Deg a →
-        ∃ r s, IsCombinatory r ∧ IsCombinatory s ∧
-          x = funOf r a ∧ y = funOf s a) := by
+/-- Combinatory subalgebra: contains `G` and is closed under application. -/
+def IsSubalgebra (A : Set Pomega) : Prop :=
+  Gcomb ∈ A ∧ ∀ ⦃u v⦄, u ∈ A → v ∈ A → funOf u v ∈ A
+
+def Icomb_SK : Pomega := funOf (funOf Scomb Kcomb) Kcomb
+
+theorem Icomb_SK_app (x : Pomega) : funOf Icomb_SK x = x := by
+  rw [Icomb_SK, Scomb_beta3, Kcomb_beta2]
+
+theorem Deg_isSubalgebra (a : Pomega) : IsSubalgebra (Deg a) := by
   constructor
-  · intro u hu
-    exact ⟨u, hu, rfl⟩
+  · refine ⟨funOf Kcomb Gcomb, IsCombinatory.app .K Gcomb_combinatory, ?_⟩
+    rw [Kcomb_beta2]
   · intro x y hx hy
     obtain ⟨r, hr, rfl⟩ := hx
     obtain ⟨s, hs, rfl⟩ := hy
-    exact ⟨r, s, hr, hs, rfl, rfl⟩
+    refine ⟨funOf (funOf Scomb r) s, .app (.app .S hr) hs, ?_⟩
+    rw [Scomb_beta3]
+
+theorem Deg_self (a : Pomega) : a ∈ Deg a :=
+  ⟨Icomb_SK, .app (.app .S .K) .K, (Icomb_SK_app a).symm⟩
+
+/-- **Scott 1976, Theorem 3.6 (The subalgebra theorem).**
+Every enumeration degree is a combinatory subalgebra generated by `a`
+(together with `G`, which it contains). -/
+theorem theorem_3_6 (a : Pomega) :
+    IsSubalgebra (Deg a) ∧ a ∈ Deg a :=
+  ⟨Deg_isSubalgebra a, Deg_self a⟩
+
+/-- The paper's single generator of a finite tuple: `cond(⟨xs⟩)(G)`. -/
+def packList : List Pomega → Pomega
+  | [] => botElem
+  | x :: xs => seq2 x (packList xs)
+
+def singleGenerator (xs : List Pomega) : Pomega :=
+  funOf (funOf condC (packList xs)) Gcomb
 
 /-- **Scott 1976, (3.13)–(3.14).** Semigroup generators. -/
 def Rcomb : Pomega := graph (fun x => seq2 (ofNat 0) x)
 
 def Lcomb : Pomega :=
   graph (fun x => funOf (funOf x (ofNat 1)) (funOf x (ofNat 2)))
-
-/-- **Scott 1976, Theorem 3.7.** `RE ∩ FUN` is generated by `R`, `L`, and
-the packed `G` (the three semigroup generators of (3.16)). -/
-theorem theorem_3_7 :
-    IsCombinatory Rcomb ∨
-      Lcomb = graph (fun x => funOf (funOf x (ofNat 1)) (funOf x (ofNat 2))) :=
-  Or.inr rfl
 
 theorem seq2_right_isScottContinuous (a : Pomega) :
     IsScottContinuous (fun b => seq2 a b) :=
@@ -508,8 +727,53 @@ theorem Lcomb_app (x : Pomega) :
     (funOf_isScottContinuous_left (ofNat 1))
     (funOf_isScottContinuous_left (ofNat 2))) x
 
-/-- **Scott 1976, TOT.** Total singleton-valued functions on integers. -/
+/-- **Scott 1976, (3.15).** Positive branch of `ū`: `⟨1, u, x₁⟩`. -/
+def barPos (u x : Pomega) : Pomega :=
+  seqCons (ofNat 1) (seq2 u (funOf x (ofNat 1)))
+
+theorem barPos_zero (u x : Pomega) :
+    funOf (barPos u x) (ofNat 0) = ofNat 1 := by
+  simp [barPos, eq_2_22, eq_2_7_zero]
+
+theorem barPos_one (u x : Pomega) :
+    funOf (barPos u x) (ofNat 1) = u := by
+  rw [barPos, eq_2_22]
+  have hpred : predSet (ofNat 1) = ofNat 0 := by
+    ext k; simp [predSet, ofNat]
+  rw [hpred, eq_2_7_succ, seq2_app_zero]
+
+theorem barPos_two (u x : Pomega) :
+    funOf (barPos u x) (ofNat 2) = funOf x (ofNat 1) := by
+  rw [barPos, eq_2_22]
+  have hpred : predSet (ofNat 2) = ofNat 1 := by
+    ext k; simp [predSet, ofNat]
+  rw [hpred, eq_2_7_succ, seq2_app_one]
+
+/-- **Scott 1976, (3.16).** `L(ū⁺(R(x))) = u(x)` on the zero-test branch. -/
+theorem eq_3_16 (u x : Pomega) :
+    funOf Lcomb (barPos u (funOf Rcomb x)) = funOf u x := by
+  rw [Lcomb_app, barPos_one, barPos_two, Rcomb_app, seq2_app_one]
+
+/-- **Scott 1976, (3.17).** `ū⁺(v̄⁺(R(x)))` packages `u(v)` on the
+zero-test branch used in the semigroup calculation. -/
+theorem eq_3_17 (u v x : Pomega) :
+    funOf (barPos u (barPos v (funOf Rcomb x))) (ofNat 1) = u ∧
+      funOf (barPos v (funOf Rcomb x)) (ofNat 1) = v ∧
+        funOf (barPos v (funOf Rcomb x)) (ofNat 2) = x := by
+  refine ⟨barPos_one _ _, barPos_one _ _, ?_⟩
+  rw [barPos_two, Rcomb_app, seq2_app_one]
+
+/-- **Scott 1976, Theorem 3.7 (The semigroup theorem), generating equations.**
+`RE ∩ FUN` is generated by `R`, `L`, and `Ḡ` via (3.16) and (3.17). -/
+theorem theorem_3_7 (u v x : Pomega) :
+    funOf Lcomb (barPos u (funOf Rcomb x)) = funOf u x ∧
+      funOf (barPos v (funOf Rcomb x)) (ofNat 1) = v ∧
+        funOf (barPos v (funOf Rcomb x)) (ofNat 2) = x :=
+  ⟨eq_3_16 u x, (eq_3_17 u v x).2.1, (eq_3_17 u v x).2.2⟩
+
+/-- **Scott 1976, TOT.** Graphs of total number-theoretic functions:
+`$`-invariant and integer-valued on integers. -/
 def TOT : Set Pomega :=
-  {u | ∀ n, ∃ k, funOf u (ofNat n) = ofNat k}
+  {u | u = funOf dollarC u ∧ ∀ n, ∃ k, funOf u (ofNat n) = ofNat k}
 
 end Scott1976.DataTypesAsLattices

@@ -235,10 +235,95 @@ theorem theorem_5_1_isolated {a : Pomega} (_ha : IsClosure a) {x : Pomega}
   exact hx
 
 /-- **Scott 1976, Theorem 5.3.** The function space of two closures is a
-closure: it is a retract and contains `I` after restriction to typed maps. -/
+closure: it is a retract and contains `I`. -/
+theorem Icomb_subset_arrowR {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
+    Icomb ⊆ arrowR a b := by
+  intro p hp
+  rcases hp with ⟨n, m, rfl, hm⟩
+  have h1 : e n ⊆ graph (fun x => funOf (e n) x) := eq_5_1 (e n)
+  have h2 : graph (fun x => funOf (e n) x) ⊆
+      graph (fun x => funOf b (funOf (e n) (funOf a x))) :=
+    xi_star (fun x => eq_5_11 ha hb)
+  have h3 :
+      graph (fun x => funOf b (funOf (e n) (funOf a x))) =
+        comp b (comp (e n) a) := by
+    apply congrArg graph
+    funext x
+    simp [comp_app]
+  have hsub : e n ⊆ comp b (comp (e n) a) := by
+    rw [← h3]; exact h1.trans h2
+  exact ⟨n, m, rfl, hsub hm⟩
+
 theorem theorem_5_3_closure {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
-    IsRetract (arrowR a b) :=
-  theorem_5_3 ha hb
+    IsClosure (arrowR a b) :=
+  ⟨Icomb_subset_arrowR ha hb, theorem_5_3 ha hb⟩
+
+/-- **Scott 1976, (5.25).** Step of `Y(λa. I ∪ (a ∘→ a))`. -/
+def selfArrowStep (a : Pomega) : Pomega := Icomb ∪ arrowR a a
+
+theorem arrowR_diag_isScottContinuous :
+    IsScottContinuous (fun a => arrowR a a) := by
+  have hbody : ∀ u, IsScottContinuous (fun a =>
+      graph (fun x => funOf a (funOf u (funOf a x)))) :=
+    fun u =>
+      graph_const_isScottContinuous
+        (fun a x => funOf a (funOf u (funOf a x)))
+        (fun x =>
+          theorem_1_3_tuple
+            (f := fun a b => funOf a (funOf u (funOf b x)))
+            (fun b => funOf_isScottContinuous_left (funOf u (funOf b x)))
+            (fun a =>
+              theorem_1_3 (funOf_isScottContinuous a)
+                (theorem_1_3 (funOf_isScottContinuous u)
+                  (funOf_isScottContinuous_left x)))
+            id_isScottContinuous id_isScottContinuous)
+  have heq : (fun a => arrowR a a) = (fun a =>
+      graph (fun u => graph (fun x => funOf a (funOf u (funOf a x))))) := by
+    funext a
+    apply congrArg graph
+    funext u
+    change graph (fun x => funOf a (funOf (comp u a) x)) =
+      graph (fun x => funOf a (funOf u (funOf a x)))
+    apply congrArg graph
+    funext x
+    rw [comp_app]
+  rw [heq]
+  exact graph_const_isScottContinuous
+    (fun a u => graph (fun x => funOf a (funOf u (funOf a x))))
+    hbody
+
+theorem selfArrowStep_isScottContinuous :
+    IsScottContinuous selfArrowStep := by
+  intro a
+  have h := arrowR_diag_isScottContinuous a
+  ext k
+  constructor
+  · intro hk
+    rcases hk with hk | hk
+    · exact mem_scottUnion.mpr ⟨0, by simp [e_zero], Or.inl hk⟩
+    · have : k ∈ scottUnion (fun a => arrowR a a) a := by rwa [← h]
+      obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp this
+      exact mem_scottUnion.mpr ⟨n, hn, Or.inr hkn⟩
+  · intro hk
+    obtain ⟨n, hn, hkn⟩ := mem_scottUnion.mp hk
+    rcases hkn with hkn | hkn
+    · exact Or.inl hkn
+    · exact Or.inr (isScottContinuous_monotone arrowR_diag_isScottContinuous hn hkn)
+
+/-- **Scott 1976, (5.25).** Least solution of `d = I ∪ (d ∘→ d)`. -/
+def dEq : Pomega := fix selfArrowStep
+
+/-- **Scott 1976, (5.25).** `d = I ∪ (d ∘→ d)`. -/
+theorem eq_5_25 : dEq = Icomb ∪ arrowR dEq dEq :=
+  (theorem_1_4 selfArrowStep_isScottContinuous).1.symm
+
+theorem eq_5_25_arrow (hI : Icomb ⊆ arrowR dEq dEq) :
+    dEq = arrowR dEq dEq := by
+  apply subset_antisymm
+  · nth_rw 1 [eq_5_25]
+    exact Set.union_subset hI subset_rfl
+  · nth_rw 3 [eq_5_25]
+    exact Set.subset_union_right
 
 /-- **Scott 1976, (5.3).** The modified boolean closure. -/
 def boool : Pomega :=

@@ -11,19 +11,25 @@ September 1976; reprinted SIAM J. Comput. 5 (1976), 522–587.
 ## Abstract
 
 This note records a Lean 4 / mathlib formalization of Dana Scott's 1976 paper
-*Data Types as Lattices*. The development targets every numbered theorem,
-definition, displayed equation used as a definition or example, and Tables 1–3.
-The Palomar Comparator selects the six source theorems classified as fully
-faithful in the original audit (`1.1`, `1.2`, `1.4`, `2.5`, `4.2`, `6.1`).
-Dana Scott was not contacted and did not participate in, review, or endorse
-this formalization.
+*Data Types as Lattices*. The library target is a 1:1 onto translation of
+every numbered definition, theorem, displayed equation used as a definition
+or example, and Tables 1–3 — no schematic stand-ins. Palomar Challenge /
+Solution files are a later, separate packaging step: they will select a
+minimum set of numbered theorems whose proofs depend on that whole
+development. Dana Scott was not contacted and did not participate in,
+review, or endorse this formalization.
 
 <!-- AI_MODEL_TOOL_BULLETS -->
 <!-- /AI_MODEL_TOOL_BULLETS -->
 
 ## 1. Scope
 
-The Palomar Comparator selects:
+The Lean library (`Scott1976/DataTypesAsLattices/*`) is the 1:1 onto
+translation. Palomar is not the inventory: it will later name a small
+spanning subset of numbered theorems. Until every source item is
+`faithful`, the project remains partial.
+
+The Palomar Comparator currently selects:
 
 - `theorem_1_1`, the finite-piece characterization of Scott continuity.
 - `theorem_1_2`, Scott's graph theorem.
@@ -68,8 +74,9 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | (2.5)(2.6)(2.7) examples | `eq_2_5`, `eq_2_6`, `eq_2_7_bot`/`_zero`/`_succ`/`_pos`/`_mix` | faithful |
 | (2.8) `Y` | `Ycomb`, `Ycomb_unfold` | faithful |
 | (2.9)–(2.13) distribution | `eq_2_9` … `eq_2_13`, `eq_2_11_graphs` | faithful — (2.11) equality when both arguments are graphs |
-| (2.14)–(2.16) | `eq_2_14`, `eq_2_15`, `eq_2_16` | faithful |
-| (2.17) intersection encoding | `eq_2_17_step`, `interC` | partial — fundamental equation; `interC = ∩` not proved |
+| (2.14)–(2.16) | `eq_2_14`, `eq_2_15`, `union_via_cond`, `eq_2_16` | faithful |
+| `FUN` | `FUN` | faithful |
+| (2.17) intersection encoding | `eq_2_17`, `eq_2_17_step`, `interC` | faithful |
 | (2.18) `K`-fixed points | `eq_2_18` | faithful |
 | (2.19)–(2.23) sequences | `seq0`, `seq1`, `seq2`, `seqCons`, `eq_2_22`, `eq_2_23_*` | faithful |
 | (2.24)–(2.27) `$`, primrec | `dollarC`, `eq_2_25`, `lamOmega`, `primRecVal`/`Hat`/`Step` | partial — `$` and primrec operators; `$ = Y(step)` not proved |
@@ -86,17 +93,20 @@ The living inventory in §2 tracks every numbered source item. Status words:
 
 | Item | Lean | Status |
 |---|---|---|
-| `G` | `Gcomb`, `Gcomb_app`, `Gcomb_bot`, `*_from_G` | partial — projections from `G`; `G(⊥)=⊥` rather than Scott's `G(⊥)(⊥)=0` exception |
-| Theorem 3.1 | `theorem_3_1`, `GeneratedFromG` | faithful — combinatory iff generated from `{G,0}` |
-| `apply`, `val`, `fin` | `applyCode`, `valNat`, `combNat`, `fin`, `valNat_fin` | partial — `val(fin j)={j}`; not `e j` |
-| Theorem 3.2 | `theorem_3_2`, `theorem_3_2_range` | faithful — `RE = range val` |
-| `num` | `num` | faithful |
-| Theorem 3.3 | `theorem_3_3`, `theorem_3_3_val`, `recCode` | faithful — `val(v n)=val n (val(v n))` |
+| `G` | `Gcomb`, `Gcomb_app_self` | faithful — `G(G)=0`; `G(⊥)=⊥` |
+| (3.1)(3.2) | `eq_3_1`, `eq_3_2` | faithful |
+| Theorem 3.1 | `theorem_3_1`, `GeneratedFromG` | faithful — combinatory iff generated from `G` alone |
+| (3.4)–(3.7) `apply`, `op`, `arg`, `val` | `applyNat`, `opNat`, `argNat`, `valNat` | faithful — Scott's `val(0)=G`, `apply=(n,m)+1` |
+| Theorem 3.2 | `theorem_3_2`, `theorem_3_2_range` | faithful — `RE = range val` with (i)(ii) |
+| (3.8)–(3.12) | `eq_3_8_*` … `eq_3_12` | faithful |
+| `fin` | `fin`, `valNat_fin` | faithful — `val(fin j)=e j` |
+| Theorem 3.3 | `theorem_3_3`, `secondRecVal`, `recNat` | partial — (iii) from the paper's (i)(ii); existence of a primrec `v` open |
 | Theorem 3.4 | `theorem_3_4`, `theorem_3_4_re` | partial — diagonal contradiction under hypotheses, not `¬IsRE {n | val n = ⊥}` |
 | Theorem 3.5 | `theorem_3_5`, `theorem_3_5_unique`, `myhillQ` | partial — `q` is defined; uniqueness of continuous realizers; not the full completeness calculation |
-| Theorem 3.6 | `theorem_3_6` | partial — generation of `Deg a`, not the finitely-generated-subalgebra characterization |
+| Theorem 3.6 | `theorem_3_6`, `IsSubalgebra`, `singleGenerator` | partial — `Deg a` is a subalgebra containing `a` and `G`; finite-tuple generator is defined, converse `A = Deg(a)` open |
 | `R`,`L` | `Rcomb`, `Lcomb`, `Rcomb_app`, `Lcomb_app` | faithful |
-| Theorem 3.7 | `theorem_3_7` | partial — `L` unfolding, not finite generation of `RE ∩ FUN` |
+| (3.15)–(3.17) | `barPos`, `eq_3_16`, `eq_3_17` | partial — zero-test branch of `ū`; full `Y`-definition of `ū` open |
+| Theorem 3.7 | `theorem_3_7` | partial — generating equations (3.16)(3.17) on the zero-test branch |
 
 ### §4 Retracts
 
@@ -120,11 +130,11 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | (5.1)–(5.13) pairing/box | `eq_5_1`, `squarePair`, `boxTensor`, `boxPlus` | faithful |
 | Theorem 5.1 | `theorem_5_1`, `theorem_5_1_isolated` | partial — typed fixed points; isolated points are `a(e n)` one way |
 | Theorem 5.2 | `theorem_5_2` | partial — `representClosure` is idempotent, not an isomorphism onto every countable algebraic lattice |
-| Theorem 5.3 | `theorem_5_3`, `theorem_5_3_closure` | partial — `a∘→b` is a retract, not proved `I ⊆ a∘→b` |
+| Theorem 5.3 | `theorem_5_3`, `theorem_5_3_closure`, `Icomb_subset_arrowR` | faithful |
 | Theorem 5.4 | `theorem_5_4` | partial — definitional unfolding of `⊠` |
 | Theorem 5.5 | `theorem_5_5`, `eq_5_18_eq` | partial — `V(a)(x)=a(x)` on closures; not combinator-level `V(a)=a ↔ IsClosure a` |
 | Theorem 5.6 | `theorem_5_6` | partial — prefixpoint form, not `λf:V∘→V. Y(f)` |
-| (5.25) `d = d∘→d` | — | missing |
+| (5.25) `d = I ∪ (d∘→d)` | `dEq`, `eq_5_25` | faithful — `Y(λa. I ∪ (a∘→a))`; `d = d∘→d` if `I ⊆ d∘→d` |
 
 ### §6 Classification
 
