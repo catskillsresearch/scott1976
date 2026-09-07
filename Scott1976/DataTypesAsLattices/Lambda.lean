@@ -62,6 +62,11 @@ def predSet (x : Pomega) : Pomega :=
 def condSet (z x y : Pomega) : Pomega :=
   {n | n ∈ x ∧ 0 ∈ z} ∪ {m | m ∈ y ∧ ∃ k, k + 1 ∈ z}
 
+/-- **Scott 1976, (4.4).** Doubly strict conditional
+`z ⊒ x, y = z ⊃ (z ⊃ x, ⊤), (z ⊃ ⊤, y)`. -/
+def dcondSet (z x y : Pomega) : Pomega :=
+  condSet z (condSet z x topElem) (condSet z topElem y)
+
 theorem succSet_isScottContinuous : IsScottContinuous succSet := by
   intro x
   ext k
@@ -139,6 +144,124 @@ theorem condSet_isScottContinuous_right (z x : Pomega) :
     · exact Or.inl hzx
     · exact Or.inr ⟨hm hky, ht⟩
 
+theorem dcondSet_bot (x y : Pomega) : dcondSet botElem x y = botElem := by
+  ext n
+  simp [dcondSet, condSet, botElem]
+
+theorem dcondSet_top (x y : Pomega) : dcondSet topElem x y = topElem := by
+  ext n
+  simp [dcondSet, condSet, topElem]
+
+theorem dcondSet_ofNat_zero (x y : Pomega) : dcondSet (ofNat 0) x y = x := by
+  ext n
+  simp [dcondSet, condSet, ofNat, topElem]
+
+theorem dcondSet_ofNat_one (x y : Pomega) : dcondSet (ofNat 1) x y = y := by
+  ext n
+  simp [dcondSet, condSet, ofNat, topElem]
+
+theorem dcondSet_of_zero_not_pos {z x y : Pomega}
+    (h0 : 0 ∈ z) (hp : ¬ ∃ k, k + 1 ∈ z) :
+    dcondSet z x y = x := by
+  have hL : condSet z x topElem = x := by
+    ext n
+    constructor
+    · intro hn
+      rcases hn with ⟨hx, _⟩ | ⟨_, ht⟩
+      · exact hx
+      · exact (hp ht).elim
+    · intro hx
+      exact Or.inl ⟨hx, h0⟩
+  have hR : condSet z topElem y = topElem := by
+    ext n
+    constructor
+    · intro _; exact Set.mem_univ n
+    · intro _; exact Or.inl ⟨Set.mem_univ n, h0⟩
+  rw [dcondSet, hL, hR]
+  ext n
+  constructor
+  · intro hn
+    rcases hn with ⟨hx, _⟩ | ⟨_, ht⟩
+    · exact hx
+    · exact (hp ht).elim
+  · intro hx
+    exact Or.inl ⟨hx, h0⟩
+
+theorem dcondSet_of_pos_not_zero {z x y : Pomega}
+    (h0 : 0 ∉ z) (hp : ∃ k, k + 1 ∈ z) :
+    dcondSet z x y = y := by
+  have hL : condSet z x topElem = topElem := by
+    ext n
+    constructor
+    · intro _; exact Set.mem_univ n
+    · intro _; exact Or.inr ⟨Set.mem_univ n, hp⟩
+  have hR : condSet z topElem y = y := by
+    ext n
+    constructor
+    · intro hn
+      rcases hn with ⟨_, hz⟩ | ⟨hy, _⟩
+      · exact (h0 hz).elim
+      · exact hy
+    · intro hy
+      exact Or.inr ⟨hy, hp⟩
+  rw [dcondSet, hL, hR]
+  ext n
+  constructor
+  · intro hn
+    rcases hn with ⟨_, hz⟩ | ⟨hy, _⟩
+    · exact (h0 hz).elim
+    · exact hy
+  · intro hy
+    exact Or.inr ⟨hy, hp⟩
+
+theorem dcondSet_of_mixed {z x y : Pomega}
+    (h0 : 0 ∈ z) (hp : ∃ k, k + 1 ∈ z) :
+    dcondSet z x y = topElem := by
+  have hL : condSet z x topElem = topElem := by
+    ext n
+    constructor
+    · intro _; exact Set.mem_univ n
+    · intro _; exact Or.inr ⟨Set.mem_univ n, hp⟩
+  have hR : condSet z topElem y = topElem := by
+    ext n
+    constructor
+    · intro _; exact Set.mem_univ n
+    · intro _; exact Or.inl ⟨Set.mem_univ n, h0⟩
+  rw [dcondSet, hL, hR]
+  ext n
+  constructor
+  · intro _; exact Set.mem_univ n
+  · intro _; exact Or.inl ⟨Set.mem_univ n, h0⟩
+
+theorem dcondSet_of_empty {z x y : Pomega}
+    (h0 : 0 ∉ z) (hp : ¬ ∃ k, k + 1 ∈ z) :
+    dcondSet z x y = botElem := by
+  ext n
+  constructor
+  · intro hn
+    rcases hn with ⟨_, hz⟩ | ⟨_, ht⟩
+    · exact (h0 hz).elim
+    · exact (hp ht).elim
+  · intro hn
+    simp [botElem] at hn
+
+theorem dcondSet_ofNat_succ (n : ℕ) (x y : Pomega) :
+    dcondSet (ofNat (n + 1)) x y = y :=
+  dcondSet_of_pos_not_zero (by simp [ofNat]) ⟨n, by simp [ofNat]⟩
+
+theorem dcondSet_cases (z : Pomega) :
+    (0 ∈ z ∧ ¬ ∃ k, k + 1 ∈ z) ∨
+      (0 ∉ z ∧ ∃ k, k + 1 ∈ z) ∨
+        (0 ∈ z ∧ ∃ k, k + 1 ∈ z) ∨
+          (0 ∉ z ∧ ¬ ∃ k, k + 1 ∈ z) := by
+  by_cases h0 : 0 ∈ z
+  · by_cases hp : ∃ k, k + 1 ∈ z
+    · exact Or.inr (Or.inr (Or.inl ⟨h0, hp⟩))
+    · exact Or.inl ⟨h0, hp⟩
+  · by_cases hp : ∃ k, k + 1 ∈ z
+    · exact Or.inr (Or.inl ⟨h0, hp⟩)
+    · exact Or.inr (Or.inr (Or.inr ⟨h0, hp⟩))
+
 theorem funOf_isScottContinuous_left (y : Pomega) :
     IsScottContinuous (fun u => funOf u y) := by
   intro u
@@ -191,6 +314,30 @@ theorem const_isScottContinuous (c : Pomega) :
   · intro hk
     obtain ⟨_, _, hkn⟩ := mem_scottUnion.mp hk
     exact hkn
+
+theorem dcondSet_isScottContinuous_mid (z y : Pomega) :
+    IsScottContinuous (fun x => dcondSet z x y) :=
+  theorem_1_3 (f := fun w => condSet z w (condSet z topElem y))
+    (g := fun x => condSet z x topElem)
+    (condSet_isScottContinuous_mid z (condSet z topElem y))
+    (condSet_isScottContinuous_mid z topElem)
+
+theorem dcondSet_isScottContinuous_right (z x : Pomega) :
+    IsScottContinuous (fun y => dcondSet z x y) :=
+  theorem_1_3 (f := fun w => condSet z (condSet z x topElem) w)
+    (g := fun y => condSet z topElem y)
+    (condSet_isScottContinuous_right z (condSet z x topElem))
+    (condSet_isScottContinuous_right z topElem)
+
+theorem dcondSet_isScottContinuous_left (x y : Pomega) :
+    IsScottContinuous (fun z => dcondSet z x y) :=
+  theorem_1_3_nary
+    (fun y z => condSet_isScottContinuous_left y z)
+    (fun x z => condSet_isScottContinuous_mid x z)
+    (fun x y => condSet_isScottContinuous_right x y)
+    id_isScottContinuous
+    (condSet_isScottContinuous_left x topElem)
+    (condSet_isScottContinuous_left topElem y)
 
 /-- `graph (fun y => g x y)` is continuous in `x` when `g` is continuous in `x`. -/
 theorem graph_const_isScottContinuous

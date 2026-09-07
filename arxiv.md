@@ -87,7 +87,7 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 2.4 | `theorem_2_4`, `theorem_2_4_complete`, `erase` | faithful |
 | Theorem 2.5 | `theorem_2_5` | faithful |
 | Def. computable | `IsComputable` | faithful |
-| Theorem 2.6 | `theorem_2_6` | partial — `(i)↔(ii)` and `(iii)↔` combinatory; mathlib `IsRE` is not identified with LAMBDA-definability |
+| Theorem 2.6 | `theorem_2_6`, `IsRE.*` | partial — `(i)↔(ii)` and `(iii)↔` combinatory; `IsRE` closed under `∪`, `succ`, `pred`, `cond`, `dcond`, finite `e n`; `IsRE u → IsCombinatory u` and `funOf` of r.e. sets remain open |
 
 ### §3 Enumeration
 
@@ -100,12 +100,12 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 3.2 | `theorem_3_2`, `theorem_3_2_range` | faithful — `RE = range val` with (i)(ii) |
 | (3.8)–(3.12) | `eq_3_8_*` … `eq_3_12` | faithful |
 | `fin` | `fin`, `valNat_fin` | faithful — `val(fin j)=e j` |
-| Theorem 3.3 | `theorem_3_3`, `secondRecVal`, `recNat` | partial — (iii) from the paper's (i)(ii); existence of a primrec `v` open |
+| Theorem 3.3 | `theorem_3_3`, `secondRecVal`, `recNat`, `primrec_pair`, `primrec_applyNat`, `primrec_num`, `theorem_3_3_primrec_shape` | partial — (iii) from the paper's (i)(ii); `pair`/`apply`/`num` are primrec; a primrec `v` exists in s-m-n form `apply(c)` if some code realises `secondRecVal` |
 | Theorem 3.4 | `theorem_3_4`, `theorem_3_4_re` | partial — diagonal contradiction under hypotheses, not `¬IsRE {n | val n = ⊥}` |
 | Theorem 3.5 | `theorem_3_5`, `theorem_3_5_unique`, `theorem_3_5_q_app`, `myhillQ` | partial — `q` and `val(p(fin j)) ⊆ q(e j)`; uniqueness of continuous realizers; not the full completeness calculation |
-| Theorem 3.6 | `theorem_3_6`, `theorem_3_6_finite`, `IsSubalgebra`, `singleGenerator` | partial — `Deg a` is a subalgebra; `⟨xs⟩` and `G` lie in `Deg(cond(⟨xs⟩)(G))`; converse `A = Deg(a)` open |
+| Theorem 3.6 | `theorem_3_6`, `theorem_3_6_finite`, `theorem_3_6_converse`, `combinatory_mem_Deg` | partial — `Deg a` is a subalgebra containing every combinatory element; singleton converse `x ∈ Deg(cond(⟨x⟩)(G))`; `A = Deg(a)` for arbitrary generated subalgebras open |
 | `R`,`L` | `Rcomb`, `Lcomb`, `Rcomb_app`, `Lcomb_app` | faithful |
-| (3.15)–(3.17) | `barComb`, `eq_3_15`, `eq_3_16_bar`, `eq_3_16`, `eq_3_17` | partial — `ū` is `Y(barStep)`; (3.16) from the Y-definition; (3.17) still the zero-test packaging |
+| (3.15)–(3.17) | `barComb`, `eq_3_15`, `eq_3_16_bar`, `eq_3_16`, `eq_3_17`, `eq_3_17_semigroup` | partial — `ū` is `Y(barStep)`; (3.16) from the Y-definition; (3.17) as `L`/`barPos` packaging on the zero-test branch |
 | Theorem 3.7 | `theorem_3_7` | partial — generating equations (3.16) from `barComb` and (3.17) on the zero-test branch |
 
 ### §4 Retracts
@@ -113,12 +113,12 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Item | Lean | Status |
 |---|---|---|
 | Def. retract, `u:a`, `⊑` | `IsRetract`, `typed`, `retractLe` | faithful |
-| (4.1)–(4.10) combinators | `funRetract`, `arrowR`, `tensorR`, `plusR`, … | faithful |
+| (4.1)–(4.10) combinators | `funRetract`, `arrowR`, `tensorR`, `plusR`, `dcondSet`, `boolR`, `intR`, … | faithful — (4.4) doubly strict conditional; (4.3) `bool` and (4.10) `⊕` use it; (4.7) `int` is `Y(intF)` with Scott's three-case table |
 | Theorem 4.1 | `theorem_4_1`, `theorem_4_1_complete` | partial — complete-lattice fragment on `Fixpoints`; continuous-lattice claim for retract ranges not fully packaged |
 | Theorem 4.2 | `theorem_4_2` | faithful |
 | Theorem 4.3 | `theorem_4_3`, `arrowR_isRetract` | faithful — (i)–(v) packaged |
 | Theorem 4.4 | `theorem_4_4`, `theorem_4_4_typed`, `theorem_4_4_med`, `theorem_4_4_med_unique`, `tensorR_isRetract`, `tensorR_isStrict`, `tensorR_retractLe`, `tensorR_functor`, `eq_4_12`, `eq_4_17`–`eq_4_21`, `eq_4_24`, `eq_4_25`, `eval_curry` | faithful — product, mediator, CCC `eval`/`curry` |
-| Theorem 4.5 | `theorem_4_5`, `eq_4_32`, `eq_4_33`, `eq_4_36`, `inleftC`, `inrightC`, `outleftC`, `outrightC`, `whichC`, `outC`, `boolR_isRetract` | partial — strictness at `⊥`; injections and `which` typed; `⊕` is not proved a retract; not the non-unique-coproduct remark |
+| Theorem 4.5 | `theorem_4_5_sum`, `plusR_isRetract`, `plusR_typed_iff`, `plusR_retractLe`, `plusR_functor`, `eq_4_13`, `eq_4_32`–`eq_4_37`, `inleftC`, `inrightC`, `outleftC`, `outrightC`, `whichC`, `outC`, `boolR_isRetract` | faithful — (i)–(iv) packaged; coproduct non-uniqueness remark omitted |
 | Theorem 4.6 | `theorem_4_6` | partial — `Y(F)` is a retract; inverse-limit homeomorphism omitted |
 | (4.38) `tree` | `treeR`, `eq_4_38`, `tree_atom`, `tree_node` | faithful — `tree = nil ⊕ (tree ⊗ tree)`; atom and binary nodes |
 | (4.39)–(4.43) `lamb` | `lambR`, `envR`, `updateEnv`, `LambTerm`, `Hinterp` | partial — data types and `ℋ` by recursion on terms; not the `Pω^Exp` fixpoint packaging |
@@ -134,7 +134,7 @@ The living inventory in §2 tracks every numbered source item. Status words:
 | Theorem 5.1 | `theorem_5_1`, `theorem_5_1_isolated` | partial — typed fixed points; isolated points are `a(e n)` one way |
 | Theorem 5.2 | `theorem_5_2` | partial — `representClosure` is idempotent, not an isomorphism onto every countable algebraic lattice |
 | Theorem 5.3 | `theorem_5_3`, `theorem_5_3_closure`, `Icomb_subset_arrowR` | faithful |
-| Theorem 5.4 | `theorem_5_4`, `eq_5_12`, `eq_5_22` | partial — `⊠` of closures is a closure and typed on `V`; `⊞` still unfolding |
+| Theorem 5.4 | `theorem_5_4`, `theorem_5_4_plus`, `eq_5_12`, `eq_5_22`, `eq_5_23` | partial — `⊠` of closures is a closure and typed on `V`; `⊞` is a retract via (4.4); `I ⊆ ⊞` fails on empty tags because (5.13) is strict |
 | Theorem 5.5 | `theorem_5_5`, `theorem_5_5_iff`, `theorem_5_5_universe`, `Vcomb`, `eq_5_14`, `eq_5_19`, `eq_5_21` | faithful — `V` is a closure; `V(a)=a` iff `a` is a closure; `(5.14)=(5.15)` |
 | Theorem 5.6 | `theorem_5_6`, `theorem_5_6_iterates`, `eq_5_24` | faithful — `Y(f):V` whenever `f:V∘→V`; `∘→` typed on `V` |
 | (5.25) `d = I ∪ (d∘→d)` | `dEq`, `eq_5_25` | faithful — `Y(λa. I ∪ (a∘→a))`; `d = d∘→d` if `I ⊆ d∘→d` |

@@ -322,13 +322,13 @@ theorem tensorR_app (a b u : Pomega) :
 
 theorem plusR_map_isScottContinuous (a b : Pomega) :
     IsScottContinuous (fun u =>
-      condSet (funOf u (ofNat 0))
+      dcondSet (funOf u (ofNat 0))
         (pairSeq (ofNat 0) (funOf a (funOf u (ofNat 1))))
         (pairSeq (ofNat 1) (funOf b (funOf u (ofNat 1))))) :=
   continuous_nary
-    (fun y z => condSet_isScottContinuous_left y z)
-    (fun x z => condSet_isScottContinuous_mid x z)
-    (fun x y => condSet_isScottContinuous_right x y)
+    (fun y z => dcondSet_isScottContinuous_left y z)
+    (fun x z => dcondSet_isScottContinuous_mid x z)
+    (fun x y => dcondSet_isScottContinuous_right x y)
     (funOf_isScottContinuous_left (ofNat 0))
     (theorem_1_3 (pairSeq_isScottContinuous_right (ofNat 0))
       (theorem_1_3 (funOf_isScottContinuous a)
@@ -339,7 +339,7 @@ theorem plusR_map_isScottContinuous (a b : Pomega) :
 
 theorem plusR_app (a b u : Pomega) :
     funOf (plusR a b) u =
-      condSet (funOf u (ofNat 0))
+      dcondSet (funOf u (ofNat 0))
         (pairSeq (ofNat 0) (funOf a (funOf u (ofNat 1))))
         (pairSeq (ofNat 1) (funOf b (funOf u (ofNat 1)))) :=
   beta (plusR_map_isScottContinuous a b) u
@@ -357,17 +357,78 @@ theorem typed_pairSeq_tensorR (a b x y : Pomega) :
     rw [typed, tensorR_app, pairSeq_app_zero, pairSeq_app_one, ← hx, ← hy]
 
 theorem plusR_typed_bot (a b : Pomega) : typed botElem (plusR a b) := by
-  rw [typed, plusR_app, funOf_bot, condSet_bot]
+  rw [typed, plusR_app, funOf_bot, dcondSet_bot]
 
 theorem plusR_typed_inl {a b x : Pomega} (hx : typed x a) :
     typed (pairSeq (ofNat 0) x) (plusR a b) := by
-  rw [typed, plusR_app, pairSeq_app_zero, pairSeq_app_one, condSet_ofNat_zero,
+  rw [typed, plusR_app, pairSeq_app_zero, pairSeq_app_one, dcondSet_ofNat_zero,
     ← hx]
 
 theorem plusR_typed_inr {a b y : Pomega} (hy : typed y b) :
     typed (pairSeq (ofNat 1) y) (plusR a b) := by
-  rw [typed, plusR_app, pairSeq_app_zero, pairSeq_app_one, condSet_ofNat_one,
+  rw [typed, plusR_app, pairSeq_app_zero, pairSeq_app_one, dcondSet_ofNat_one,
     ← hy]
+
+theorem plusR_app_bot (a b : Pomega) :
+    funOf (plusR a b) botElem = botElem := by
+  rw [plusR_app, funOf_bot, dcondSet_bot]
+
+theorem plusR_app_top (a b : Pomega) :
+    funOf (plusR a b) topElem = topElem := by
+  rw [plusR_app, funOf_top, dcondSet_top]
+
+theorem plusR_typed_top (a b : Pomega) : typed topElem (plusR a b) :=
+  (plusR_app_top a b).symm
+
+theorem plusR_isStrict (a b : Pomega) : IsStrict (plusR a b) :=
+  plusR_app_bot a b
+
+/-- **Scott 1976, Theorem 4.5 (i).** `a ⊕ b` is a retract when `a` and `b` are. -/
+theorem plusR_isRetract {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    IsRetract (plusR a b) := by
+  change plusR a b =
+    graph (fun u => funOf (plusR a b) (funOf (plusR a b) u))
+  apply graph_ext
+  intro u
+  rw [plusR_app a b u]
+  rcases dcondSet_cases (funOf u (ofNat 0)) with h | h | h | h
+  · rw [dcondSet_of_zero_not_pos h.1 h.2, plusR_app,
+      pairSeq_app_zero, pairSeq_app_one, dcondSet_ofNat_zero, retract_app ha]
+  · rw [dcondSet_of_pos_not_zero h.1 h.2, plusR_app,
+      pairSeq_app_zero, pairSeq_app_one, dcondSet_ofNat_one, retract_app hb]
+  · rw [dcondSet_of_mixed h.1 h.2, plusR_app_top]
+  · rw [dcondSet_of_empty h.1 h.2, plusR_app_bot]
+
+/-- **Scott 1976, Theorem 4.5 (ii).** Range of `a ⊕ b`. -/
+theorem plusR_typed_iff {a b u : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    typed u (plusR a b) ↔
+      u = botElem ∨ u = topElem ∨
+        (∃ x, u = pairSeq (ofNat 0) x ∧ typed x a) ∨
+          (∃ y, u = pairSeq (ofNat 1) y ∧ typed y b) := by
+  constructor
+  · intro hu
+    have hu' : u =
+        dcondSet (funOf u (ofNat 0))
+          (pairSeq (ofNat 0) (funOf a (funOf u (ofNat 1))))
+          (pairSeq (ofNat 1) (funOf b (funOf u (ofNat 1)))) := by
+      simpa [typed, plusR_app] using hu
+    rcases dcondSet_cases (funOf u (ofNat 0)) with h | h | h | h
+    · refine Or.inr (Or.inr (Or.inl ⟨funOf a (funOf u (ofNat 1)), ?_, ?_⟩))
+      · exact hu'.trans (dcondSet_of_zero_not_pos h.1 h.2)
+      · exact (retract_app ha (funOf u (ofNat 1))).symm
+    · refine Or.inr (Or.inr (Or.inr ⟨funOf b (funOf u (ofNat 1)), ?_, ?_⟩))
+      · exact hu'.trans (dcondSet_of_pos_not_zero h.1 h.2)
+      · exact (retract_app hb (funOf u (ofNat 1))).symm
+    · refine Or.inr (Or.inl ?_)
+      exact hu'.trans (dcondSet_of_mixed h.1 h.2)
+    · refine Or.inl ?_
+      exact hu'.trans (dcondSet_of_empty h.1 h.2)
+  · intro h
+    rcases h with hu | hu | ⟨x, hx, hxt⟩ | ⟨y, hy, hyt⟩
+    · rw [hu]; exact plusR_typed_bot a b
+    · rw [hu]; exact plusR_typed_top a b
+    · rw [hx]; exact plusR_typed_inl hxt
+    · rw [hy]; exact plusR_typed_inr hyt
 
 /-- **Scott 1976, Theorem 4.4.** Products of retracts are retracts. -/
 theorem tensorR_isRetract {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
@@ -536,8 +597,8 @@ theorem eq_4_32 {a b : Pomega} (ha : IsRetract a) :
   intro x
   simp only [comp_app, inleftC_app, retract_app ha]
   rw [plusR_app, plusR_app, pairSeq_app_zero, pairSeq_app_one,
-    condSet_ofNat_zero, retract_app ha]
-  rw [pairSeq_app_zero, pairSeq_app_one, condSet_ofNat_zero, retract_app ha]
+    dcondSet_ofNat_zero, retract_app ha]
+  rw [pairSeq_app_zero, pairSeq_app_one, dcondSet_ofNat_zero, retract_app ha]
 
 /-- **Scott 1976, (4.33).** ` (a ⊕ b) ∘ inright ∘ b : b ∘→ (a ⊕ b) `. -/
 theorem eq_4_33 {a b : Pomega} (hb : IsRetract b) :
@@ -549,8 +610,8 @@ theorem eq_4_33 {a b : Pomega} (hb : IsRetract b) :
   intro x
   simp only [comp_app, inrightC_app, retract_app hb]
   rw [plusR_app, plusR_app, pairSeq_app_zero, pairSeq_app_one,
-    condSet_ofNat_one, retract_app hb]
-  rw [pairSeq_app_zero, pairSeq_app_one, condSet_ofNat_one, retract_app hb]
+    dcondSet_ofNat_one, retract_app hb]
+  rw [pairSeq_app_zero, pairSeq_app_one, dcondSet_ofNat_one, retract_app hb]
 
 theorem evalC_isScottContinuous :
     IsScottContinuous (fun u => funOf (funOf u (ofNat 0)) (funOf u (ofNat 1))) :=
@@ -791,16 +852,21 @@ theorem funOf_condSet (z x y w : Pomega) :
     · exact ⟨n, hn, Or.inl ⟨hx, h0⟩⟩
     · exact ⟨n, hn, Or.inr ⟨hy, ht⟩⟩
 
+theorem funOf_dcondSet (z x y w : Pomega) :
+    funOf (dcondSet z x y) w = dcondSet z (funOf x w) (funOf y w) := by
+  simp only [dcondSet]
+  rw [funOf_condSet, funOf_condSet, funOf_condSet, funOf_top]
+
 theorem plusR_fst (a b u : Pomega) :
     funOf (funOf (plusR a b) u) (ofNat 0) =
-      condSet (funOf u (ofNat 0)) (ofNat 0) (ofNat 1) := by
-  rw [plusR_app, funOf_condSet, pairSeq_app_zero, pairSeq_app_zero]
+      dcondSet (funOf u (ofNat 0)) (ofNat 0) (ofNat 1) := by
+  rw [plusR_app, funOf_dcondSet, pairSeq_app_zero, pairSeq_app_zero]
 
 theorem plusR_snd (a b u : Pomega) :
     funOf (funOf (plusR a b) u) (ofNat 1) =
-      condSet (funOf u (ofNat 0))
+      dcondSet (funOf u (ofNat 0))
         (funOf a (funOf u (ofNat 1))) (funOf b (funOf u (ofNat 1))) := by
-  rw [plusR_app, funOf_condSet, pairSeq_app_one, pairSeq_app_one]
+  rw [plusR_app, funOf_dcondSet, pairSeq_app_one, pairSeq_app_one]
 
 /-- **Scott 1976, (4.36).** `which ∘ (a ⊕ b) : (a ⊕ b) ∘→ bool`. -/
 theorem eq_4_36 (a b : Pomega) :
@@ -811,7 +877,99 @@ theorem eq_4_36 (a b : Pomega) :
   apply graph_ext
   intro u
   simp only [comp_app, whichC, fstC_app]
-  rw [plusR_fst, boolR_app, plusR_fst, plusR_fst, condSet_bool_idem, condSet_bool_idem]
+  rw [plusR_fst, boolR_app, plusR_fst, plusR_fst, dcondSet_bool_idem, dcondSet_bool_idem]
+
+/-- **Scott 1976, (4.13).** `(a ⊕ b) ∘ (a' ⊕ b') = (a ∘ a') ⊕ (b ∘ b')`. -/
+theorem eq_4_13 (a b a' b' : Pomega) :
+    comp (plusR a b) (plusR a' b') = plusR (comp a a') (comp b b') := by
+  apply graph_ext
+  intro u
+  rw [plusR_app a' b' u]
+  rcases dcondSet_cases (funOf u (ofNat 0)) with h | h | h | h
+  · rw [dcondSet_of_zero_not_pos h.1 h.2, plusR_app,
+      pairSeq_app_zero, pairSeq_app_one, dcondSet_ofNat_zero,
+      dcondSet_of_zero_not_pos h.1 h.2]
+    simp only [comp_app]
+  · rw [dcondSet_of_pos_not_zero h.1 h.2, plusR_app,
+      pairSeq_app_zero, pairSeq_app_one, dcondSet_ofNat_one,
+      dcondSet_of_pos_not_zero h.1 h.2]
+    simp only [comp_app]
+  · rw [dcondSet_of_mixed h.1 h.2, plusR_app_top, dcondSet_of_mixed h.1 h.2]
+  · rw [dcondSet_of_empty h.1 h.2, plusR_app_bot, dcondSet_of_empty h.1 h.2]
+
+/-- **Scott 1976, Theorem 4.5 (iii).** `⊕` preserves `⊑`. -/
+theorem plusR_retractLe {a b a' b' : Pomega}
+    (hab : retractLe a a') (hbb : retractLe b b') :
+    retractLe (plusR a b) (plusR a' b') := by
+  constructor
+  · have h : plusR (comp a a') (comp b b') = plusR a b := by
+      rw [← hab.1, ← hbb.1]
+    exact ((eq_4_13 a b a' b').trans h).symm
+  · have h : plusR (comp a' a) (comp b' b) = plusR a b := by
+      rw [← hab.2, ← hbb.2]
+    exact ((eq_4_13 a' b' a b).trans h).symm
+
+/-- **Scott 1976, Theorem 4.5 (iv).** `⊕` is a covariant functor. -/
+theorem plusR_functor {a b a' b' f f' : Pomega}
+    (_ha : IsRetract a) (_hb : IsRetract b)
+    (_ha' : IsRetract a') (_hb' : IsRetract b')
+    (hf : typed f (arrowR a b)) (hf' : typed f' (arrowR a' b')) :
+    typed (plusR f f') (arrowR (plusR a a') (plusR b b')) := by
+  change plusR f f' =
+    funOf (arrowR (plusR a a') (plusR b b')) (plusR f f')
+  rw [arrowR_app]
+  have hf1 := typed_of_arrowR hf
+  have hf2 := typed_of_arrowR hf'
+  apply Eq.symm
+  calc
+    comp (plusR b b') (comp (plusR f f') (plusR a a'))
+        = comp (plusR b b') (plusR (comp f a) (comp f' a')) := by
+          rw [eq_4_13]
+    _ = plusR (comp b (comp f a)) (comp b' (comp f' a')) := eq_4_13 _ _ _ _
+    _ = plusR f f' := by
+      rw [← hf1, ← hf2]
+
+/-- **Scott 1976, Theorem 4.5 (The sum theorem).** -/
+theorem theorem_4_5_sum {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    IsRetract (plusR a b) ∧ IsStrict (plusR a b) ∧
+      (∀ u, typed u (plusR a b) ↔
+        u = botElem ∨ u = topElem ∨
+          (∃ x, u = pairSeq (ofNat 0) x ∧ typed x a) ∨
+            (∃ y, u = pairSeq (ofNat 1) y ∧ typed y b)) :=
+  ⟨plusR_isRetract ha hb, plusR_isStrict a b, fun u => plusR_typed_iff ha hb⟩
+
+/-- **Scott 1976, (4.34).** `a ∘ outleft ∘ (a ⊕ b) : (a ⊕ b) ∘→ a`. -/
+theorem eq_4_34 {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    typed (comp a (comp outleftC (plusR a b))) (arrowR (plusR a b) a) := by
+  change comp a (comp outleftC (plusR a b)) =
+    funOf (arrowR (plusR a b) a) (comp a (comp outleftC (plusR a b)))
+  rw [arrowR_app]
+  apply graph_ext
+  intro u
+  simp only [comp_app]
+  rw [retract_app (plusR_isRetract ha hb), retract_app ha]
+
+/-- **Scott 1976, (4.35).** `b ∘ outright ∘ (a ⊕ b) : (a ⊕ b) ∘→ b`. -/
+theorem eq_4_35 {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    typed (comp b (comp outrightC (plusR a b))) (arrowR (plusR a b) b) := by
+  change comp b (comp outrightC (plusR a b)) =
+    funOf (arrowR (plusR a b) b) (comp b (comp outrightC (plusR a b)))
+  rw [arrowR_app]
+  apply graph_ext
+  intro u
+  simp only [comp_app]
+  rw [retract_app (plusR_isRetract ha hb), retract_app hb]
+
+/-- **Scott 1976, (4.37).** `a ∘ out ∘ (a ⊕ a) : (a ⊕ a) ∘→ a`. -/
+theorem eq_4_37 {a : Pomega} (ha : IsRetract a) :
+    typed (comp a (comp outC (plusR a a))) (arrowR (plusR a a) a) := by
+  change comp a (comp outC (plusR a a)) =
+    funOf (arrowR (plusR a a) a) (comp a (comp outC (plusR a a)))
+  rw [arrowR_app]
+  apply graph_ext
+  intro u
+  simp only [comp_app]
+  rw [retract_app (plusR_isRetract ha ha), retract_app ha]
 
 /-- **Scott 1976, Theorem 4.4.** The product mediator
 `h = (f ⊗ g) ∘ diag ∘ c`. -/
@@ -1565,11 +1723,16 @@ theorem plusR_right_isScottContinuous (a : Pomega) :
     IsScottContinuous (fun b => plusR a b) :=
   graph_const_isScottContinuous
     (fun b u =>
-      condSet (funOf u (ofNat 0))
+      dcondSet (funOf u (ofNat 0))
         (pairSeq (ofNat 0) (funOf a (funOf u (ofNat 1))))
         (pairSeq (ofNat 1) (funOf b (funOf u (ofNat 1)))))
     (fun u =>
-      theorem_1_3 (condSet_isScottContinuous_right
+      theorem_1_3
+        (f := fun y =>
+          dcondSet (funOf u (ofNat 0))
+            (pairSeq (ofNat 0) (funOf a (funOf u (ofNat 1)))) y)
+        (g := fun b => pairSeq (ofNat 1) (funOf b (funOf u (ofNat 1))))
+        (dcondSet_isScottContinuous_right
           (funOf u (ofNat 0))
           (pairSeq (ofNat 0) (funOf a (funOf u (ofNat 1)))))
         (theorem_1_3 (pairSeq_isScottContinuous_right (ofNat 1))

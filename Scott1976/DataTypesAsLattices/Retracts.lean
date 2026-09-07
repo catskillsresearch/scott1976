@@ -71,10 +71,11 @@ def tensorR (a b : Pomega) : Pomega :=
   graph (fun u =>
     pairSeq (funOf a (funOf u (ofNat 0))) (funOf b (funOf u (ofNat 1))))
 
-/-- **Scott 1976, (4.10).** Sum of retracts. -/
+/-- **Scott 1976, (4.10).** Sum of retracts, using the doubly strict
+conditional of (4.4) so mixed tags map to `⊤`. -/
 def plusR (a b : Pomega) : Pomega :=
   graph (fun u =>
-    condSet (funOf u (ofNat 0))
+    dcondSet (funOf u (ofNat 0))
       (pairSeq (ofNat 0) (funOf a (funOf u (ofNat 1))))
       (pairSeq (ofNat 1) (funOf b (funOf u (ofNat 1)))))
 
@@ -604,31 +605,191 @@ def evalC : Pomega :=
 def curryC : Pomega :=
   graph (fun u => graph (fun x => graph (fun y => funOf u (pairSeq x y))))
 
-/-- **Scott 1976, (4.7).** Integer retract as the least fixed point of
-`int(u) = u ⊃ 0, int(u−1) ⊃ u, u`. -/
-def intR : Pomega :=
-  graph fun u =>
-    condSet u (ofNat 0) (condSet (predSet u) u topElem)
+/-- **Scott 1976, (4.7).** The integer functional
+`int(u) = u ⊒ 0, (int(u−1) ⊒ u, u)`. -/
+def intF (f : Pomega) : Pomega :=
+  graph (fun u =>
+    dcondSet u (ofNat 0) (dcondSet (funOf f (predSet u)) u u))
 
-theorem intR_map_isScottContinuous :
+theorem intF_map_isScottContinuous (f : Pomega) :
     IsScottContinuous (fun u =>
-      condSet u (ofNat 0) (condSet (predSet u) u topElem)) :=
+      dcondSet u (ofNat 0) (dcondSet (funOf f (predSet u)) u u)) :=
   theorem_1_3_nary
-    (fun y z => condSet_isScottContinuous_left y z)
-    (fun x z => condSet_isScottContinuous_mid x z)
-    (fun x y => condSet_isScottContinuous_right x y)
+    (fun y z => dcondSet_isScottContinuous_left y z)
+    (fun x z => dcondSet_isScottContinuous_mid x z)
+    (fun x y => dcondSet_isScottContinuous_right x y)
     id_isScottContinuous
     (const_isScottContinuous (ofNat 0))
-    (theorem_1_3_tuple
-      (fun y => condSet_isScottContinuous_left y topElem)
-      (fun tes => condSet_isScottContinuous_mid tes topElem)
-      predSet_isScottContinuous
+    (theorem_1_3_nary
+      (fun y z => dcondSet_isScottContinuous_left y z)
+      (fun x z => dcondSet_isScottContinuous_mid x z)
+      (fun x y => dcondSet_isScottContinuous_right x y)
+      (theorem_1_3 (funOf_isScottContinuous f) predSet_isScottContinuous)
+      id_isScottContinuous
       id_isScottContinuous)
+
+theorem intF_isScottContinuous : IsScottContinuous intF :=
+  graph_const_isScottContinuous
+    (fun f u => dcondSet u (ofNat 0) (dcondSet (funOf f (predSet u)) u u))
+    (fun u =>
+      theorem_1_3
+        (f := fun z => dcondSet u (ofNat 0) z)
+        (g := fun f => dcondSet (funOf f (predSet u)) u u)
+        (dcondSet_isScottContinuous_right u (ofNat 0))
+        (theorem_1_3
+          (f := fun z => dcondSet z u u)
+          (g := fun f => funOf f (predSet u))
+          (dcondSet_isScottContinuous_left u u)
+          (funOf_isScottContinuous_left (predSet u))))
+
+theorem intF_app (f u : Pomega) :
+    funOf (intF f) u =
+      dcondSet u (ofNat 0) (dcondSet (funOf f (predSet u)) u u) :=
+  beta (intF_map_isScottContinuous f) u
+
+/-- **Scott 1976, (4.7).** Integer retract as the least fixed point. -/
+def intR : Pomega := fix intF
+
+theorem intR_eq_intF : intF intR = intR :=
+  (theorem_1_4 intF_isScottContinuous).1
 
 theorem intR_app (u : Pomega) :
     funOf intR u =
-      condSet u (ofNat 0) (condSet (predSet u) u topElem) :=
-  beta intR_map_isScottContinuous u
+      dcondSet u (ofNat 0) (dcondSet (funOf intR (predSet u)) u u) := by
+  have h := congrArg (fun a => funOf a u) intR_eq_intF
+  simpa [intF_app] using h.symm
+
+theorem predSet_ofNat_zero : predSet (ofNat 0) = botElem := by
+  ext k
+  simp [predSet, ofNat, botElem]
+
+theorem intR_bot : funOf intR botElem = botElem := by
+  rw [intR_app, dcondSet_bot]
+
+theorem dcondSet_same_ofNat (n : ℕ) (x : Pomega) :
+    dcondSet (ofNat n) x x = x :=
+  match n with
+  | 0 => dcondSet_ofNat_zero x x
+  | n + 1 => dcondSet_ofNat_succ n x x
+
+/-- **Scott 1976, after (4.7).** `int({n}) = {n}`. -/
+theorem intR_ofNat : ∀ n, funOf intR (ofNat n) = ofNat n
+  | 0 => by
+    rw [intR_app, dcondSet_ofNat_zero]
+  | n + 1 => by
+    rw [intR_app, predSet_ofNat_succ, intR_ofNat n, dcondSet_same_ofNat,
+      dcondSet_ofNat_succ]
+
+theorem predSet_eq_ofNat_of_no_zero {u : Pomega} {k : ℕ}
+    (h0 : 0 ∉ u) (hk : predSet u = ofNat k) :
+    u = ofNat (k + 1) := by
+  ext m
+  constructor
+  · intro hm
+    have hm0 : m ≠ 0 := fun h => h0 (by simpa [h] using hm)
+    obtain ⟨t, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hm0
+    have : t ∈ predSet u := hm
+    have : t = k := by
+      have : t ∈ ofNat k := by rwa [hk] at this
+      simpa [ofNat] using this
+    simp [ofNat, this]
+  · intro hm
+    simp [ofNat] at hm
+    subst hm
+    have : k ∈ predSet u := by
+      rw [hk]; simp [ofNat]
+    exact this
+
+/-- **Scott 1976, after (4.7).** `int(u) = ⊤` when `u` is not `⊥` and not a
+singleton integer. -/
+theorem intR_top_of_nonsingleton :
+    ∀ n u, n ∈ u → (∀ k ∈ u, n ≤ k) → u ≠ botElem → (∀ k, u ≠ ofNat k) →
+      funOf intR u = topElem := by
+  intro n
+  induction n using Nat.strongRecOn with
+  | ind n ih =>
+    intro u hn hmin hne hns
+    rw [intR_app]
+    by_cases h0 : 0 ∈ u
+    · have hp : ∃ t, t + 1 ∈ u := by
+        by_contra hp
+        apply hns 0
+        ext m
+        constructor
+        · intro hm
+          have : m = 0 := by
+            by_contra hm0
+            obtain ⟨t, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hm0
+            exact hp ⟨t, hm⟩
+          simp [ofNat, this]
+        · intro hm
+          simpa [ofNat] using hm.symm ▸ h0
+      rw [dcondSet_of_mixed h0 hp]
+    · have hn0 : n ≠ 0 := fun h => h0 (by simpa [h] using hn)
+      obtain ⟨n', rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn0
+      have hn' : n' ∈ predSet u := hn
+      have hmin' : ∀ k ∈ predSet u, n' ≤ k := by
+        intro k hk
+        have : n' + 1 ≤ k + 1 := hmin (k + 1) hk
+        omega
+      have hne' : predSet u ≠ botElem := by
+        intro hempty
+        have : n' ∈ predSet u := hn'
+        rw [hempty] at this
+        simp [botElem] at this
+      have hns' : ∀ k, predSet u ≠ ofNat k := by
+        intro k hk
+        exact hns (k + 1) (predSet_eq_ofNat_of_no_zero h0 hk)
+      have hpred : funOf intR (predSet u) = topElem :=
+        ih n' (Nat.lt_succ_self n') (predSet u) hn' hmin' hne' hns'
+      rw [hpred, dcondSet_top, dcondSet_of_pos_not_zero h0 ⟨n', hn⟩]
+
+theorem intR_top : funOf intR topElem = topElem :=
+  intR_top_of_nonsingleton 0 topElem (Set.mem_univ 0)
+    (fun _ _ => Nat.zero_le _)
+    (by
+      intro h
+      have : (0 : ℕ) ∈ (botElem : Pomega) := by
+        rw [← h]
+        exact Set.mem_univ 0
+      simp [botElem] at this)
+    (fun n h => by
+      have h0 : (0 : ℕ) ∈ ofNat n := by
+        have : (0 : ℕ) ∈ topElem := Set.mem_univ 0
+        rwa [h] at this
+      have h1 : (1 : ℕ) ∈ ofNat n := by
+        have : (1 : ℕ) ∈ topElem := Set.mem_univ 1
+        rwa [h] at this
+      simp [ofNat] at h0 h1
+      omega)
+
+theorem intR_idem (x : Pomega) : funOf intR (funOf intR x) = funOf intR x := by
+  by_cases hbot : x = botElem
+  · subst hbot
+    rw [intR_bot, intR_bot]
+  · by_cases hsing : ∃ n, x = ofNat n
+    · obtain ⟨n, rfl⟩ := hsing
+      rw [intR_ofNat, intR_ofNat]
+    · have hx : funOf intR x = topElem := by
+        have hne : x.Nonempty := by
+          rw [Set.nonempty_iff_ne_empty]
+          simpa [botElem] using hbot
+        exact intR_top_of_nonsingleton (sInf x) x (Nat.sInf_mem hne)
+          (fun k hk => Nat.sInf_le hk) hbot (fun n hn => hsing ⟨n, hn⟩)
+      rw [hx, intR_top]
+
+theorem intR_isGraph : intR = graph (funOf intR) := by
+  refine intR_eq_intF.symm.trans ?_
+  apply graph_ext
+  intro u
+  exact (intR_app u).symm
+
+theorem intR_isRetract : IsRetract intR := by
+  change intR = graph (fun x => funOf intR (funOf intR x))
+  refine intR_isGraph.trans ?_
+  apply graph_ext
+  intro x
+  exact (intR_idem x).symm
 
 /-- **Scott 1976, Theorem 4.4 (ii), pairing form.** A pair-as-function
 projects to its components. -/
@@ -640,11 +801,10 @@ theorem theorem_4_4_ii (x y : Pomega) :
 /-- **Scott 1976, Theorem 4.5 (i), strictness of sums.** The zero summand
 is always selected on `⊥`. -/
 theorem theorem_4_5_strict (a b : Pomega) :
-    condSet botElem
+    dcondSet botElem
       (pairSeq (ofNat 0) (funOf a botElem))
-      (pairSeq (ofNat 1) (funOf b botElem)) = botElem := by
-  ext n
-  simp [condSet, botElem]
+      (pairSeq (ofNat 1) (funOf b botElem)) = botElem :=
+  dcondSet_bot _ _
 
 /-- **Scott 1976, (4.38).** The tree functor. -/
 def treeF (z : Pomega) : Pomega := plusR botElem (tensorR z z)
@@ -735,7 +895,7 @@ theorem theorem_4_4 :
 
 /-- **Scott 1976, Theorem 4.5 (The sum theorem), core.** -/
 theorem theorem_4_5 :
-    condSet botElem
+    dcondSet botElem
         (pairSeq (ofNat 0) (funOf a botElem))
         (pairSeq (ofNat 1) (funOf b botElem)) = botElem ∧
       IsRetract botElem :=
@@ -763,41 +923,28 @@ theorem theorem_4_6 {F : Pomega → Pomega}
 
 def treeR : Pomega := funOf Ycomb (graph treeF)
 
-/-- **Scott 1976, (4.3).** Boolean retract via the ordinary conditional. -/
+/-- **Scott 1976, (4.3).** Boolean retract via the doubly strict conditional. -/
 def boolR : Pomega :=
-  graph (fun u => condSet u (ofNat 0) (ofNat 1))
+  graph (fun u => dcondSet u (ofNat 0) (ofNat 1))
 
 theorem boolR_app (u : Pomega) :
-    funOf boolR u = condSet u (ofNat 0) (ofNat 1) :=
-  beta (condSet_isScottContinuous_left (ofNat 0) (ofNat 1)) u
+    funOf boolR u = dcondSet u (ofNat 0) (ofNat 1) :=
+  beta (dcondSet_isScottContinuous_left (ofNat 0) (ofNat 1)) u
 
-/-- `bool` is idempotent on the image of the ordinary conditional. -/
-theorem condSet_bool_idem (u : Pomega) :
-    condSet (condSet u (ofNat 0) (ofNat 1)) (ofNat 0) (ofNat 1) =
-      condSet u (ofNat 0) (ofNat 1) := by
-  ext n
-  constructor
-  · intro hn
-    rcases hn with ⟨hn0, h0⟩ | ⟨hn1, ⟨k, hk⟩⟩
-    · have h0u : 0 ∈ u := by
-        rcases h0 with ⟨_, hu⟩ | ⟨h01, _⟩
-        · exact hu
-        · simp [ofNat] at h01
-      exact Or.inl ⟨hn0, h0u⟩
-    · have hsucc : ∃ t, t + 1 ∈ u := by
-        rcases hk with ⟨hk0, _⟩ | ⟨_, ht⟩
-        · simp [ofNat] at hk0
-        · exact ht
-      exact Or.inr ⟨hn1, hsucc⟩
-  · intro hn
-    rcases hn with ⟨hn0, h0⟩ | ⟨hn1, ht⟩
-    · exact Or.inl ⟨hn0, Or.inl ⟨by simp [ofNat], h0⟩⟩
-    · exact Or.inr ⟨hn1, 0, Or.inr ⟨by simp [ofNat], ht⟩⟩
+/-- `bool` is idempotent: mixed tags collapse to `⊤`, a fixed point of `⊒`. -/
+theorem dcondSet_bool_idem (u : Pomega) :
+    dcondSet (dcondSet u (ofNat 0) (ofNat 1)) (ofNat 0) (ofNat 1) =
+      dcondSet u (ofNat 0) (ofNat 1) := by
+  rcases dcondSet_cases u with h | h | h | h
+  · rw [dcondSet_of_zero_not_pos h.1 h.2, dcondSet_ofNat_zero]
+  · rw [dcondSet_of_pos_not_zero h.1 h.2, dcondSet_ofNat_one]
+  · rw [dcondSet_of_mixed h.1 h.2, dcondSet_top]
+  · rw [dcondSet_of_empty h.1 h.2, dcondSet_bot]
 
 theorem boolR_isRetract : IsRetract boolR := by
   apply graph_ext
   intro u
-  rw [boolR_app, boolR_app, condSet_bool_idem]
+  rw [boolR_app, boolR_app, dcondSet_bool_idem]
 
 /-- **Scott 1976, (4.6).** The open-set retract. -/
 def openR : Pomega :=

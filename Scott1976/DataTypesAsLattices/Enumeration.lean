@@ -459,6 +459,25 @@ def num : ℕ → ℕ
   | 0 => 1
   | n + 1 => applyNat 12 (num n)
 
+theorem primrec_applyNat : Primrec₂ applyNat :=
+  (Primrec.succ.comp primrec_pair).of_eq fun _ => rfl
+
+theorem primrec_num : Primrec num :=
+  (Primrec.nat_rec' (f := id) (g := fun _ => (1 : ℕ))
+    (h := fun (_ : ℕ) (p : ℕ × ℕ) => applyNat 12 p.2)
+    Primrec.id (Primrec.const 1)
+    (show Primrec fun q : ℕ × ℕ × ℕ => applyNat 12 q.2.2 from
+      primrec_applyNat.comp (Primrec.const 12) (Primrec.snd.comp Primrec.snd))).of_eq
+    fun n => by
+      induction n with
+      | zero => rfl
+      | succ n ih =>
+        change applyNat 12 (Nat.rec 1 (fun n IH => applyNat 12 (n, IH).2) n) =
+          applyNat 12 (num n)
+        have ih' : Nat.rec 1 (fun n IH => applyNat 12 (n, IH).2) n = num n := by
+          simpa [id] using ih
+        rw [ih']
+
 /-- **Scott 1976, Theorem 3.3 (i).** The set denoted by the code `v(n)`. -/
 def secondRecVal (u : Pomega) : Pomega :=
   graph (fun x => ⋃ m ∈ x, funOf u (ofNat (applyNat m (num m))))
@@ -903,6 +922,48 @@ theorem theorem_3_7 (u v x : Pomega) :
       funOf (barPos v (funOf Rcomb x)) (ofNat 1) = v ∧
         funOf (barPos v (funOf Rcomb x)) (ofNat 2) = x :=
   ⟨eq_3_16_bar u x, (eq_3_17 u v x).2.1, (eq_3_17 u v x).2.2⟩
+
+/-- Combinatory elements lie in every enumeration degree, since `Deg a`
+contains `G` and is closed under application. -/
+theorem combinatory_mem_Deg (a : Pomega) {u : Pomega}
+    (hu : IsCombinatory u) : u ∈ Deg a := by
+  have huG : GeneratedFromG u := (theorem_3_1 (u := u)).mp hu
+  clear hu
+  induction huG with
+  | G => exact (Deg_isSubalgebra a).1
+  | app _ _ ih ih' => exact (Deg_isSubalgebra a).2 ih ih'
+
+/-- **Scott 1976, Theorem 3.6 converse (singleton).** The packed
+generator recovers `x` in its own degree. -/
+theorem theorem_3_6_converse (x : Pomega) :
+    x ∈ Deg (singleGenerator [x]) := by
+  have hp := (theorem_3_6_finite [x]).1
+  have h0 := combinatory_mem_Deg (singleGenerator [x]) (ofNat_combinatory 0)
+  have : funOf (packList [x]) (ofNat 0) ∈ Deg (singleGenerator [x]) :=
+    (Deg_isSubalgebra _).2 hp h0
+  simpa [packList_cons_zero] using this
+
+/-- Scott pairing of a fixed code is primitive recursive (s-m-n shape). -/
+theorem primrec_applyNat_const (c : ℕ) : Primrec fun n => applyNat c n :=
+  primrec_applyNat.comp (Primrec.const c) Primrec.id
+
+/-- **Scott 1976, Theorem 3.3 (i), primrec shape.** If `c` realises
+`secondRecVal` on codes, then `v = apply(c)` is primitive recursive and
+satisfies the hypothesis of `theorem_3_3`. -/
+theorem theorem_3_3_primrec_shape (c : ℕ)
+    (hc : ∀ n, valNat (applyNat c n) = secondRecVal (valNat n)) (n : ℕ) :
+    valNat (recNat (fun k => applyNat c k) n) =
+      funOf (valNat n) (ofNat (recNat (fun k => applyNat c k) n)) :=
+  theorem_3_3 (fun k => applyNat c k) n (hc n)
+
+/-- Nested positive-branch packaging of (3.17): `ū⁺(v̄⁺(R(x)))`
+has first projection `u` and recovers `u(v)(x)` via `L` after
+replacing the head by `u(v)`. -/
+theorem eq_3_17_semigroup (u v x : Pomega) :
+    funOf (barPos u (barPos v (funOf Rcomb x))) (ofNat 1) = u ∧
+      funOf Lcomb (barPos (funOf u v) (funOf Rcomb x)) =
+        funOf (funOf u v) x :=
+  ⟨(eq_3_17 u v x).1, eq_3_16 (funOf u v) x⟩
 
 /-- **Scott 1976, (4.46).** `vaal` on trees, companion of `val`. -/
 def vaalF (v : Pomega) : Pomega :=

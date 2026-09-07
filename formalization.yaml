@@ -160,25 +160,30 @@ known_gaps:
   - >-
     Section 2: `$ = Y(step)` and (2.27) are proved. Theorem 2.3 is
     packaged only for arity ≤ 3; Theorem 2.6 identifies LAMBDA-definability
-    with combinatory closure, not with mathlib `IsRE`.
+    with combinatory closure. `IsRE` is closed under `∪`, `succ`, `pred`,
+    `cond`, `dcond`, and finite `e n`; `funOf` of r.e. sets and
+    `IsRE u → IsCombinatory u` remain open.
   - >-
-    Section 3: `val(fin j)=e j` is proved. Still open: existence of a
-    primrec `v` for 3.3(i), `¬IsRE {n | val n = ⊥}`, Myhill–Shepherdson
-    completeness, `A = Deg(a)` for finitely generated subalgebras, and
-    the semigroup converse of 3.7. `ū` is packaged as `Y(barStep)`
-    and (3.16) follows from that unfolding.
+    Section 3: `val(fin j)=e j` is proved. `pair`/`apply`/`num` are
+    primrec; a primrec `v` for 3.3(i) is reduced to an s-m-n code for
+    `secondRecVal`. Still open: `¬IsRE {n | val n = ⊥}`, Myhill–Shepherdson
+    completeness, `A = Deg(a)` beyond the singleton generator, and a
+    true operator-semigroup identity for (3.17). `ū` is packaged as
+    `Y(barStep)` and (3.16) follows from that unfolding.
   - >-
-    Section 4: Theorem 4.1 is a complete-lattice fragment; 4.3–4.4 are
-    packaged including the product mediator and (4.24)–(4.25). 4.5 has
-    injections and `which` typed; `⊕` is not proved a retract. 4.6
-    proves `Y(F)` is a retract but not the inverse-limit homeomorphism.
-    (4.38) unfolds `tree`; `lamb`/`env`/`ℋ`/`vaal` are defined.
+    Section 4: Theorem 4.1 is a complete-lattice fragment; 4.3–4.5 are
+    packaged including the product mediator, (4.24)–(4.25), and `⊕` as
+    a retract via the doubly strict conditional (4.4). 4.6 proves `Y(F)`
+    is a retract but not the inverse-limit homeomorphism. (4.7) `int` is
+    the least fixed point with Scott's three-case table. (4.38) unfolds
+    `tree`; `lamb`/`env`/`ℋ`/`vaal` are defined.
   - >-
     Section 5: algebraicity and the representation isomorphism remain
     unfinished. `V` is a closure and `V(a)=a ↔ IsClosure a`. Theorem 5.6
     is the typed combinator `λf:V∘→V. Y(f)`. Theorem 5.4 has `⊠` as a
-    closure typed on `V` (5.22); `∘→` is typed on `V` (5.24); `⊞`
-    is still open. (5.25) is the least solution of `d = I ∪ (d∘→d)`.
+    closure typed on `V` (5.22); `∘→` is typed on `V` (5.24); `⊞` is
+    a retract via (4.4), but `I ⊆ ⊞` fails on empty tags. (5.25) is
+    the least solution of `d = I ∪ (d∘→d)`.
   - >-
     Theorem 6.7 proves equalizers are `B_δ` and that countable intersections
     of equalizers are equalizers. The full `B_δ →` equalizer direction and

@@ -84,10 +84,11 @@ def boxTensor (a b : Pomega) : Pomega :=
 def boxShift (a : Pomega) : Pomega :=
   graph (fun x => ofNat 0 ∪ succSet (funOf a (predSet x)))
 
-/-- **Scott 1976, (5.13).** Sum of closures. -/
+/-- **Scott 1976, (5.13).** Sum of closures, using the doubly strict
+conditional so mixed tags map to `⊤`. -/
 def boxPlus (a b : Pomega) : Pomega :=
   graph (fun u =>
-    condSet (squareFst u)
+    dcondSet (squareFst u)
       (squarePair (ofNat 0) (funOf (boxShift a) (squareSnd u)))
       (squarePair (ofNat 1) (funOf (boxShift b) (squareSnd u))))
 
@@ -394,6 +395,28 @@ theorem Icomb_isRetract : IsRetract Icomb := by
 theorem Icomb_isClosure : IsClosure Icomb :=
   ⟨subset_rfl, Icomb_isRetract⟩
 
+/-- **Scott 1976, §5.** `int` is a closure: `I ⊆ int = int ∘ int`. -/
+theorem Icomb_subset_intR : Icomb ⊆ intR := by
+  intro p hp
+  rcases hp with ⟨n, m, rfl, hm⟩
+  have hsub : e n ⊆ funOf intR (e n) := by
+    by_cases hbot : e n = botElem
+    · rw [hbot, intR_bot]
+    · by_cases hsing : ∃ k, e n = ofNat k
+      · obtain ⟨k, hk⟩ := hsing
+        rw [hk, intR_ofNat]
+      · have hne : (e n).Nonempty := by
+          rw [Set.nonempty_iff_ne_empty]
+          simpa [botElem] using hbot
+        rw [intR_top_of_nonsingleton (sInf (e n)) (e n) (Nat.sInf_mem hne)
+          (fun k hk => Nat.sInf_le hk) hbot (fun k hk => hsing ⟨k, hk⟩)]
+        exact fun _ _ => Set.mem_univ _
+  rw [intR_isGraph]
+  exact ⟨n, m, rfl, hsub hm⟩
+
+theorem intR_isClosure : IsClosure intR :=
+  ⟨Icomb_subset_intR, intR_isRetract⟩
+
 /-- **Scott 1976, (5.1).** Every set is below its graph, so `fun` is a closure. -/
 theorem Icomb_subset_funRetract : Icomb ⊆ funRetract := by
   intro p hp
@@ -420,6 +443,131 @@ theorem union_left_isScottContinuous (c : Pomega) :
     rcases hkn with hkn | hkn
     · exact Or.inl (isScottContinuous_monotone id_isScottContinuous hn hkn)
     · exact Or.inr hkn
+
+theorem union_const_left_isScottContinuous (c : Pomega) :
+    IsScottContinuous (fun x => c ∪ x) := by
+  have : (fun x : Pomega => c ∪ x) = (fun x => x ∪ c) := by
+    funext x; exact Set.union_comm c x
+  rw [this]
+  exact union_left_isScottContinuous c
+
+theorem predSet_union (x y : Pomega) :
+    predSet (x ∪ y) = predSet x ∪ predSet y := by
+  ext k; simp [predSet]
+
+theorem predSet_succSet (x : Pomega) : predSet (succSet x) = x := by
+  ext k
+  constructor
+  · intro ⟨n, hn, heq⟩
+    exact (Nat.succ_injective heq) ▸ hn
+  · intro hk
+    exact ⟨k, hk, rfl⟩
+
+theorem squareFst_bot : squareFst botElem = botElem := by
+  ext n
+  simp [squareFst, botElem]
+
+theorem squareFst_top : squareFst topElem = topElem := by
+  ext n
+  constructor
+  · intro; exact Set.mem_univ n
+  · intro; exact Set.mem_univ (2 * n)
+
+theorem squareSnd_top : squareSnd topElem = topElem := by
+  ext m
+  constructor
+  · intro; exact Set.mem_univ m
+  · intro; exact Set.mem_univ (2 * m + 1)
+
+theorem boxShift_map_isScottContinuous (a : Pomega) :
+    IsScottContinuous (fun x => ofNat 0 ∪ succSet (funOf a (predSet x))) :=
+  theorem_1_3 (union_const_left_isScottContinuous (ofNat 0))
+    (theorem_1_3 succSet_isScottContinuous
+      (theorem_1_3 (funOf_isScottContinuous a) predSet_isScottContinuous))
+
+theorem boxShift_app (a x : Pomega) :
+    funOf (boxShift a) x = ofNat 0 ∪ succSet (funOf a (predSet x)) :=
+  beta (boxShift_map_isScottContinuous a) x
+
+theorem boxShift_isRetract {a : Pomega} (ha : IsRetract a) :
+    IsRetract (boxShift a) := by
+  change boxShift a =
+    graph (fun x => funOf (boxShift a) (funOf (boxShift a) x))
+  apply graph_ext
+  intro x
+  rw [boxShift_app, boxShift_app]
+  have hpred : predSet (ofNat 0 ∪ succSet (funOf a (predSet x))) =
+      funOf a (predSet x) := by
+    rw [predSet_union, predSet_ofNat_zero, predSet_succSet]
+    simp [botElem]
+  rw [hpred, retract_app ha]
+
+theorem boxPlus_map_isScottContinuous (a b : Pomega) :
+    IsScottContinuous (fun u =>
+      dcondSet (squareFst u)
+        (squarePair (ofNat 0) (funOf (boxShift a) (squareSnd u)))
+        (squarePair (ofNat 1) (funOf (boxShift b) (squareSnd u)))) :=
+  theorem_1_3_nary
+    (fun y z => dcondSet_isScottContinuous_left y z)
+    (fun x z => dcondSet_isScottContinuous_mid x z)
+    (fun x y => dcondSet_isScottContinuous_right x y)
+    squareFst_isScottContinuous
+    (theorem_1_3 (squarePair_isScottContinuous_right (ofNat 0))
+      (theorem_1_3 (funOf_isScottContinuous (boxShift a)) squareSnd_isScottContinuous))
+    (theorem_1_3 (squarePair_isScottContinuous_right (ofNat 1))
+      (theorem_1_3 (funOf_isScottContinuous (boxShift b)) squareSnd_isScottContinuous))
+
+theorem boxPlus_app (a b u : Pomega) :
+    funOf (boxPlus a b) u =
+      dcondSet (squareFst u)
+        (squarePair (ofNat 0) (funOf (boxShift a) (squareSnd u)))
+        (squarePair (ofNat 1) (funOf (boxShift b) (squareSnd u))) :=
+  beta (boxPlus_map_isScottContinuous a b) u
+
+theorem boxPlus_app_bot (a b : Pomega) :
+    funOf (boxPlus a b) botElem = botElem := by
+  rw [boxPlus_app, squareFst_bot, dcondSet_bot]
+
+theorem boxPlus_app_top (a b : Pomega) :
+    funOf (boxPlus a b) topElem = topElem := by
+  rw [boxPlus_app, squareFst_top, dcondSet_top]
+
+/-- **Scott 1976, Theorem 5.4 (sum half), retract.** `⊞` of retracts is a retract. -/
+theorem boxPlus_isRetract {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    IsRetract (boxPlus a b) := by
+  change boxPlus a b =
+    graph (fun u => funOf (boxPlus a b) (funOf (boxPlus a b) u))
+  apply graph_ext
+  intro u
+  rw [boxPlus_app a b u]
+  rcases dcondSet_cases (squareFst u) with h | h | h | h
+  · rw [dcondSet_of_zero_not_pos h.1 h.2, boxPlus_app, eq_5_9, eq_5_10,
+      dcondSet_ofNat_zero, retract_app (boxShift_isRetract ha)]
+  · rw [dcondSet_of_pos_not_zero h.1 h.2, boxPlus_app, eq_5_9, eq_5_10,
+      dcondSet_ofNat_one, retract_app (boxShift_isRetract hb)]
+  · rw [dcondSet_of_mixed h.1 h.2, boxPlus_app_top]
+  · rw [dcondSet_of_empty h.1 h.2, boxPlus_app_bot]
+
+theorem boxShift_expansive {a : Pomega} (ha : IsClosure a) (x : Pomega) :
+    x ⊆ funOf (boxShift a) x := by
+  rw [boxShift_app]
+  intro k hk
+  cases k with
+  | zero => exact Or.inl rfl
+  | succ k =>
+    refine Or.inr ⟨k, ?_, rfl⟩
+    have hx : predSet x ⊆ funOf a (predSet x) := by
+      have := funOf_monotone_left ha.1 (predSet x)
+      rwa [Icomb_app] at this
+    exact hx hk
+
+/-- **Scott 1976, Theorem 5.4 (sum half).** The boxed sum of two closures
+is a retract; mixed tags collapse to `⊤` via (4.4). Expansiveness `I ⊆ ⊞`
+fails on empty tags because (5.13) is strict, so the closure packaging
+is the retract plus the `V`-generated closure. -/
+theorem theorem_5_4_plus {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
+    IsRetract (boxPlus a b) :=
+  boxPlus_isRetract ha.2 hb.2
 
 theorem Vapply_left_isScottContinuous (x : Pomega) :
     IsScottContinuous (fun a => Vapply a x) := by
@@ -611,6 +759,13 @@ theorem eq_5_22 {a b : Pomega} (ha : typed a Vcomb) (hb : typed b Vcomb) :
   (theorem_5_5_universe.2 (boxTensor a b)).mp
     (theorem_5_4 ((theorem_5_5_universe.2 a).mpr ha)
       ((theorem_5_5_universe.2 b).mpr hb))
+
+/-- **Scott 1976, (5.23).** Boxed sum of retracts coming from `V` is a retract. -/
+theorem eq_5_23 {a b : Pomega} (ha : typed a Vcomb) (hb : typed b Vcomb) :
+    IsRetract (boxPlus a b) :=
+  boxPlus_isRetract
+    ((theorem_5_5_universe.2 a).mpr ha).2
+    ((theorem_5_5_universe.2 b).mpr hb).2
 
 /-- **Scott 1976, (5.24).** Function space of closures is a closure. -/
 theorem eq_5_24 {a b : Pomega} (ha : typed a Vcomb) (hb : typed b Vcomb) :
