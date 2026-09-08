@@ -19,11 +19,16 @@ displayed equation used as a definition or example, and Tables 1–3.
 
 The sorry-free library consists of approximately 17,000 lines in 15 files
 under `Scott1976/` (the root import plus fourteen modules). Palomar Challenge
-/ Solution files name every numbered theorem from §§1–7 (45 compared
-declarations, including the packaged forms `theorem_4_4_typed`,
-`theorem_4_5_sum`, `theorem_5_4_plus`, and `theorem_5_5_universe`) and lock
-64 core definitions, so a Comparator match requires the graph model, LAMBDA,
-enumeration, retracts, closures, classification, and functionality.
+/ Solution files name every numbered theorem from §§1–7 together with the
+companion declarations that complete those numbered claims (54 compared
+theorem declarations, including `theorem_1_3_nary`, `theorem_1_5_extends`,
+`theorem_2_4_complete`, `theorem_3_2_range`, `tensorR_functor`,
+`plusR_functor`, `theorem_4_6_limit`, `theorem_5_3_closure`, and
+`theorem_5_6_combinator`) and lock the core definitions, so a Comparator
+match requires the graph model, LAMBDA, enumeration, retracts, closures,
+classification, and functionality. The locked coproduct `plusR` uses the
+doubly strict conditional of (4.4) rather than the ordinary conditional
+written in displayed (4.10).
 
 The repository has no project-defined axioms and no Lake dependency beyond
 mathlib. Completed proofs use the standard classical mathlib footprint
@@ -256,13 +261,14 @@ Status words:
 
 Nothing is `missing` or `partial`.
 
-The Palomar Comparator currently selects every numbered theorem:
+The Palomar Comparator currently selects every numbered theorem and the
+companions that complete those numbered claims:
 
-- §1: `theorem_1_1`–`theorem_1_6`
-- §2: `theorem_2_1`–`theorem_2_6`
-- §3: `theorem_3_1`–`theorem_3_7`
-- §4: `theorem_4_1`–`theorem_4_6` (with `theorem_4_4_typed`, `theorem_4_5_sum`)
-- §5: `theorem_5_1`–`theorem_5_6` (with `theorem_5_4_plus`, `theorem_5_5_universe`)
+- §1: `theorem_1_1`–`theorem_1_6` (with `theorem_1_3_nary`, `theorem_1_5_extends`)
+- §2: `theorem_2_1`–`theorem_2_6` (with `theorem_2_4_complete`)
+- §3: `theorem_3_1`–`theorem_3_7` (with `theorem_3_2_range`)
+- §4: `theorem_4_1`–`theorem_4_6` (with `theorem_4_4_typed`, `tensorR_functor`, `theorem_4_5_sum`, `plusR_functor`, `theorem_4_6_limit`)
+- §5: `theorem_5_1`–`theorem_5_6` (with `theorem_5_3_closure`, `theorem_5_4_plus`, `theorem_5_5_universe`, `theorem_5_6_combinator`)
 - §6: `theorem_6_1`–`theorem_6_7`
 - §7: `theorem_7_1`–`theorem_7_4`
 
@@ -333,7 +339,7 @@ The Palomar Comparator currently selects every numbered theorem:
 | Item | Lean | Status |
 |---|---|---|
 | Def. retract, `u:a`, `⊑` | `IsRetract`, `typed`, `retractLe` | faithful |
-| (4.1)–(4.10) combinators | `funRetract`, `arrowR`, `tensorR`, `plusR`, `dcondSet`, `boolR`, `intR`, … | faithful — (4.4) doubly strict conditional; (4.3) `bool` and (4.10) `⊕` use it; (4.7) `int` is `Y(intF)` with Scott's three-case table |
+| (4.1)–(4.10) combinators | `funRetract`, `arrowR`, `tensorR`, `plusR`, `dcondSet`, `boolR`, `intR`, … | `plusR` is a justified modification of displayed (4.10): Scott writes ordinary `⊃`, Lean uses the doubly strict `⊐` of (4.4), as in `bool` (4.3), so mixed tags map to `⊤` and Theorem 4.5 (`⊕` is a retract) holds; not a symbol-for-symbol 1:1 of the displayed equation. (4.7) `int` is `Y(intF)` with Scott's three-case table |
 | Theorem 4.1 | `theorem_4_1`, `theorem_4_1_complete`, `theorem_4_1_continuous` | faithful — fixed points of a continuous map form a complete lattice; retract ranges are continuous lattices |
 | Theorem 4.2 | `theorem_4_2` | faithful |
 | Theorem 4.3 | `theorem_4_3`, `arrowR_isRetract` | faithful — (i)–(v) packaged |

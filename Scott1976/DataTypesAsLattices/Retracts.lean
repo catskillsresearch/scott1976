@@ -84,8 +84,13 @@ def tensorR (a b : Pomega) : Pomega :=
   graph (fun u =>
     pairSeq (funOf a (funOf u (ofNat 0))) (funOf b (funOf u (ofNat 1))))
 
-/-- **Scott 1976, (4.10).** Sum of retracts, using the doubly strict
-conditional of (4.4) so mixed tags map to `⊤`. -/
+/-- **Scott 1976, (4.10), modified.** The displayed equation writes the
+ordinary McCarthy conditional `⊃`. Lean uses the doubly strict
+conditional `⊐` of (4.4), as in `bool` (4.3), which (4.8)–(4.10)
+generalize. Mixed tags therefore map to `⊤` rather than the union of
+the two injections; that is required for `⊕` to be a retract
+(Theorem 4.5). This is not a symbol-for-symbol transcription of the
+displayed (4.10). -/
 def plusR (a b : Pomega) : Pomega :=
   graph (fun u =>
     dcondSet (funOf u (ofNat 0))
@@ -1403,7 +1408,8 @@ def updateEnv (t x : Pomega) (n : ℕ) : Pomega :=
 /-- **Scott 1976, Theorem 4.6**, inverse-limit half packaged with the
 retract half. Under the paper's extra strictness and `⊑`-monotonicity
 hypotheses, the range of `Y(F)` is order-isomorphic to the inverse
-limit of the ranges of `Fⁿ(⊥)`. -/
+limit of the ranges of `Fⁿ(⊥)`. Stated without `≃o` so the compared
+type does not mention a `CompleteLattice` instance. -/
 theorem theorem_4_6_limit {F : Pomega → Pomega}
     (hf : IsScottContinuous F)
     (hret : ∀ a, IsRetract a → IsRetract (F a))
@@ -1412,9 +1418,35 @@ theorem theorem_4_6_limit {F : Pomega → Pomega}
       IsRetract b → IsStrict b → retractLe a b → retractLe (F a) (F b)) :
     (∀ n, IsRetract (iterateBot F n)) ∧
       IsRetract (funOf Ycomb (graph F)) ∧
-        Nonempty (Fixpoints (funOf (fix F)) ≃o RetractInverseLimit F) :=
-  ⟨(theorem_4_6 hf hret).1, (theorem_4_6 hf hret).2,
-    ⟨theorem_4_6_inverseLimit hf hret hstrict hmono⟩⟩
+        ∃ φ : Fixpoints (funOf (fix F)) → RetractInverseLimit F,
+          Function.Bijective φ ∧
+            ∀ x y : Fixpoints (funOf (fix F)),
+              (x : Pomega) ⊆ (y : Pomega) ↔
+                ∀ n, (φ x).1 n ⊆ (φ y).1 n := by
+  refine ⟨(theorem_4_6 hf hret).1, (theorem_4_6 hf hret).2, ?_⟩
+  let iso := theorem_4_6_inverseLimit hf hret hstrict hmono
+  refine ⟨iso, iso.bijective, fun x y => ⟨?_, ?_⟩⟩
+  · intro hxy n
+    exact funOf_monotone_right (iterateBot F n) hxy
+  · intro h
+    have hx : (x : Pomega) = ⋃ n, funOf (iterateBot F n) (x : Pomega) := by
+      calc
+        (x : Pomega) = funOf (fix F) (x : Pomega) := x.property.symm
+        _ = ⋃ n, funOf (iterateBot F n) (x : Pomega) := by
+          change funOf (⋃ n, iterateBot F n) (x : Pomega) = _
+          rw [funOf_iUnion]
+    have hy : (y : Pomega) = ⋃ n, funOf (iterateBot F n) (y : Pomega) := by
+      calc
+        (y : Pomega) = funOf (fix F) (y : Pomega) := y.property.symm
+        _ = ⋃ n, funOf (iterateBot F n) (y : Pomega) := by
+          change funOf (⋃ n, iterateBot F n) (y : Pomega) = _
+          rw [funOf_iUnion]
+    change ∀ n, funOf (iterateBot F n) (x : Pomega) ⊆
+      funOf (iterateBot F n) (y : Pomega) at h
+    rw [hx, hy]
+    intro k hk
+    obtain ⟨n, hn⟩ := Set.mem_iUnion.mp hk
+    exact Set.mem_iUnion.mpr ⟨n, h n hn⟩
 
 /-- Tag injection `⟨i, x⟩` used by the expanded n-ary sum of (4.44). -/
 def tagInj (i : ℕ) (x : Pomega) : Pomega := pairSeq (ofNat i) x

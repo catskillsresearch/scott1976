@@ -7,9 +7,12 @@ project:
     A Lean 4 / mathlib formalization of Dana Scott's 1976 paper *Data Types
     as Lattices* (Technical Monograph PRG-5; SIAM J. Comput. 5 (1976),
     522–587). The library target is a 1:1 onto translation of every numbered
-    definition, theorem, example, and Tables 1–3. Palomar Challenge/Solution
-    name every numbered theorem from §§1–7 and lock the paper's core
-    definitions. Lean is
+    definition, theorem, example, and Tables 1–3.     Palomar Challenge/Solution
+    name every numbered theorem from §§1–7, the companion declarations that
+    complete those numbered claims, and lock the paper's core
+    definitions. The locked coproduct `plusR` uses the doubly strict
+    conditional of (4.4) rather than the ordinary conditional written in
+    displayed (4.10). Lean is
     written by AI agents under the direction and review of the author. Dana
     Scott did not participate in or endorse this formalization. There is no
     sorry outside the deliberate holes in Challenge.lean, no project-defined
@@ -30,7 +33,10 @@ classification:
 status:
   scope: >-
     The library is a 1:1 onto translation of the numbered items in Scott
-    1976. Comparator names every numbered theorem from §§1–7 and the core
+    1976, except that plusR uses the doubly strict conditional of (4.4)
+    in place of the ordinary conditional written in displayed (4.10).
+    Comparator names every numbered theorem from §§1–7, the companion
+    declarations that complete those numbered claims, and the core
     definitions those statements depend on.
   sorry_count: 0
   sorry_in_definitions: 0
@@ -54,6 +60,12 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_1_3_nary"
+      file: "Scott1976/DataTypesAsLattices/FixedPoint.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_1_4"
       file: "Scott1976/DataTypesAsLattices/FixedPoint.lean"
       sorry_count: 0
@@ -61,6 +73,12 @@ status:
       comparator_config: "comparator.json"
       literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_1_5"
+      file: "Scott1976/DataTypesAsLattices/Embedding.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_1_5_extends"
       file: "Scott1976/DataTypesAsLattices/Embedding.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -96,6 +114,12 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_2_4_complete"
+      file: "Scott1976/DataTypesAsLattices/Lambda.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_2_5"
       file: "Scott1976/DataTypesAsLattices/Lambda.lean"
       sorry_count: 0
@@ -115,6 +139,12 @@ status:
       comparator_config: "comparator.json"
       literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_3_2"
+      file: "Scott1976/DataTypesAsLattices/Enumeration.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_3_2_range"
       file: "Scott1976/DataTypesAsLattices/Enumeration.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -180,6 +210,12 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.tensorR_functor"
+      file: "Scott1976/DataTypesAsLattices/Functionality.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_4_5"
       file: "Scott1976/DataTypesAsLattices/Retracts.lean"
       sorry_count: 0
@@ -192,7 +228,19 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.plusR_functor"
+      file: "Scott1976/DataTypesAsLattices/Functionality.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_4_6"
+      file: "Scott1976/DataTypesAsLattices/Retracts.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_4_6_limit"
       file: "Scott1976/DataTypesAsLattices/Retracts.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -211,6 +259,12 @@ status:
       comparator_config: "comparator.json"
       literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_5_3"
+      file: "Scott1976/DataTypesAsLattices/Closures.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_5_3_closure"
       file: "Scott1976/DataTypesAsLattices/Closures.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -235,6 +289,12 @@ status:
       comparator_config: "comparator.json"
       literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_5_6"
+      file: "Scott1976/DataTypesAsLattices/Closures.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_5_6_combinator"
       file: "Scott1976/DataTypesAsLattices/Closures.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -392,11 +452,21 @@ known_gaps: []
 
 limitations:
   - >-
-    Comparator compares every numbered theorem from §§1–7 and the locked
+    Comparator compares every numbered theorem from §§1–7, the companion
+    declarations that complete those numbered claims, and the locked
     core definitions listed in comparator.json.
   - >-
     Challenge.lean may contain deliberate sorries; Solution.lean and
     Scott1976/DataTypesAsLattices/* must not.
+  - >-
+    The locked coproduct plusR implements Scott's displayed (4.10) with
+    the doubly strict conditional dcondSet of (4.4), not the ordinary
+    McCarthy conditional condSet written in that equation. On a mixed
+    tag containing both zero and a successor, plusR returns topElem
+    rather than the union of the two injections. This matches bool in
+    (4.3), which (4.8)–(4.10) generalize, and is required for Theorem
+    4.5 (a ⊕ b is a retract). Displayed (4.10) is therefore not a
+    symbol-for-symbol 1:1 transcription.
 
 alignment:
   namespace: "Scott1976.DataTypesAsLattices"
@@ -411,21 +481,31 @@ alignment:
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Graph.lean (proof)"
       status: proved
       note: "Compared by Palomar; library proof is sorry-free."
-    - source: "Theorem 1.3 (The substitution theorem)"
+    - source: "Theorem 1.3 (The substitution theorem), unary"
       lean: "theorem_1_3"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/FixedPoint.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; unary composition. n-ary substitution is theorem_1_3_nary."
+    - source: "Theorem 1.3 (The substitution theorem), n-ary"
+      lean: "theorem_1_3_nary"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/FixedPoint.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; ternary substitution on the diagonal."
     - source: "Theorem 1.4 (The fixed-point theorem)"
       lean: "theorem_1_4"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/FixedPoint.lean (proof)"
       status: proved
       note: "Compared by Palomar; library proof is sorry-free."
-    - source: "Theorem 1.5 (The extension theorem)"
+    - source: "Theorem 1.5 (The extension theorem), continuity"
       lean: "theorem_1_5"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Embedding.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; continuity of the extension. The extension property is theorem_1_5_extends."
+    - source: "Theorem 1.5 (The extension theorem), extension property"
+      lean: "theorem_1_5_extends"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Embedding.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; extend f agrees with a continuous f on X."
     - source: "Theorem 1.6 (The embedding theorem)"
       lean: "theorem_1_6"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Embedding.lean (proof)"
@@ -446,11 +526,16 @@ alignment:
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Lambda.lean (proof)"
       status: proved
       note: "Compared by Palomar; library proof is sorry-free."
-    - source: "Theorem 2.4 (The combinator theorem)"
+    - source: "Theorem 2.4 (The combinator theorem), generators"
       lean: "theorem_2_4"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Lambda.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; the six combinatory generators. Completeness is theorem_2_4_complete."
+    - source: "Theorem 2.4 (The combinator theorem), completeness"
+      lean: "theorem_2_4_complete"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Lambda.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; every LAMBDA term equals an applicative combination of the six constants and its free variables."
     - source: "Theorem 2.5 (The first recursion theorem)"
       lean: "theorem_2_5"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Lambda.lean (proof)"
@@ -466,11 +551,16 @@ alignment:
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Enumeration.lean (proof)"
       status: proved
       note: "Compared by Palomar; library proof is sorry-free."
-    - source: "Theorem 3.2 (The enumeration theorem)"
+    - source: "Theorem 3.2 (The enumeration theorem), recursion"
       lean: "theorem_3_2"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Enumeration.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; valNat lands in RE with Scott's clauses (i)(ii). The range equation is theorem_3_2_range."
+    - source: "Theorem 3.2 (The enumeration theorem), range"
+      lean: "theorem_3_2_range"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Enumeration.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; RE = range valNat."
     - source: "Theorem 3.3 (The second recursion theorem)"
       lean: "theorem_3_3"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Enumeration.lean (proof)"
@@ -521,6 +611,11 @@ alignment:
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Functionality.lean (proof)"
       status: proved
       note: "Compared by Palomar; library proof is sorry-free."
+    - source: "Theorem 4.4 (iv), product functor"
+      lean: "tensorR_functor"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Functionality.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; ⊗ acts on typed maps."
     - source: "Theorem 4.5 (The sum theorem), core"
       lean: "theorem_4_5"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Retracts.lean (proof)"
@@ -530,12 +625,22 @@ alignment:
       lean: "theorem_4_5_sum"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Functionality.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
-    - source: "Theorem 4.6 (The limit theorem)"
+      note: "Compared by Palomar; retract, strictness, and typed characterization of ⊕."
+    - source: "Theorem 4.5 (iv), sum functor"
+      lean: "plusR_functor"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Functionality.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; ⊕ acts on typed maps."
+    - source: "Theorem 4.6 (The limit theorem), retracts"
       lean: "theorem_4_6"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Retracts.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; Kleene iterates and Y(F) are retracts."
+    - source: "Theorem 4.6 (The limit theorem), inverse limit"
+      lean: "theorem_4_6_limit"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Retracts.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; under strictness and ⊑-monotonicity the range of Y(F) is order-isomorphic to the inverse limit of the ranges of Fⁿ(⊥)."
     - source: "Theorem 5.1 (The algebraic lattice theorem)"
       lean: "theorem_5_1"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
@@ -546,11 +651,16 @@ alignment:
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
       status: proved
       note: "Compared by Palomar; library proof is sorry-free."
-    - source: "Theorem 5.3 (function space of closures)"
+    - source: "Theorem 5.3 (function space of closures), retract"
       lean: "theorem_5_3"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; arrowR of closures is a retract. Closure status is theorem_5_3_closure."
+    - source: "Theorem 5.3 (function space of closures)"
+      lean: "theorem_5_3_closure"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; arrowR of closures is a closure."
     - source: "Theorem 5.4 (product of closures)"
       lean: "theorem_5_4"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
@@ -566,11 +676,16 @@ alignment:
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
       status: proved
       note: "Compared by Palomar; library proof is sorry-free."
-    - source: "Theorem 5.6 (limit theorem for algebraic lattices)"
+    - source: "Theorem 5.6 (limit theorem for algebraic lattices), points"
       lean: "theorem_5_6"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; Y(f):V whenever f:V∘→V."
+    - source: "Theorem 5.6 (limit theorem for algebraic lattices), combinator"
+      lean: "theorem_5_6_combinator"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; (λf : V∘→V. Y(f)) : (V∘→V)∘→V."
     - source: "Theorem 6.1 (The 𝔊 theorem)"
       lean: "theorem_6_1"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Classification.lean (proof)"
