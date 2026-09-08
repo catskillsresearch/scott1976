@@ -36,6 +36,19 @@ def IsRetract (a : Pomega) : Prop :=
 def Fixpoints (f : Pomega → Pomega) : Set Pomega :=
   {x | f x = x}
 
+/-- Directedness of fixed points under subset, without a lattice instance. -/
+def IsDirectedSubset {f : Pomega → Pomega} (s : Set (Fixpoints f)) : Prop :=
+  s.Nonempty ∧
+    ∀ ⦃x⦄, x ∈ s → ∀ ⦃y⦄, y ∈ s →
+      ∃ z ∈ s, (x : Pomega) ⊆ z ∧ (y : Pomega) ⊆ z
+
+/-- Compactness of a fixed point under subset, without a lattice instance. -/
+def IsCompactSubset {f : Pomega → Pomega} (x : Fixpoints f) : Prop :=
+  ∀ s : Set (Fixpoints f),
+    IsDirectedSubset s →
+      (x : Pomega) ⊆ ⋃₀ (Subtype.val '' s) →
+      ∃ z ∈ s, (x : Pomega) ⊆ z
+
 /-- **Scott 1976, §4, Definition.** `u : a` means `u = a(u)`. -/
 def typed (u a : Pomega) : Prop :=
   u = funOf a u
@@ -499,6 +512,25 @@ theorem retractBasis_sSup {a : Pomega} (ha : IsRetract a)
       Set.mem_sUnion.mp hk
     exact Set.mem_iUnion.mpr ⟨n, hnx, hyn ▸ hky⟩
 
+theorem retractBasis_sUnion {a : Pomega} (ha : IsRetract a)
+    (x : Fixpoints (funOf a)) :
+    (x : Pomega) = ⋃₀ (Subtype.val '' retractBasis a x) := by
+  have h := retractBasis_sSup ha x
+  have hsu := sSup_fixed_eq_sUnion (funOf_isScottContinuous a)
+    (retractBasis_directed ha x)
+  have : (x : Pomega) = (sSup (retractBasis a x) : Fixpoints (funOf a)) :=
+    congrArg Subtype.val h
+  exact this.trans hsu
+
+theorem retractBasis_directedSubset {a : Pomega} (ha : IsRetract a)
+    (x : Fixpoints (funOf a)) :
+    IsDirectedSubset (retractBasis a x) := by
+  have h := retractBasis_directed ha x
+  refine ⟨h.1, ?_⟩
+  intro y hy z hz
+  obtain ⟨w, hw, hyw, hzw⟩ := h.2 hy hz
+  exact ⟨w, hw, hyw, hzw⟩
+
 /-- **Scott 1976, Theorem 4.1, continuous-lattice half.**
 The finite-image points form a directed way-below basis for every point in
 the range of a retract. -/
@@ -518,7 +550,9 @@ theorem theorem_4_1 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
         lfpAbove f (⋃₀ A) ∈ Fixpoints f) ∧
       ∀ {a} (ha : IsRetract a),
         Fixpoints (funOf a) = {x | typed x a} ∧
-          IsContinuousBasis (retractBasis a) := by
+          ∀ x : Fixpoints (funOf a),
+            IsDirectedSubset (retractBasis a x) ∧
+              (x : Pomega) = ⋃₀ (Subtype.val '' retractBasis a x) := by
   constructor
   · intro A hA
     exact ⟨theorem_4_1_complete f hf A hA, lfpAbove_mem hf hA⟩
@@ -526,7 +560,8 @@ theorem theorem_4_1 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
     constructor
     · ext x
       simp [Fixpoints, typed, eq_comm]
-    · exact theorem_4_1_continuous ha
+    · intro x
+      exact ⟨retractBasis_directedSubset ha x, retractBasis_sUnion ha x⟩
 
 theorem graph_ext {f g : Pomega → Pomega} (h : ∀ x, f x = g x) :
     graph f = graph g := by

@@ -388,24 +388,34 @@ theorem eq_3_6 (n m : ℕ) : argNat (pair n m) = m := by simp [argNat, unpair_pa
 
 /-- **Scott 1976, (3.7) / Theorem 3.2.** `val(0) = G` and
 `val(apply(n)(m)) = val(n)(val(m))`. -/
-noncomputable def valNat : ℕ → Pomega
-  | 0 => Gcomb
-  | n + 1 => valNat (unpair n).1 ⬝ valNat (unpair n).2
-decreasing_by
-  · exact (pair_lt_left (unpair n).1 (unpair n).2).trans_le (by
-      have := pair_unpair n
-      omega)
-  · exact (pair_lt_right (unpair n).1 (unpair n).2).trans_le (by
-      have := pair_unpair n
-      omega)
+noncomputable def valNat : ℕ → Pomega :=
+  Nat.strongRec fun n rec =>
+    match n with
+    | 0 => Gcomb
+    | n + 1 =>
+        rec (unpair n).1
+          (Nat.lt_of_lt_of_eq
+            (pair_lt_left (unpair n).1 (unpair n).2)
+            (congrArg (fun x => x + 1) (pair_unpair n))) ⬝
+        rec (unpair n).2
+          (Nat.lt_of_lt_of_eq
+            (pair_lt_right (unpair n).1 (unpair n).2)
+            (congrArg (fun x => x + 1) (pair_unpair n)))
 
 /-- **Scott 1976, Theorem 3.2 (i).** `val(0) = G`. -/
-theorem valNat_zero : valNat 0 = Gcomb := by simp [valNat]
+theorem valNat_zero : valNat 0 = Gcomb := by
+  unfold valNat
+  rw [Nat.strongRec]
+
+theorem valNat_succ (n : ℕ) :
+    valNat (n + 1) = valNat (unpair n).1 ⬝ valNat (unpair n).2 := by
+  unfold valNat
+  rw [Nat.strongRec]
 
 /-- **Scott 1976, Theorem 3.2 (ii).** `val(apply(n)(m)) = val n (val m)`. -/
 theorem valNat_apply (n m : ℕ) :
     valNat (applyNat n m) = valNat n ⬝ valNat m := by
-  simp [applyNat, valNat, unpair_pair]
+  rw [applyNat, valNat_succ, unpair_pair]
 
 /-- **Scott 1976, (3.8).** `apply(0)(0) = 1` and `val(1) = 0`. -/
 theorem eq_3_8_apply : applyNat 0 0 = 1 := by simp [applyNat, pair]
@@ -433,10 +443,10 @@ theorem eq_3_10_val : valNat 12 = sucC := by
   simpa [this] using Gpack_zero
 
 theorem valNat_combinatory : ∀ n, IsCombinatory (valNat n)
-  | 0 => by simp [valNat]; exact Gcomb_combinatory
-  | n + 1 => by
-    simp [valNat]
-    exact .app (valNat_combinatory (unpair n).1) (valNat_combinatory (unpair n).2)
+  | 0 => valNat_zero ▸ Gcomb_combinatory
+  | n + 1 =>
+    valNat_succ n ▸
+      .app (valNat_combinatory (unpair n).1) (valNat_combinatory (unpair n).2)
 decreasing_by
   · exact (pair_lt_left (unpair n).1 (unpair n).2).trans_le (by
       have := pair_unpair n
@@ -464,8 +474,7 @@ theorem valStage_subset : ∀ s n,
   | s + 1, 0 => by
       rw [iterateBot, valStep_app_zero, valNat_zero]
   | s + 1, p + 1 => by
-      rw [iterateBot, valStep_app_succ]
-      simp only [valNat]
+      rw [iterateBot, valStep_app_succ, valNat_succ]
       exact subset_trans
         (funOf_monotone_left
           (valStage_subset s (unpair p).1)
@@ -480,8 +489,7 @@ theorem valStage_eq_of_rank_le : ∀ n s, valRank n ≤ s →
       rw [iterateBot, valStep_app_zero, valNat_zero]
   | p + 1, 0, h => by simp [valRank] at h
   | p + 1, s + 1, h => by
-      rw [iterateBot, valStep_app_succ]
-      simp only [valNat]
+      rw [iterateBot, valStep_app_succ, valNat_succ]
       have hleft : valRank (unpair p).1 ≤ s := by
         simp only [valRank] at h
         omega
@@ -692,14 +700,13 @@ theorem primrec_recNat (v : ℕ → ℕ) (hv : Primrec v) :
 The functions `v` and `rec` are primitive recursive and satisfy clauses
 (i)--(iii) of the paper. -/
 theorem theorem_3_3 :
-    Primrec secondRecV ∧
-      Primrec (recNat secondRecV) ∧
-      (∀ n, valNat (secondRecV n) = secondRecVal (valNat n)) ∧
-      (∀ n, recNat secondRecV n =
-        applyNat (secondRecV n) (num (secondRecV n))) ∧
-      ∀ n, valNat (recNat secondRecV n) =
-        funOf (valNat n) (ofNat (recNat secondRecV n)) :=
-  ⟨primrec_secondRecV, primrec_recNat secondRecV primrec_secondRecV,
+    ∃ v : ℕ → ℕ, Primrec v ∧
+      Primrec (recNat v) ∧
+      (∀ n, valNat (v n) = secondRecVal (valNat n)) ∧
+      (∀ n, recNat v n = applyNat (v n) (num (v n))) ∧
+      ∀ n, valNat (recNat v n) =
+        funOf (valNat n) (ofNat (recNat v n)) :=
+  ⟨secondRecV, primrec_secondRecV, primrec_recNat secondRecV primrec_secondRecV,
     theorem_3_3_i, theorem_3_3_ii secondRecV,
     fun n => theorem_3_3_from_v secondRecV n (theorem_3_3_i n)⟩
 
@@ -1237,7 +1244,7 @@ theorem valTraceOk_sound {tr : ValTrace} (hok : valTraceOk tr) :
     have hjust := hok.1 (code, member, t) hmem
     cases code with
     | zero =>
-      simpa [valNat] using hok.2 (0, member, t) hmem rfl
+      exact valNat_zero.symm ▸ hok.2 (0, member, t) hmem rfl
     | succ p =>
       rcases hjust with h0 | ⟨hop, hbits⟩
       · exact (Nat.succ_ne_zero p h0).elim
@@ -1263,7 +1270,7 @@ theorem valTraceOk_sound {tr : ValTrace} (hok : valTraceOk tr) :
           exact ih _ harg hti
         have : member ∈ valNat (unpair p).1 ⬝ valNat (unpair p).2 :=
           ⟨t, hargMem, hopMem⟩
-        simpa [valNat] using this
+        exact valNat_succ p ▸ this
 
 theorem valTraceOk_empty : valTraceOk [] := by
   constructor
@@ -1294,7 +1301,7 @@ theorem valTraceOk_complete :
     intro member hm
     cases code with
     | zero =>
-      obtain ⟨hok0, hhas0⟩ := valTraceOk_zero member (by simpa [valNat] using hm)
+      obtain ⟨hok0, hhas0⟩ := valTraceOk_zero member (valNat_zero ▸ hm)
       exact ⟨[(0, member, 0)], hok0, hhas0⟩
     | succ p =>
       have hop' : (unpair p).1 < p + 1 :=
@@ -1305,8 +1312,8 @@ theorem valTraceOk_complete :
         (pair_lt_right (unpair p).1 (unpair p).2).trans_le (by
           have := pair_unpair p
           omega)
-      have hm' : member ∈ valNat (unpair p).1 ⬝ valNat (unpair p).2 := by
-        simpa [valNat] using hm
+      have hm' : member ∈ valNat (unpair p).1 ⬝ valNat (unpair p).2 :=
+        valNat_succ p ▸ hm
       obtain ⟨t, htSub, htOp⟩ := hm'
       obtain ⟨trOp, hokOp, hhasOp⟩ := ih _ hop' _ htOp
       let bits := (List.range (t + 1)).filter (fun i => t.testBit i = true)

@@ -239,7 +239,7 @@ theorem exists_triangle_bucket (k : ℕ) :
   let w := Nat.find hP
   refine ⟨w, ?_, Nat.find_spec hP⟩
   cases hw : w with
-  | zero => simp [triangle]
+  | zero => exact Nat.zero_le k
   | succ w' =>
     have hmin : ¬ P w' :=
       Nat.find_min hP (Nat.lt_of_succ_le (by
@@ -250,11 +250,14 @@ theorem exists_triangle_bucket (k : ℕ) :
 theorem exists_pair (k : ℕ) : ∃ n m, pair n m = k := by
   obtain ⟨w, hle, hlt⟩ := exists_triangle_bucket k
   refine ⟨w - (k - triangle w), k - triangle w, ?_⟩
-  have hm : k - triangle w ≤ w := by
+  have hlt' : k < triangle w + w + 1 := by
     have : k < triangle w + (w + 1) := by rwa [triangle_succ] at hlt
-    omega
+    exact Nat.add_assoc (triangle w) w 1 ▸ this
+  have hk : k ≤ triangle w + w := Nat.lt_succ_iff.mp hlt'
+  have hm : k - triangle w ≤ w :=
+    Nat.le_of_add_le_add_left ((Nat.add_sub_of_le hle).symm ▸ hk)
   have : w - (k - triangle w) + (k - triangle w) = w := Nat.sub_add_cancel hm
-  simp [pair_eq_triangle, this, Nat.add_sub_of_le hle]
+  rw [pair_eq_triangle, this, Nat.add_sub_of_le hle]
 
 /-- Inverse of Cantor pairing. -/
 noncomputable def unpair (k : ℕ) : ℕ × ℕ :=

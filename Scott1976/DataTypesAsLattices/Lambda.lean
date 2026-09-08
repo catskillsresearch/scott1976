@@ -857,11 +857,23 @@ theorem seq2_app_one (x y : Pomega) : funOf (seq2 x y) (ofNat 1) = y := by
 theorem seq2_tag_ne (x y : Pomega) :
     seq2 (ofNat 0) x ≠ seq2 (ofNat 1) y := by
   intro h
-  have := congrArg (fun w => funOf w (ofNat 0)) h
-  simp [seq2_app_zero] at this
-  have h0 : (0 : ℕ) ∈ ofNat 1 := by
-    rw [← this]; simp [ofNat]
-  simp [ofNat] at h0
+  have hfun := congrArg (fun w => funOf w (ofNat 0)) h
+  have hx : (0 : ℕ) ∈ funOf (seq2 (ofNat 0) x) (ofNat 0) :=
+    ⟨1, fun k hk =>
+      match k, hk with
+      | 0, _ => rfl
+      | k + 1, hk =>
+        False.elim (Bool.false_ne_true
+          (((Nat.testBit_succ 1 k).trans (Nat.zero_testBit k)).symm.trans hk)),
+      ⟨1, 0, rfl, Or.inl ⟨rfl, rfl⟩⟩⟩
+  have hy : (0 : ℕ) ∉ funOf (seq2 (ofNat 1) y) (ofNat 0) := by
+    intro ⟨k, hk, hp⟩
+    rcases hp with ⟨k', m, heq, hm⟩
+    obtain ⟨rfl, rfl⟩ := pair_inj heq
+    rcases hm with ⟨h1, _⟩ | ⟨_, ⟨t, ht⟩⟩
+    · exact Nat.zero_ne_one h1
+    · exact Nat.succ_ne_zero t (hk ht)
+  exact hy (hfun ▸ hx)
 
 /-- **Scott 1976, (2.28).** Least-fixed-point unfolding `Y(g(x)) = g(x)(Y(g(x)))`. -/
 theorem eq_2_28 {g : Pomega → Pomega → Pomega}

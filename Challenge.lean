@@ -33,6 +33,131 @@ def e (n : ℕ) : Pomega := {k | n.testBit k}
 
 def pair (n m : ℕ) : ℕ := (n + m) * (n + m + 1) / 2 + m
 
+def triangle (w : ℕ) : ℕ := w * (w + 1) / 2
+
+theorem pair_eq_triangle (n m : ℕ) : pair n m = triangle (n + m) + m := rfl
+
+theorem triangle_succ (w : ℕ) : triangle (w + 1) = triangle w + (w + 1) := by
+  have hex : (w + 1) * (w + 2) = w * (w + 1) + 2 * (w + 1) := by
+    calc
+      (w + 1) * (w + 2) = (w + 1) * w + (w + 1) * 2 := Nat.mul_add _ _ _
+      _ = w * (w + 1) + 2 * (w + 1) := by
+        rw [Nat.mul_comm (w + 1) w, Nat.mul_comm (w + 1) 2]
+  simp only [triangle]
+  rw [show (w + 1) * ((w + 1) + 1) = (w + 1) * (w + 2) from rfl, hex]
+  exact Nat.add_mul_div_left _ _ (by decide : 0 < 2)
+
+theorem triangle_le_of_le {a b : ℕ} (h : a ≤ b) : triangle a ≤ triangle b := by
+  induction h with
+  | refl => exact le_rfl
+  | step h ih =>
+    rw [triangle_succ]
+    exact le_trans ih (Nat.le_add_right _ _)
+
+theorem triangle_lt_of_lt {a b : ℕ} (h : a < b) : triangle a < triangle b := by
+  have : a + 1 ≤ b := Nat.succ_le_of_lt h
+  calc
+    triangle a < triangle a + (a + 1) := Nat.lt_add_of_pos_right (Nat.succ_pos _)
+    _ = triangle (a + 1) := (triangle_succ a).symm
+    _ ≤ triangle b := triangle_le_of_le this
+
+theorem triangle_le_pair (n m : ℕ) :
+    triangle (n + m) ≤ pair n m ∧ pair n m < triangle (n + m + 1) := by
+  constructor
+  · exact Nat.le_add_right _ _
+  · rw [triangle_succ]
+    exact Nat.add_lt_add_left (Nat.lt_succ_of_le (Nat.le_add_left m n)) _
+
+theorem pair_inj {n₁ m₁ n₂ m₂ : ℕ} (h : pair n₁ m₁ = pair n₂ m₂) :
+    n₁ = n₂ ∧ m₁ = m₂ := by
+  have h1 := triangle_le_pair n₁ m₁
+  have h2 := triangle_le_pair n₂ m₂
+  have hw : n₁ + m₁ = n₂ + m₂ := by
+    rcases lt_trichotomy (n₁ + m₁) (n₂ + m₂) with hlt | heq | hgt
+    · have hle : triangle (n₁ + m₁ + 1) ≤ triangle (n₂ + m₂) :=
+        triangle_le_of_le (Nat.succ_le_of_lt hlt)
+      have : pair n₁ m₁ < pair n₁ m₁ :=
+        calc
+          pair n₁ m₁ < triangle (n₁ + m₁ + 1) := h1.2
+          _ ≤ triangle (n₂ + m₂) := hle
+          _ ≤ pair n₂ m₂ := h2.1
+          _ = pair n₁ m₁ := h.symm
+      exact (lt_irrefl _ this).elim
+    · exact heq
+    · have hle : triangle (n₂ + m₂ + 1) ≤ triangle (n₁ + m₁) :=
+        triangle_le_of_le (Nat.succ_le_of_lt hgt)
+      have : pair n₂ m₂ < pair n₂ m₂ :=
+        calc
+          pair n₂ m₂ < triangle (n₂ + m₂ + 1) := h2.2
+          _ ≤ triangle (n₁ + m₁) := hle
+          _ ≤ pair n₁ m₁ := h1.1
+          _ = pair n₂ m₂ := h
+      exact (lt_irrefl _ this).elim
+  have hm : m₁ = m₂ := by
+    have : triangle (n₁ + m₁) + m₁ = triangle (n₂ + m₂) + m₂ := h
+    rw [hw] at this
+    exact Nat.add_left_cancel this
+  have hn : n₁ = n₂ := Nat.add_right_cancel (hw.trans (by rw [hm]))
+  exact ⟨hn, hm⟩
+
+theorem pair_le_left (n m : ℕ) : n ≤ pair n m := by
+  have htri : n ≤ triangle (n + m) := by
+    cases n with
+    | zero => exact Nat.zero_le _
+    | succ n =>
+      have hmul : n.succ * 2 ≤ (n.succ + m) * (n.succ + m + 1) :=
+        Nat.mul_le_mul
+          (Nat.le_add_right n.succ m)
+          (Nat.succ_le_succ
+            (Nat.le_trans (Nat.succ_le_succ (Nat.zero_le n)) (Nat.le_add_right n.succ m)))
+      exact (Nat.le_div_iff_mul_le (by decide : 0 < 2)).mpr hmul
+  exact htri.trans (Nat.le_add_right _ _)
+
+theorem pair_le_right (n m : ℕ) : m ≤ pair n m :=
+  Nat.le_add_left _ _
+
+theorem exists_triangle_bucket (k : ℕ) :
+    ∃ w, triangle w ≤ k ∧ k < triangle (w + 1) := by
+  let P := fun w : ℕ => k < triangle (w + 1)
+  have hP : ∃ w, P w := ⟨k, by
+    change k < triangle (k + 1)
+    rw [triangle_succ]
+    exact lt_of_lt_of_le (Nat.lt_succ_self k) (Nat.le_add_left (k + 1) _)⟩
+  let w := Nat.find hP
+  refine ⟨w, ?_, Nat.find_spec hP⟩
+  cases hw : w with
+  | zero => exact Nat.zero_le k
+  | succ w' =>
+    have hmin : ¬ P w' :=
+      Nat.find_min hP (Nat.lt_of_succ_le (by
+        have : w = Nat.find hP := rfl
+        rw [← this, hw]))
+    exact Nat.le_of_not_gt hmin
+
+theorem exists_pair (k : ℕ) : ∃ n m, pair n m = k := by
+  obtain ⟨w, hle, hlt⟩ := exists_triangle_bucket k
+  refine ⟨w - (k - triangle w), k - triangle w, ?_⟩
+  have hlt' : k < triangle w + w + 1 := by
+    have : k < triangle w + (w + 1) := by rwa [triangle_succ] at hlt
+    exact Nat.add_assoc (triangle w) w 1 ▸ this
+  have hk : k ≤ triangle w + w := Nat.lt_succ_iff.mp hlt'
+  have hm : k - triangle w ≤ w :=
+    Nat.le_of_add_le_add_left ((Nat.add_sub_of_le hle).symm ▸ hk)
+  have : w - (k - triangle w) + (k - triangle w) = w := Nat.sub_add_cancel hm
+  rw [pair_eq_triangle, this, Nat.add_sub_of_le hle]
+
+noncomputable def unpair (k : ℕ) : ℕ × ℕ :=
+  ((exists_pair k).choose, (exists_pair k).choose_spec.choose)
+
+theorem pair_unpair (k : ℕ) : pair (unpair k).1 (unpair k).2 = k :=
+  (exists_pair k).choose_spec.choose_spec
+
+theorem pair_lt_left (n m : ℕ) : n < pair n m + 1 :=
+  Nat.lt_succ_of_le (pair_le_left n m)
+
+theorem pair_lt_right (n m : ℕ) : m < pair n m + 1 :=
+  Nat.lt_succ_of_le (pair_le_right n m)
+
 def botElem : Pomega := ∅
 
 def topElem : Pomega := Set.univ
@@ -47,6 +172,15 @@ def scottUnion (f : Pomega → Pomega) (x : Pomega) : Pomega :=
 
 def IsScottContinuous (f : Pomega → Pomega) : Prop :=
   ∀ x, f x = scottUnion f x
+
+theorem mem_scottUnion {f : Pomega → Pomega} {x : Pomega} {k : ℕ} :
+    k ∈ scottUnion f x ↔ ∃ n, e n ⊆ x ∧ k ∈ f (e n) := by
+  constructor
+  · intro hk
+    obtain ⟨n, hn, hfk⟩ := Set.mem_iUnion.mp hk
+    exact ⟨n, hn, hfk⟩
+  · intro ⟨n, hn, hk⟩
+    exact Set.mem_iUnion.mpr ⟨n, hn, hk⟩
 
 def basicNhhd (n : ℕ) : Set Pomega := {x | e n ⊆ x}
 
@@ -63,6 +197,18 @@ def graph (f : Pomega → Pomega) : Pomega :=
 
 def funOf (u : Pomega) (x : Pomega) : Pomega :=
   {m | ∃ n, e n ⊆ x ∧ pair n m ∈ u}
+
+infixl:70 " ⬝ " => funOf
+
+theorem funOf_isScottContinuous (u : Pomega) : IsScottContinuous (funOf u) := by
+  intro x
+  ext m
+  constructor
+  · intro ⟨n, hn, hp⟩
+    exact mem_scottUnion.mpr ⟨n, hn, ⟨n, subset_rfl, hp⟩⟩
+  · intro hm
+    obtain ⟨n, hn, ⟨k, hk, hp⟩⟩ := mem_scottUnion.mp hm
+    exact ⟨k, subset_trans hk hn, hp⟩
 
 def IsGraph (u : Pomega) : Prop :=
   ∀ ⦃k m n⦄, pair k m ∈ u → e k ⊆ e n → pair n m ∈ u
@@ -81,6 +227,19 @@ def typed (u a : Pomega) : Prop :=
 
 def Fixpoints (f : Pomega → Pomega) : Set Pomega :=
   {x | f x = x}
+
+/-- Directedness of fixed points under subset, without a lattice instance. -/
+def IsDirectedSubset {f : Pomega → Pomega} (s : Set (Fixpoints f)) : Prop :=
+  s.Nonempty ∧
+    ∀ ⦃x⦄, x ∈ s → ∀ ⦃y⦄, y ∈ s →
+      ∃ z ∈ s, (x : Pomega) ⊆ z ∧ (y : Pomega) ⊆ z
+
+/-- Compactness of a fixed point under subset, without a lattice instance. -/
+def IsCompactSubset {f : Pomega → Pomega} (x : Fixpoints f) : Prop :=
+  ∀ s : Set (Fixpoints f),
+    IsDirectedSubset s →
+      (x : Pomega) ⊆ ⋃₀ (Subtype.val '' s) →
+      ∃ z ∈ s, (x : Pomega) ⊆ z
 
 def IsStrict (a : Pomega) : Prop :=
   funOf a botElem = botElem
@@ -132,6 +291,10 @@ def dcondSet (z x y : Pomega) : Pomega :=
 
 def seq2 (x y : Pomega) : Pomega :=
   graph (fun z => condSet z x (condSet (predSet z) y botElem))
+
+/-- **Scott 1976, (2.22).** Longer sequences by cons. -/
+def seqCons (x xs : Pomega) : Pomega :=
+  graph (fun z => condSet z x (funOf xs (predSet z)))
 
 def pairSeq (x y : Pomega) : Pomega := seq2 x y
 
@@ -193,11 +356,15 @@ def rename (i j : ℕ) : Term → Term
   | .app u x => .app (rename i j u) (rename i j x)
   | .lam k body => if k = i then .lam k body else .lam k (rename i j body)
 
-def IsScottContinuousFin {n : ℕ} (_f : (Fin n → Pomega) → Pomega) : Prop :=
-  True
+def IsScottContinuousFin : ∀ {n : ℕ}, ((Fin n → Pomega) → Pomega) → Prop
+  | 0, _ => True
+  | n + 1, f =>
+      (∀ xs : Fin n → Pomega, IsScottContinuous (fun x => f (Fin.cons x xs))) ∧
+      (∀ x : Pomega, IsScottContinuousFin (fun xs : Fin n → Pomega => f (Fin.cons x xs)))
 
-def nestApplyFin (u : Pomega) {n : ℕ} (_xs : Fin n → Pomega) : Pomega :=
-  u
+def nestApplyFin (u : Pomega) : ∀ {n : ℕ}, (Fin n → Pomega) → Pomega
+  | 0, _ => u
+  | _n + 1, xs => nestApplyFin (funOf u (xs 0)) (Fin.tail xs)
 
 def zeroC : Pomega := ofNat 0
 def sucC : Pomega := graph succSet
@@ -205,7 +372,15 @@ def predC : Pomega := graph predSet
 def condC : Pomega :=
   graph (fun x => graph (fun y => graph (fun z => condSet z x y)))
 
-def IsCombinatory (_u : Pomega) : Prop := True
+/-- Combinatory closure of the six constants of Theorem 2.4. -/
+inductive IsCombinatory : Pomega → Prop
+  | zero : IsCombinatory zeroC
+  | suc : IsCombinatory sucC
+  | pred : IsCombinatory predC
+  | cond : IsCombinatory condC
+  | K : IsCombinatory Kcomb
+  | S : IsCombinatory Scomb
+  | app {u v} : IsCombinatory u → IsCombinatory v → IsCombinatory (funOf u v)
 
 def IsRE (u : Pomega) : Prop :=
   REPred fun n : ℕ => n ∈ u
@@ -222,49 +397,131 @@ def Realizes (u : Pomega) (p : ℕ → ℕ) : Prop :=
 def IsExtensional (val : ℕ → Pomega) (p : ℕ → ℕ) : Prop :=
   ∀ n m, val n = val m → val (p n) = val (p m)
 
-noncomputable def valNat : ℕ → Pomega := fun _ => botElem
+def Gpack : Pomega :=
+  seq2 sucC (seq2 predC (seq2 condC (seq2 Kcomb Scomb)))
 
-def Gcomb : Pomega := botElem
+def Gcomb : Pomega :=
+  graph (fun z => condSet z Gpack zeroC)
 
-def GeneratedFromG (_u : Pomega) : Prop := True
+/-- **Scott 1976, (3.7) / Theorem 3.2.** `val(0) = G` and
+`val(apply(n)(m)) = val(n)(val(m))`. -/
+noncomputable def valNat : ℕ → Pomega :=
+  Nat.strongRec fun n rec =>
+    match n with
+    | 0 => Gcomb
+    | n + 1 =>
+        rec (unpair n).1
+          (Nat.lt_of_lt_of_eq
+            (pair_lt_left (unpair n).1 (unpair n).2)
+            (congrArg (fun x => x + 1) (pair_unpair n))) ⬝
+        rec (unpair n).2
+          (Nat.lt_of_lt_of_eq
+            (pair_lt_right (unpair n).1 (unpair n).2)
+            (congrArg (fun x => x + 1) (pair_unpair n)))
+
+/-- Generation from Scott's single generator `G` (since `G(G) = 0`). -/
+inductive GeneratedFromG : Pomega → Prop
+  | G : GeneratedFromG Gcomb
+  | app {u v} : GeneratedFromG u → GeneratedFromG v →
+      GeneratedFromG (funOf u v)
 
 def RE : Set Pomega := {u | IsCombinatory u}
 
 def FUN : Set Pomega := {u | u = graph (funOf u)}
 
-def GeneratedSemigroup (_u : Pomega) : Prop := True
+/-- **Scott 1976, (3.13)–(3.14).** Semigroup generators. -/
+def Rcomb : Pomega := graph (fun x => seq2 (ofNat 0) x)
 
-noncomputable def secondRecV : ℕ → ℕ := fun _ => 0
+def Lcomb : Pomega :=
+  graph (fun x => funOf (funOf x (ofNat 1)) (funOf x (ofNat 2)))
 
-def secondRecVal (_u : Pomega) : Pomega := botElem
+/-- **Scott 1976, (3.15).** Positive branch of `ū`: `⟨1, u, x₁⟩`. -/
+def barPos (u x : Pomega) : Pomega :=
+  seqCons (ofNat 1) (seq2 u (funOf x (ofNat 1)))
 
-def Deg (_a : Pomega) : Set Pomega := Set.univ
+/-- **Scott 1976, (3.15).** Step of `ū = λx. x₀ ⊃ ⟨1, u, x₁⟩, overline{u(x₁)(x₂)}`. -/
+def barStepBody (B u x : Pomega) : Pomega :=
+  condSet (funOf x (ofNat 0)) (barPos u x)
+    (funOf (funOf B (funOf u (funOf x (ofNat 1)))) (funOf x (ofNat 2)))
 
-def GeneratedSubalgebra (_xs : List Pomega) : Set Pomega := Set.univ
+def barStep (B : Pomega) : Pomega :=
+  graph (fun u => graph (fun x => barStepBody B u x))
+
+/-- **Scott 1976, (3.15).** The bar combinator as a least fixed point. -/
+def barComb : Pomega := fix barStep
+
+/-- Composition in the semigroup `FUN`. -/
+def enumComp (u v : Pomega) : Pomega :=
+  graph (fun x => funOf u (funOf v x))
+
+/-- Scott's `Ḡ`. -/
+def Gbar : Pomega := funOf barComb Gcomb
+
+/-- The subsemigroup generated by `R`, `L`, and `Ḡ`. -/
+inductive GeneratedSemigroup : Pomega → Prop
+  | R : GeneratedSemigroup Rcomb
+  | L : GeneratedSemigroup Lcomb
+  | Gbar : GeneratedSemigroup Gbar
+  | comp {u v} : GeneratedSemigroup u → GeneratedSemigroup v →
+      GeneratedSemigroup (enumComp u v)
+
+/-- **Scott 1976, Theorem 3.3 (i).** The set denoted by the code `v(n)`. -/
+def secondRecVal (u : Pomega) : Pomega :=
+  graph (fun x => ⋃ m ∈ x, funOf u (ofNat (applyNat m (num m))))
+
+/-- **Scott 1976, Definition.** Enumeration degree of `a`. -/
+def Deg (a : Pomega) : Set Pomega :=
+  {u | ∃ r, IsCombinatory r ∧ u = funOf r a}
+
+/-- Combinatory subalgebra: contains `G` and is closed under application. -/
+def IsSubalgebra (A : Set Pomega) : Prop :=
+  Gcomb ∈ A ∧ ∀ ⦃u v⦄, u ∈ A → v ∈ A → funOf u v ∈ A
+
+/-- The least combinatory subalgebra containing every member of `xs`. -/
+def GeneratedSubalgebra (xs : List Pomega) : Set Pomega :=
+  {u | ∀ A : Set Pomega, IsSubalgebra A →
+    (∀ x, x ∈ xs → x ∈ A) → u ∈ A}
 
 def IsDirectedSet {α : Type u} [Preorder α] (s : Set α) : Prop :=
   s.Nonempty ∧
     ∀ ⦃x⦄, x ∈ s → ∀ ⦃y⦄, y ∈ s →
       ∃ z ∈ s, x ≤ z ∧ y ≤ z
 
+abbrev completeLatticeLE {α : Type u} [CompleteLattice α] : LE α :=
+  @Preorder.toLE α
+    (@PartialOrder.toPreorder α
+      (@CompleteSemilatticeInf.toPartialOrder α
+        (@CompleteLattice.toCompleteSemilatticeInf α ‹_›)))
+
+abbrev completeLatticeSupSet {α : Type u} [CompleteLattice α] : SupSet α :=
+  @CompleteSemilatticeSup.toSupSet α
+    (@CompleteLattice.toCompleteSemilatticeSup α ‹_›)
+
+abbrev completeLatticePreorder {α : Type u} [CompleteLattice α] : Preorder α :=
+  @PartialOrder.toPreorder α
+    (@CompleteSemilatticeInf.toPartialOrder α
+      (@CompleteLattice.toCompleteSemilatticeInf α ‹_›))
+
 def WayBelow {α : Type u} [CompleteLattice α] (x y : α) : Prop :=
-  ∀ s : Set α, IsDirectedSet s → y ≤ sSup s →
-    ∃ z ∈ s, x ≤ z
+  ∀ s : Set α, @IsDirectedSet α completeLatticePreorder s →
+    @LE.le α completeLatticeLE y (@sSup α completeLatticeSupSet s) →
+    ∃ z ∈ s, @LE.le α completeLatticeLE x z
 
 def IsCompact {α : Type u} [CompleteLattice α] (x : α) : Prop :=
   WayBelow x x
 
 def IsContinuousBasis {α : Type u} [CompleteLattice α]
     (basis : α → Set α) : Prop :=
-  ∀ x, IsDirectedSet (basis x) ∧
+  ∀ x, @IsDirectedSet α completeLatticePreorder (basis x) ∧
     (∀ y ∈ basis x, WayBelow y x) ∧
-    x = sSup (basis x)
+    x = @sSup α completeLatticeSupSet (basis x)
 
 structure CountablyAlgebraic (α : Type u) [CompleteLattice α] where
   compact : ℕ → α
   compact_isCompact : ∀ n, IsCompact (compact n)
   compact_complete : ∀ x, IsCompact x → ∃ n, x = compact n
-  density : ∀ x, x = sSup {k : α | IsCompact k ∧ k ≤ x}
+  density : ∀ x, x = @sSup α completeLatticeSupSet
+    {k : α | IsCompact k ∧ @LE.le α completeLatticeLE k x}
 
 def representClosure {α : Type u} [CompleteLattice α]
     (D : CountablyAlgebraic α) (x : Pomega) : Pomega :=
@@ -285,19 +542,46 @@ def retractBasis (a : Pomega) (x : Fixpoints (funOf a)) :
 def IsClosure (a : Pomega) : Prop :=
   Icomb ⊆ a ∧ IsRetract a
 
-def closureCompact (a : Pomega) (_ha : IsClosure a) (n : ℕ) :
-    Fixpoints (funOf a) :=
-  ⟨funOf a (e n), sorry⟩
-
 def compactFixedBelow (a : Pomega) (x : Fixpoints (funOf a)) :
     Set (Fixpoints (funOf a)) :=
-  {k | IsCompact k ∧ k ≤ x}
+  {k | (∃ n, (k : Pomega) = funOf a (e n)) ∧ (k : Pomega) ⊆ (x : Pomega)}
 
-def boxTensor (_a _b : Pomega) : Pomega := botElem
+/-- **Scott 1976, (5.5)–(5.7).** Disjoint pairing on sets. -/
+def squarePair (x y : Pomega) : Pomega :=
+  {k | (∃ n ∈ x, k = 2 * n) ∨ (∃ m ∈ y, k = 2 * m + 1)}
 
-def boxPlus (_a _b : Pomega) : Pomega := botElem
+def squareFst (u : Pomega) : Pomega :=
+  {n | 2 * n ∈ u}
 
-def Vcomb : Pomega := botElem
+def squareSnd (u : Pomega) : Pomega :=
+  {m | 2 * m + 1 ∈ u}
+
+/-- **Scott 1976, (5.12).** Product of closures. -/
+def boxTensor (a b : Pomega) : Pomega :=
+  graph (fun u => squarePair (funOf a (squareFst u)) (funOf b (squareSnd u)))
+
+/-- **Scott 1976, (5.13).** Shift used in the sum of closures. -/
+def boxShift (a : Pomega) : Pomega :=
+  graph (fun x => ofNat 0 ∪ succSet (funOf a (predSet x)))
+
+/-- **Scott 1976, (5.13).** The occupancy tag `[u]ᵢ ⊃ i, i`. -/
+def boxTag (i : ℕ) (x : Pomega) : Pomega :=
+  condSet x (ofNat i) (ofNat i)
+
+/-- **Scott 1976, (5.13).** Sum of closures. -/
+def boxPlus (a b : Pomega) : Pomega :=
+  graph (fun u =>
+    dcondSet (boxTag 0 (squareFst u) ∪ boxTag 1 (squareSnd u))
+      (squarePair (funOf (boxShift a) (squareFst u)) botElem)
+      (squarePair botElem (funOf (boxShift b) (squareSnd u))))
+
+/-- **Scott 1976, (5.14)–(5.15).** `V(a)(x) = ⋂ { y | x ⊆ y ∧ a(y) ⊆ y }`. -/
+def Vapply (a x : Pomega) : Pomega :=
+  ⋂₀ {y | x ⊆ y ∧ funOf a y ⊆ y}
+
+/-- **Scott 1976, (5.14).** The universe combinator. -/
+def Vcomb : Pomega :=
+  graph (fun a => graph (fun x => Vapply a x))
 
 def ScottG : Set (Set Pomega) := {U | IsScottOpen U}
 
@@ -331,27 +615,103 @@ structure RestrictedEquiv where
 def RestrictedEquiv.mem (A : RestrictedEquiv) (x : Pomega) : Prop :=
   A.rel x x
 
-def arrowE (_A _B : RestrictedEquiv) : RestrictedEquiv where
-  rel := fun _ _ => True
-  symm := fun _ => trivial
-  trans := fun _ _ => trivial
+/-- **Scott 1976, (7.6).** Function space of restricted equivalences. -/
+def arrowE (A B : RestrictedEquiv) : RestrictedEquiv where
+  rel := fun f g =>
+    f = graph (fun x => funOf f x) ∧
+      g = graph (fun x => funOf g x) ∧
+        ∀ x y, A.rel x y → B.rel (funOf f x) (funOf g y)
+  symm := by
+    intro f g ⟨hf, hg, h⟩
+    exact ⟨hg, hf, fun x y hxy => B.symm (h y x (A.symm hxy))⟩
+  trans := by
+    intro f g k ⟨hf, hg, hfg⟩ ⟨hg', hk, hgk⟩
+    exact ⟨hf, hk, fun x y hxy =>
+      B.trans (hfg x y hxy) (hgk y y (A.trans (A.symm hxy) hxy))⟩
 
-def prodE (_A _B : RestrictedEquiv) : RestrictedEquiv where
-  rel := fun _ _ => True
-  symm := fun _ => trivial
-  trans := fun _ _ => trivial
+/-- **Scott 1976, (7.7).** Product of restricted equivalences. -/
+def prodE (A B : RestrictedEquiv) : RestrictedEquiv where
+  rel := fun u v =>
+    u = pairElem (funOf u (ofNat 0)) (funOf u (ofNat 1)) ∧
+      v = pairElem (funOf v (ofNat 0)) (funOf v (ofNat 1)) ∧
+        A.rel (funOf u (ofNat 0)) (funOf v (ofNat 0)) ∧
+          B.rel (funOf u (ofNat 1)) (funOf v (ofNat 1))
+  symm := by
+    intro u v ⟨hu, hv, h0, h1⟩
+    exact ⟨hv, hu, A.symm h0, B.symm h1⟩
+  trans := by
+    intro u v w ⟨hu, hv, h0, h1⟩ ⟨hv', hw, k0, k1⟩
+    exact ⟨hu, hw, A.trans h0 k0, B.trans h1 k1⟩
 
-def sumE (_A _B : RestrictedEquiv) : RestrictedEquiv where
-  rel := fun _ _ => True
-  symm := fun _ => trivial
-  trans := fun _ _ => trivial
+theorem seq2_tag_ne (x y : Pomega) :
+    seq2 (ofNat 0) x ≠ seq2 (ofNat 1) y := by
+  intro h
+  have hfun := congrArg (fun w => funOf w (ofNat 0)) h
+  have hx : (0 : ℕ) ∈ funOf (seq2 (ofNat 0) x) (ofNat 0) :=
+    ⟨1, fun k hk =>
+      match k, hk with
+      | 0, _ => rfl
+      | k + 1, hk =>
+        False.elim (Bool.false_ne_true
+          (((Nat.testBit_succ 1 k).trans (Nat.zero_testBit k)).symm.trans hk)),
+      ⟨1, 0, rfl, Or.inl ⟨rfl, rfl⟩⟩⟩
+  have hy : (0 : ℕ) ∉ funOf (seq2 (ofNat 1) y) (ofNat 0) := by
+    intro ⟨k, hk, hp⟩
+    rcases hp with ⟨k', m, heq, hm⟩
+    obtain ⟨rfl, rfl⟩ := pair_inj heq
+    rcases hm with ⟨h1, _⟩ | ⟨_, ⟨t, ht⟩⟩
+    · exact Nat.zero_ne_one h1
+    · exact Nat.succ_ne_zero t (hk ht)
+  exact hy (hfun ▸ hx)
 
-def Ea (_a : Pomega) : RestrictedEquiv where
-  rel := fun _ _ => True
-  symm := fun _ => trivial
-  trans := fun _ _ => trivial
+theorem pairElem_tag_ne (x y : Pomega) :
+    pairElem (ofNat 0) x ≠ pairElem (ofNat 1) y :=
+  seq2_tag_ne x y
 
-def Zcomb (_n : ℕ) : Pomega := botElem
+/-- **Scott 1976, (7.8).** Sum of restricted equivalences. -/
+def sumE (A B : RestrictedEquiv) : RestrictedEquiv where
+  rel := fun u v =>
+    (u = pairElem (ofNat 0) (funOf u (ofNat 1)) ∧
+        v = pairElem (ofNat 0) (funOf v (ofNat 1)) ∧
+        A.rel (funOf u (ofNat 1)) (funOf v (ofNat 1))) ∨
+      (u = pairElem (ofNat 1) (funOf u (ofNat 1)) ∧
+        v = pairElem (ofNat 1) (funOf v (ofNat 1)) ∧
+        B.rel (funOf u (ofNat 1)) (funOf v (ofNat 1)))
+  symm := by
+    intro u v h
+    rcases h with ⟨hu, hv, hA⟩ | ⟨hu, hv, hB⟩
+    · exact Or.inl ⟨hv, hu, A.symm hA⟩
+    · exact Or.inr ⟨hv, hu, B.symm hB⟩
+  trans := by
+    intro u v w h1 h2
+    rcases h1 with ⟨hu, hv, hA⟩ | ⟨hu, hv, hB⟩
+    · rcases h2 with ⟨hv', hw, hA'⟩ | ⟨hv', hw, _⟩
+      · exact Or.inl ⟨hu, hw, A.trans hA hA'⟩
+      · exact (pairElem_tag_ne (funOf v (ofNat 1)) (funOf v (ofNat 1))
+          (hv.symm.trans hv')).elim
+    · rcases h2 with ⟨hv', hw, _⟩ | ⟨hv', hw, hB'⟩
+      · exact (pairElem_tag_ne (funOf v (ofNat 1)) (funOf v (ofNat 1))
+          (hv'.symm.trans hv)).elim
+      · exact Or.inr ⟨hu, hw, B.trans hB hB'⟩
+
+/-- **Scott 1976, (7.4).** Identity relation on the range of a retract. -/
+def Ea (a : Pomega) : RestrictedEquiv where
+  rel := fun x y => typed x a ∧ typed y a ∧ x = y
+  symm := by
+    intro x y ⟨hx, hy, h⟩
+    exact ⟨hy, hx, h.symm⟩
+  trans := by
+    intro x y z ⟨hx, hy, hxy⟩ ⟨_, hz, hyz⟩
+    exact ⟨hx, hz, hxy.trans hyz⟩
+
+/-- **Scott 1976, (7.15)–(7.16).** Iterators `Zₙ`. -/
+def Z : ℕ → Pomega → Pomega → Pomega
+  | 0, _, x => x
+  | n + 1, f, x => funOf f (Z n f x)
+
+/-- **Scott 1976, (7.15)–(7.16).** Combinators `Zₙ = λf λx. fⁿ(x)`. -/
+def Zcomb (n : ℕ) : Pomega :=
+  graph (fun f => graph (fun x => Z n f x))
 
 /-- **Scott 1976, Theorem 1.1 (The characterization theorem).** -/
 theorem theorem_1_1 (f : Pomega → Pomega) :
@@ -370,6 +730,17 @@ theorem theorem_1_3 {f g : Pomega → Pomega}
     (hf : IsScottContinuous f) (hg : IsScottContinuous g) :
     IsScottContinuous (fun x => f (g x)) := by
   sorry
+
+def closureCompact (a : Pomega) (ha : IsClosure a) (n : ℕ) :
+    Fixpoints (funOf a) :=
+  ⟨funOf a (e n), by
+    have hcont : IsScottContinuous (fun y => funOf a (funOf a y)) :=
+      theorem_1_3 (funOf_isScottContinuous a) (funOf_isScottContinuous a)
+    have hbeta := (theorem_1_2 hcont (comp a a)).1
+    have h := congrArg (fun u => funOf u (e n)) ha.2
+    have hcomp : funOf (comp a a) (e n) = funOf a (funOf a (e n)) :=
+      congrArg (fun f => f (e n)) hbeta
+    exact hcomp.symm.trans h.symm⟩
 
 /-- **Scott 1976, Theorem 1.4 (The fixed-point theorem).** -/
 theorem theorem_1_4 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
@@ -440,13 +811,12 @@ theorem theorem_3_2 :
 
 /-- **Scott 1976, Theorem 3.3 (The second recursion theorem).** -/
 theorem theorem_3_3 :
-    Primrec secondRecV ∧
-      Primrec (recNat secondRecV) ∧
-      (∀ n, valNat (secondRecV n) = secondRecVal (valNat n)) ∧
-      (∀ n, recNat secondRecV n =
-        applyNat (secondRecV n) (num (secondRecV n))) ∧
-      ∀ n, valNat (recNat secondRecV n) =
-        funOf (valNat n) (ofNat (recNat secondRecV n)) := by
+    ∃ v : ℕ → ℕ, Primrec v ∧
+      Primrec (recNat v) ∧
+      (∀ n, valNat (v n) = secondRecVal (valNat n)) ∧
+      (∀ n, recNat v n = applyNat (v n) (num (v n))) ∧
+      ∀ n, valNat (recNat v n) =
+        funOf (valNat n) (ofNat (recNat v n)) := by
   sorry
 
 /-- **Scott 1976, Theorem 3.4 (The incompleteness theorem).** -/
@@ -480,7 +850,9 @@ theorem theorem_4_1 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
         lfpAbove f (⋃₀ A) ∈ Fixpoints f) ∧
       ∀ {a} (ha : IsRetract a),
         Fixpoints (funOf a) = {x | typed x a} ∧
-          IsContinuousBasis (retractBasis a) := by
+          ∀ x : Fixpoints (funOf a),
+            IsDirectedSubset (retractBasis a x) ∧
+              (x : Pomega) = ⋃₀ (Subtype.val '' retractBasis a x) := by
   sorry
 
 /-- **Scott 1976, Theorem 4.2 (The partial ordering theorem).** -/
@@ -548,10 +920,10 @@ theorem theorem_4_6 {F : Pomega → Pomega}
 /-- **Scott 1976, Theorem 5.1 (The algebraic lattice theorem).** -/
 theorem theorem_5_1 {a : Pomega} (ha : IsClosure a) :
     (∀ x : Fixpoints (funOf a),
-      IsCompact x ↔ ∃ n, x = closureCompact a ha n) ∧
+      IsCompactSubset x ↔ ∃ n, x = closureCompact a ha n) ∧
     ∀ x : Fixpoints (funOf a),
-      IsDirectedSet (compactFixedBelow a x) ∧
-        x = sSup (compactFixedBelow a x) := by
+      IsDirectedSubset (compactFixedBelow a x) ∧
+        (x : Pomega) = ⋃₀ (Subtype.val '' compactFixedBelow a x) := by
   sorry
 
 /-- **Scott 1976, Theorem 5.2 (The representation theorem).** -/
@@ -559,7 +931,9 @@ theorem theorem_5_2 {α : Type u} [CompleteLattice α]
     (D : CountablyAlgebraic α) :
     IsScottContinuous (representClosure D) ∧
       IsClosure (representClosureCode D) ∧
-      Nonempty (α ≃o Fixpoints (funOf (representClosureCode D))) := by
+      ∃ φ : α → Fixpoints (funOf (representClosureCode D)),
+        Function.Bijective φ ∧
+          ∀ x y, x ≤ y ↔ (φ x : Pomega) ⊆ φ y := by
   sorry
 
 /-- **Scott 1976, Theorem 5.3.** -/
