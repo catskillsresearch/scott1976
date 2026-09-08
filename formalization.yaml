@@ -61,6 +61,12 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_1_3_tuple"
+      file: "Scott1976/DataTypesAsLattices/FixedPoint.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_1_3_nary"
       file: "Scott1976/DataTypesAsLattices/FixedPoint.lean"
       sorry_count: 0
@@ -133,6 +139,12 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_2_6_fin"
+      file: "Scott1976/DataTypesAsLattices/Computability.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_3_1"
       file: "Scott1976/DataTypesAsLattices/Enumeration.lean"
       sorry_count: 0
@@ -187,6 +199,12 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.theorem_4_1_continuous"
+      file: "Scott1976/DataTypesAsLattices/Retracts.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_4_2"
       file: "Scott1976/DataTypesAsLattices/Retracts.lean"
       sorry_count: 0
@@ -211,6 +229,24 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.tensorR_isRetract"
+      file: "Scott1976/DataTypesAsLattices/Functionality.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.tensorR_isStrict"
+      file: "Scott1976/DataTypesAsLattices/Functionality.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.tensorR_retractLe"
+      file: "Scott1976/DataTypesAsLattices/Functionality.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.tensorR_functor"
       file: "Scott1976/DataTypesAsLattices/Functionality.lean"
       sorry_count: 0
@@ -224,6 +260,12 @@ status:
       comparator_config: "comparator.json"
       literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_4_5_sum"
+      file: "Scott1976/DataTypesAsLattices/Functionality.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.plusR_retractLe"
       file: "Scott1976/DataTypesAsLattices/Functionality.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -277,7 +319,19 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
       literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.typed_squarePair_boxTensor"
+      file: "Scott1976/DataTypesAsLattices/Closures.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
     - declaration: "Scott1976.DataTypesAsLattices.theorem_5_4_plus"
+      file: "Scott1976/DataTypesAsLattices/Closures.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "Scott1976.DataTypesAsLattices.boxPlus_typed_iff"
       file: "Scott1976/DataTypesAsLattices/Closures.lean"
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
