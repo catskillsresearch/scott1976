@@ -19,16 +19,12 @@ displayed equation used as a definition or example, and Tables 1–3.
 
 The sorry-free library consists of approximately 17,000 lines in 15 files
 under `Scott1976/` (the root import plus fourteen modules). Palomar Challenge
-/ Solution files name every numbered theorem from §§1–7 together with the
-companion declarations that complete those numbered claims (54 compared
-theorem declarations, including `theorem_1_3_nary`, `theorem_1_5_extends`,
-`theorem_2_4_complete`, `theorem_3_2_range`, `tensorR_functor`,
-`plusR_functor`, `theorem_4_6_limit`, `theorem_5_3_closure`, and
-`theorem_5_6_combinator`) and lock the core definitions, so a Comparator
-match requires the graph model, LAMBDA, enumeration, retracts, closures,
-classification, and functionality. The locked coproduct `plusR` uses the
-doubly strict conditional of (4.4) rather than the ordinary conditional
-written in displayed (4.10).
+/ Solution files select the 63 theorem declarations and 70 locked
+definitions named in `comparator.json`. A Comparator match establishes
+those selected statements, not every informal clause of every numbered
+theorem; further companions remain in the library. The locked coproduct
+`plusR` uses the doubly strict conditional of (4.4) rather than the
+ordinary conditional written in displayed (4.10).
 
 The repository has no project-defined axioms and no Lake dependency beyond
 mathlib. Completed proofs use the standard classical mathlib footprint
@@ -259,16 +255,19 @@ Status words:
   modern strengthening; the Lean statement is paper-accurate.
 - `missing` — no faithful Lean declaration yet.
 
-Nothing is `missing` or `partial`.
+The library inventory below is `faithful` except for the Palomar-selected
+specializations and strengthenings recorded in `formalization.yaml`
+limitations. Comparator selects 63 theorems and 70 definitions from
+`comparator.json`; it does not claim that those names exhaust every
+informal clause of every numbered theorem.
 
-The Palomar Comparator currently selects every numbered theorem and the
-companions that complete those numbered claims:
+Compared numbered theorems and selected companions:
 
-- §1: `theorem_1_1`–`theorem_1_6` (with `theorem_1_3_nary`, `theorem_1_5_extends`)
-- §2: `theorem_2_1`–`theorem_2_6` (with `theorem_2_4_complete`)
+- §1: `theorem_1_1`–`theorem_1_6` (with `theorem_1_3_tuple`, `theorem_1_3_nary`, `theorem_1_5_extends`)
+- §2: `theorem_2_1`–`theorem_2_6` (with `theorem_2_4_complete`, `theorem_2_6_fin`)
 - §3: `theorem_3_1`–`theorem_3_7` (with `theorem_3_2_range`)
-- §4: `theorem_4_1`–`theorem_4_6` (with `theorem_4_4_typed`, `tensorR_functor`, `theorem_4_5_sum`, `plusR_functor`, `theorem_4_6_limit`)
-- §5: `theorem_5_1`–`theorem_5_6` (with `theorem_5_3_closure`, `theorem_5_4_plus`, `theorem_5_5_universe`, `theorem_5_6_combinator`)
+- §4: `theorem_4_1`–`theorem_4_6` (with `theorem_4_1_continuous`, `theorem_4_4_typed`, `tensorR_isRetract`, `tensorR_isStrict`, `tensorR_retractLe`, `tensorR_functor`, `theorem_4_5_sum`, `plusR_retractLe`, `plusR_functor`, `theorem_4_6_limit`)
+- §5: `theorem_5_1`–`theorem_5_6` (with `theorem_5_3_closure`, `typed_squarePair_boxTensor`, `theorem_5_4_plus`, `boxPlus_typed_iff`, `theorem_5_5_universe`, `theorem_5_6_combinator`)
 - §6: `theorem_6_1`–`theorem_6_7`
 - §7: `theorem_7_1`–`theorem_7_4`
 
@@ -282,10 +281,10 @@ companions that complete those numbered claims:
 | Def. `graph`, `fun` | `graph`, `funOf` | faithful |
 | Theorem 1.1 | `theorem_1_1` | faithful |
 | Theorem 1.2 | `theorem_1_2` | faithful |
-| Theorem 1.3 | `theorem_1_3`, `theorem_1_3_nary` | faithful |
+| Theorem 1.3 | `theorem_1_3`, `theorem_1_3_tuple`, `theorem_1_3_nary` | faithful — unary/binary/ternary substitution, not arbitrary finite arity |
 | Theorem 1.4 | `theorem_1_4` | faithful |
-| Theorem 1.5 | `theorem_1_5`, `theorem_1_5_extends` | faithful |
-| Theorem 1.6 | `theorem_1_6` | faithful |
+| Theorem 1.5 | `theorem_1_5`, `theorem_1_5_extends` | `theorem_1_5` is a strengthening (continuity of `extend f` for every `f`); `theorem_1_5_extends` restores Scott's continuity hypothesis |
+| Theorem 1.6 | `theorem_1_6` | faithful — countably based $T_0$ spaces |
 
 ### §2 LAMBDA
 
@@ -308,7 +307,7 @@ companions that complete those numbered claims:
 | (2.24)–(2.27) `$`, primrec | `eq_2_24`, `eq_2_24_Y`, `eq_2_24_Ycomb`, `dollarC`, `eq_2_25`, `lamOmega`, `eq_2_27`, `primRecVal_fix` | faithful — `$ = Y(step)`; `p̂ = $(Y(primRecStep))` |
 | (2.28) `Y` commuting | `eq_2_28`, `eq_2_28_commute` | faithful |
 | Theorem 2.1 | `theorem_2_1` | faithful |
-| Theorem 2.2 | `theorem_2_2` | faithful |
+| Theorem 2.2 | `theorem_2_2` | partial — compared form is conditional semantic congruence (renamed bodies already agree), not source-level alpha from freshness |
 | Theorem 2.3 | `theorem_2_3`, `_unary`, `_binary`, `_ternary` | faithful — any finite arity via nested graphs |
 | Theorem 2.4 | `theorem_2_4`, `theorem_2_4_complete`, `erase` | faithful |
 | Theorem 2.5 | `theorem_2_5` | faithful |
@@ -345,7 +344,7 @@ companions that complete those numbered claims:
 | Theorem 4.3 | `theorem_4_3`, `arrowR_isRetract` | faithful — (i)–(v) packaged |
 | Theorem 4.4 | `theorem_4_4`, `theorem_4_4_typed`, `theorem_4_4_med`, `theorem_4_4_med_unique`, `tensorR_isRetract`, `tensorR_isStrict`, `tensorR_retractLe`, `tensorR_functor`, `eq_4_12`, `eq_4_17`–`eq_4_21`, `eq_4_24`, `eq_4_25`, `eval_curry` | faithful — product, mediator, CCC `eval`/`curry` |
 | Theorem 4.5 | `theorem_4_5_sum`, `plusR_isRetract`, `plusR_typed_iff`, `plusR_retractLe`, `plusR_functor`, `eq_4_13`, `eq_4_32`–`eq_4_37`, `inleftC`, `inrightC`, `outleftC`, `outrightC`, `whichC`, `outC`, `boolR_isRetract` | faithful — (i)–(iv) packaged; coproduct non-uniqueness remark omitted |
-| Theorem 4.6 | `theorem_4_6`, `theorem_4_6_limit` | faithful — `Y(F)` is a retract; under strictness and `⊑`-monotonicity the range is order-isomorphic to the inverse limit of the ranges of `Fⁿ(⊥)` |
+| Theorem 4.6 | `theorem_4_6`, `theorem_4_6_limit` | `theorem_4_6_limit` is the order-isomorphism (inclusion-preserving bijection) with the inverse limit, not a homeomorphism |
 | (4.38) `tree` | `treeR`, `eq_4_38`, `tree_atom`, `tree_node` | faithful — `tree = nil ⊕ (tree ⊗ tree)`; atom and binary nodes |
 | (4.39)–(4.43) `lamb` | `lambR`, `envR`, `updateEnv`, `LambTerm`, `Hinterp` | faithful — data types and `ℋ` by recursion on finite terms |
 | (4.44) `exp` | `expR`, `eq_4_44`, `expR_isRetract` | faithful — seven-tag syntax functor; `exp = Y(expF)` is a retract |
@@ -375,7 +374,7 @@ companions that complete those numbered claims:
 | Theorem 6.2 | `theorem_6_2` | faithful |
 | Theorem 6.3 | `theorem_6_3` | faithful |
 | Theorem 6.4 | `theorem_6_4` | faithful |
-| Theorem 6.5 | `theorem_6_5` | faithful |
+| Theorem 6.5 | `theorem_6_5` | partial — specialization to the representative target `succSet topElem` |
 | Theorem 6.6 | `theorem_6_6` | faithful |
 | Theorem 6.7 | `theorem_6_7` | faithful — `B_δ` sets are exactly equalizers of continuous maps |
 | Table 3 typical sets | `typicalG` … `typicalPi11`, `typical*_universal` | faithful — each class is the continuous preimages of the typical set |
@@ -415,14 +414,19 @@ theorem theorem_1_4 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
     f (fix f) = fix f ∧ ∀ x, f x = x → fix f ⊆ x
 ```
 
-Theorems 1.5 and 1.6 extend continuous maps from subspaces and embed countable
-partial orders with existing directed suprema into $\mathbf{P}\omega$.
+Theorem 1.5 is compared as a strengthening: `extend f` is continuous for
+every $f$, not only continuous $f$; `theorem_1_5_extends` restores Scott's
+continuity hypothesis for agreement on the subspace. Theorem 1.6 embeds a
+countably based $T_0$ space into $\mathbf{P}\omega$ along a countable basis.
 
 ### 6.2 Theorems 2.1–2.6 — LAMBDA and computability
 
 Table 1 is proved as equational laws of `interp`, including the failure of
-$(\eta)$. Theorem 2.3 is the finite-arity substitution theorem: a continuous
-map of $n$ arguments is represented by a nested graph.
+$(\eta)$. The compared `theorem_2_2` is a conditional semantic congruence:
+it assumes the renamed bodies already have equal interpretations and lifts
+that equality through lambda; it is not source-level $\alpha$-conversion
+from a freshness hypothesis. Theorem 2.3 is the finite-arity substitution
+theorem: a continuous map of $n$ arguments is represented by a nested graph.
 
 ```lean
 theorem theorem_2_3 {n : ℕ} {f : (Fin n → Pomega) → Pomega}
@@ -589,7 +593,8 @@ theorem theorem_6_7 :
 
 ### 6.8 Theorems 7.1–7.4 — restricted equivalences
 
-`Ea a` is the kernel equivalence of a retract. Theorem 7.2 packages the
+`Ea a` is the identity equivalence on the range of $a$; it is isomorphic
+to the kernel equivalence `kerE a`. Theorem 7.2 packages the
 function-space, product, and sum identities, including the extra $\{\bot,\top\}$
 summands on $\oplus$:
 
@@ -626,8 +631,8 @@ Recorded divergences and limitations:
 
 `Challenge.lean` contains Mathlib-only declarations with deliberate theorem
 holes. `Solution.lean` imports the completed library. `comparator.json`
-compares the 45 numbered theorems of §§1–7 and 64 definitions in their
-statement closure.
+compares the 63 selected theorem declarations and 70 locked definitions
+named in `comparator.json`.
 
 | File | Role |
 | --- | --- |
@@ -637,11 +642,10 @@ statement closure.
 | `formalization.yaml` | Scope, source alignment, fidelity, and review metadata |
 | `PROVENANCE.md` | Standalone status and relation to sibling Scott projects |
 
-The compared inventory is narrower than the entire library only in the sense
-that supplementary lemmas are reached through the published capstones rather
-than all being named independently. Equation (4.45) is library-complete and
-is not a Palomar-compared name. `Solution.lean` and every file below
-`Scott1976/` must remain sorry-free.
+A Comparator match establishes only the selected `comparator.json` names.
+Further library companions are not all compared. Equation (4.45) is
+library-complete and is not a Palomar-compared name. `Solution.lean` and
+every file below `Scott1976/` must remain sorry-free.
 
 ## 9. Build and preflight
 

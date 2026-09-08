@@ -10,10 +10,10 @@ The library is a 1:1 onto translation of the numbered definitions, theorems,
 displayed equations, and Tables 1–3, including the continuous decoder
 $\mathcal{H}$ of (4.45), except that the locked coproduct `plusR` uses the
 doubly strict conditional of (4.4) rather than the ordinary conditional
-written in displayed (4.10). Palomar Challenge / Solution name every numbered
-theorem from §§1–7 together with the companions that complete those claims,
-and lock the paper's core definitions, so a Comparator match requires that
-whole development.
+written in displayed (4.10). Palomar Challenge / Solution select the 63
+theorem declarations and 70 locked definitions named in `comparator.json`.
+A Comparator match establishes those selected statements, not every
+informal clause of every numbered theorem.
 
 Standalone package — no dependency on the 1972/1980/1982 formalizations.
 Cross-presentation equivalence theorems live in [`scott_models`](../scott_models);
@@ -43,15 +43,14 @@ Original Lean and author-written docs are Apache-2.0. Scott's monograph PDF
 | `formalization.yaml` | Palomar / formalization.yaml v0.4 metadata |
 | `PROVENANCE.md` | Standalone Palomar submission; relation to siblings |
 
-Compared theorems: every numbered result 1.1–1.6, 2.1–2.6, 3.1–3.7, 4.1–4.6,
-5.1–5.6, 6.1–6.7, 7.1–7.4, together with `theorem_1_3_nary`,
-`theorem_1_5_extends`, `theorem_2_4_complete`, `theorem_3_2_range`,
-`theorem_4_4_typed`, `tensorR_functor`, `theorem_4_5_sum`, `plusR_functor`,
-`theorem_4_6_limit`, `theorem_5_3_closure`, `theorem_5_4_plus`,
-`theorem_5_5_universe`, and `theorem_5_6_combinator`. Compared definitions
-lock `Pω`, graphs, combinators, LAMBDA interpretation, retracts
-`∘→`/`⊗`/`⊕`, and the §6 classification predicates. The locked `plusR` uses
-`dcondSet` (4.4), not the ordinary `condSet` written in displayed (4.10).
+Compared theorems: the 63 declarations in `comparator.json` (every numbered
+result 1.1–1.6, 2.1–2.6, 3.1–3.7, 4.1–4.6, 5.1–5.6, 6.1–6.7, 7.1–7.4,
+plus the named companions in that file). Compared definitions lock 70
+names, including `Pω`, graphs, combinators, LAMBDA interpretation, retracts
+`∘→`/`⊗`/`⊕`, and the §6 classification predicates. Selected statements
+that are strengthenings or specializations are listed in
+`formalization.yaml` limitations. The locked `plusR` uses `dcondSet` (4.4),
+not the ordinary `condSet` written in displayed (4.10).
 
 ## Build
 

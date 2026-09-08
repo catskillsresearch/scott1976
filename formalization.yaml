@@ -8,9 +8,10 @@ project:
     as Lattices* (Technical Monograph PRG-5; SIAM J. Comput. 5 (1976),
     522–587). The library target is a 1:1 onto translation of every numbered
     definition, theorem, example, and Tables 1–3.     Palomar Challenge/Solution
-    name every numbered theorem from §§1–7, the companion declarations that
-    complete those numbered claims, and lock the paper's core
-    definitions. The locked coproduct `plusR` uses the doubly strict
+    select the 63 theorem declarations and 70 locked definitions named in
+    comparator.json. A Comparator match establishes those selected
+    statements, not every informal clause of every numbered theorem.
+    The locked coproduct `plusR` uses the doubly strict
     conditional of (4.4) rather than the ordinary conditional written in
     displayed (4.10). Lean is
     written by AI agents under the direction and review of the author. Dana
@@ -35,9 +36,9 @@ status:
     The library is a 1:1 onto translation of the numbered items in Scott
     1976, except that plusR uses the doubly strict conditional of (4.4)
     in place of the ordinary conditional written in displayed (4.10).
-    Comparator names every numbered theorem from §§1–7, the companion
-    declarations that complete those numbered claims, and the core
-    definitions those statements depend on.
+    Comparator selects the 63 theorem declarations and 70 definitions
+    named in comparator.json. That match establishes those selected
+    statements; further library companions are not all compared.
   sorry_count: 0
   sorry_in_definitions: 0
   axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -452,9 +453,10 @@ known_gaps: []
 
 limitations:
   - >-
-    Comparator compares every numbered theorem from §§1–7, the companion
-    declarations that complete those numbered claims, and the locked
-    core definitions listed in comparator.json.
+    Comparator selects the 63 theorem declarations and 70 locked
+    definitions named in comparator.json. A match establishes those
+    selected statements, not every informal clause of every numbered
+    theorem. Further companions remain in the library.
   - >-
     Challenge.lean may contain deliberate sorries; Solution.lean and
     Scott1976/DataTypesAsLattices/* must not.
@@ -467,6 +469,26 @@ limitations:
     (4.3), which (4.8)–(4.10) generalize, and is required for Theorem
     4.5 (a ⊕ b is a retract). Displayed (4.10) is therefore not a
     symbol-for-symbol 1:1 transcription.
+  - >-
+    Compared substitution is theorem_1_3 (unary composition),
+    theorem_1_3_tuple (binary), and theorem_1_3_nary (ternary), not
+    arbitrary finite-arity substitution.
+  - >-
+    theorem_1_5 proves continuity of extend f for every f, a
+    strengthening of Scott's hypothesis that f is continuous;
+    theorem_1_5_extends restores that hypothesis for agreement on the
+    subspace.
+  - >-
+    theorem_2_2 is a conditional semantic congruence: it assumes the
+    renamed bodies already have equal interpretations and lifts that
+    equality through lambda. It is not source-level alpha conversion
+    from a freshness hypothesis.
+  - >-
+    theorem_4_6_limit compares an inclusion-preserving bijection with
+    the inverse limit (an order isomorphism), not a homeomorphism.
+  - >-
+    theorem_6_5 is the specialization of Scott's parameterized
+    characterization to the representative target succSet topElem.
 
 alignment:
   namespace: "Scott1976.DataTypesAsLattices"
@@ -485,8 +507,13 @@ alignment:
       lean: "theorem_1_3"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/FixedPoint.lean (proof)"
       status: proved
-      note: "Compared by Palomar; unary composition. n-ary substitution is theorem_1_3_nary."
-    - source: "Theorem 1.3 (The substitution theorem), n-ary"
+      note: "Compared by Palomar; unary composition. Binary and ternary companions are theorem_1_3_tuple and theorem_1_3_nary. Not arbitrary finite-arity substitution."
+    - source: "Theorem 1.3 (The substitution theorem), binary"
+      lean: "theorem_1_3_tuple"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/FixedPoint.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; binary substitution on the diagonal."
+    - source: "Theorem 1.3 (The substitution theorem), ternary"
       lean: "theorem_1_3_nary"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/FixedPoint.lean (proof)"
       status: proved
@@ -500,7 +527,7 @@ alignment:
       lean: "theorem_1_5"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Embedding.lean (proof)"
       status: proved
-      note: "Compared by Palomar; continuity of the extension. The extension property is theorem_1_5_extends."
+      note: "Compared by Palomar; strengthening — continuity of extend f for every f, not only continuous f. Agreement on the subspace is theorem_1_5_extends."
     - source: "Theorem 1.5 (The extension theorem), extension property"
       lean: "theorem_1_5_extends"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Embedding.lean (proof)"
@@ -510,7 +537,7 @@ alignment:
       lean: "theorem_1_6"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Embedding.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; embedding of a countably based T0 space via a countable basis, not of a countable poset with directed suprema."
     - source: "Theorem 2.1 (The continuity theorem)"
       lean: "theorem_2_1"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Lambda.lean (proof)"
@@ -520,7 +547,7 @@ alignment:
       lean: "theorem_2_2"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Lambda.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; conditional semantic congruence (renamed bodies already agree), not source-level alpha from freshness."
     - source: "Theorem 2.3 (The reduction theorem)"
       lean: "theorem_2_3"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Lambda.lean (proof)"
@@ -545,7 +572,12 @@ alignment:
       lean: "theorem_2_6"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Computability.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; unary definability trinity. The k-ary form is theorem_2_6_fin."
+    - source: "Theorem 2.6 (The definability theorem), finite arity"
+      lean: "theorem_2_6_fin"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Computability.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; k-ary computability via the nested-graph encoding."
     - source: "Theorem 3.1 (The generator theorem)"
       lean: "theorem_3_1"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Enumeration.lean (proof)"
@@ -590,7 +622,12 @@ alignment:
       lean: "theorem_4_1"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Retracts.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; complete-lattice half and directed density. The way-below basis is theorem_4_1_continuous."
+    - source: "Theorem 4.1 (The lattice theorem), continuous basis"
+      lean: "theorem_4_1_continuous"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Retracts.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; retract ranges have a directed way-below basis of finite images."
     - source: "Theorem 4.2 (The partial ordering theorem)"
       lean: "theorem_4_2"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Retracts.lean (proof)"
@@ -640,7 +677,7 @@ alignment:
       lean: "theorem_4_6_limit"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Retracts.lean (proof)"
       status: proved
-      note: "Compared by Palomar; under strictness and ⊑-monotonicity the range of Y(F) is order-isomorphic to the inverse limit of the ranges of Fⁿ(⊥)."
+      note: "Compared by Palomar; inclusion-preserving bijection with the inverse limit (order isomorphism only, not a homeomorphism)."
     - source: "Theorem 5.1 (The algebraic lattice theorem)"
       lean: "theorem_5_1"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
@@ -665,12 +702,22 @@ alignment:
       lean: "theorem_5_4"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; boxed product of closures is a closure. Typed pairs are typed_squarePair_boxTensor."
+    - source: "Theorem 5.4, typed boxed pairs"
+      lean: "typed_squarePair_boxTensor"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; analogue of Theorem 4.4 (ii) for ⊠."
     - source: "Theorem 5.4 (sum of closures)"
       lean: "theorem_5_4_plus"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; boxed sum of closures is a closure. The typed range is boxPlus_typed_iff."
+    - source: "Theorem 5.4, typed boxed sum"
+      lean: "boxPlus_typed_iff"
+      module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
+      status: proved
+      note: "Compared by Palomar; analogue of Theorem 4.5 typed characterization for ⊞."
     - source: "Theorem 5.5 (the universe V)"
       lean: "theorem_5_5_universe"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Closures.lean (proof)"
@@ -710,7 +757,7 @@ alignment:
       lean: "theorem_6_5"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Classification.lean (proof)"
       status: proved
-      note: "Compared by Palomar; library proof is sorry-free."
+      note: "Compared by Palomar; specialization to the representative target succSet topElem, not the fully parameterized form."
     - source: "Theorem 6.6 (The 𝔅 theorem)"
       lean: "theorem_6_6"
       module: "Challenge (statement), Scott1976/DataTypesAsLattices/Classification.lean (proof)"

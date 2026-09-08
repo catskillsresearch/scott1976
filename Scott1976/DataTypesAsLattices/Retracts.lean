@@ -538,13 +538,33 @@ theorem retractBasis_directedSubset {a : Pomega} (ha : IsRetract a)
 
 /-- **Scott 1976, Theorem 4.1, continuous-lattice half.**
 The finite-image points form a directed way-below basis for every point in
-the range of a retract. -/
+the range of a retract. Stated with subset directedness so the compared
+type does not mention a `CompleteLattice` instance. -/
 theorem theorem_4_1_continuous {a : Pomega} (ha : IsRetract a) :
-    IsContinuousBasis (retractBasis a) := by
+    ∀ x : Fixpoints (funOf a),
+      IsDirectedSubset (retractBasis a x) ∧
+        (x : Pomega) = ⋃₀ (Subtype.val '' retractBasis a x) ∧
+        ∀ y ∈ retractBasis a x,
+          ∀ s : Set (Fixpoints (funOf a)),
+            IsDirectedSubset s →
+              (x : Pomega) ⊆ ⋃₀ (Subtype.val '' s) →
+              ∃ z ∈ s, (y : Pomega) ⊆ z := by
   intro x
-  exact ⟨retractBasis_directed ha x,
-    fun y hy => retractBasis_wayBelow ha hy,
-    retractBasis_sSup ha x⟩
+  refine ⟨retractBasis_directedSubset ha x, retractBasis_sUnion ha x, ?_⟩
+  intro y hy s hs hxs
+  obtain ⟨n, hnx, hyn⟩ := hy
+  have hen : e n ⊆ ⋃₀ (Subtype.val '' s) := hnx.trans hxs
+  have hs' : IsDirectedSet s :=
+    ⟨hs.1, fun u hu v hv => by
+      obtain ⟨w, hw, huw, hvw⟩ := hs.2 hu hv
+      exact ⟨w, hw, huw, hvw⟩⟩
+  obtain ⟨z, hz, hnz⟩ :=
+    directed_finite_cover hs' (e_finite n) (by simpa [Fixpoints.vals] using hen)
+  refine ⟨z, hz, ?_⟩
+  change (y : Pomega) ⊆ z
+  rw [hyn]
+  have := isScottContinuous_monotone (funOf_isScottContinuous a) hnz
+  rwa [z.property] at this
 
 /-- **Scott 1976, Theorem 4.1 (The lattice theorem).**
 Fixed points of a continuous function form a complete lattice under `⊆`;

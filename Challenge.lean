@@ -274,6 +274,9 @@ def IsScottContinuousFin : ∀ {n : ℕ}, ((Fin n → Pomega) → Pomega) → Pr
 def nestApplyFin (u : Pomega) : ∀ {n : ℕ}, (Fin n → Pomega) → Pomega
   | 0, _ => u
   | _n + 1, xs => nestApplyFin (funOf u (xs 0)) (Fin.tail xs)
+def curryFin : ∀ {n : ℕ}, ((Fin n → Pomega) → Pomega) → Pomega
+  | 0, f => f Fin.elim0
+  | _n + 1, f => graph (fun x => curryFin (fun xs => f (Fin.cons x xs)))
 def zeroC : Pomega := ofNat 0
 def sucC : Pomega := graph succSet
 def predC : Pomega := graph predSet
@@ -319,6 +322,8 @@ def erase : Term → Comb
   | .lam i body => abs i (erase body)
 def IsRE (u : Pomega) : Prop :=
   REPred fun n : ℕ => n ∈ u
+def IsComputableFin {n : ℕ} (f : (Fin n → Pomega) → Pomega) : Prop :=
+  IsScottContinuousFin f ∧ IsRE (curryFin f)
 def IsComputable (f : Pomega → Pomega) : Prop :=
   IsScottContinuous f ∧ IsRE (graph f)
 def IsLambdaDefinable (u : Pomega) : Prop :=
@@ -568,6 +573,12 @@ theorem theorem_1_3 {f g : Pomega → Pomega}
     (hf : IsScottContinuous f) (hg : IsScottContinuous g) :
     IsScottContinuous (fun x => f (g x)) := by
   sorry
+theorem theorem_1_3_tuple {f : Pomega → Pomega → Pomega}
+    (hfx : ∀ y, IsScottContinuous (fun x => f x y))
+    (hfy : ∀ x, IsScottContinuous (fun y => f x y))
+    {g h : Pomega → Pomega} (hg : IsScottContinuous g) (hh : IsScottContinuous h) :
+    IsScottContinuous (fun x => f (g x) (h x)) := by
+  sorry
 theorem theorem_1_3_nary {f : Pomega → Pomega → Pomega → Pomega}
     (hf0 : ∀ y z, IsScottContinuous (fun x => f x y z))
     (hf1 : ∀ x z, IsScottContinuous (fun y => f x y z))
@@ -630,6 +641,12 @@ theorem theorem_2_6 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
       (IsRE (graph f) ↔ IsCombinatory (graph f)) ∧
       (IsLambdaDefinable (graph f) ↔ IsCombinatory (graph f)) := by
   sorry
+theorem theorem_2_6_fin {n : ℕ} {f : (Fin n → Pomega) → Pomega}
+    (hf : IsScottContinuousFin f) :
+    (IsComputableFin f ↔ IsRE (curryFin f)) ∧
+      (IsRE (curryFin f) ↔ IsCombinatory (curryFin f)) ∧
+      (IsLambdaDefinable (curryFin f) ↔ IsCombinatory (curryFin f)) := by
+  sorry
 theorem theorem_3_1 {u : Pomega} :
     IsCombinatory u ↔ GeneratedFromG u := by
   sorry
@@ -673,6 +690,16 @@ theorem theorem_4_1 {f : Pomega → Pomega} (hf : IsScottContinuous f) :
             IsDirectedSubset (retractBasis a x) ∧
               (x : Pomega) = ⋃₀ (Subtype.val '' retractBasis a x) := by
   sorry
+theorem theorem_4_1_continuous {a : Pomega} (ha : IsRetract a) :
+    ∀ x : Fixpoints (funOf a),
+      IsDirectedSubset (retractBasis a x) ∧
+        (x : Pomega) = ⋃₀ (Subtype.val '' retractBasis a x) ∧
+        ∀ y ∈ retractBasis a x,
+          ∀ s : Set (Fixpoints (funOf a)),
+            IsDirectedSubset s →
+              (x : Pomega) ⊆ ⋃₀ (Subtype.val '' s) →
+              ∃ z ∈ s, (y : Pomega) ⊆ z := by
+  sorry
 theorem theorem_4_2 {a b c : Pomega} :
     (IsRetract a → retractLe a a) ∧
       (retractLe a b → retractLe b a → a = b) ∧
@@ -702,6 +729,16 @@ theorem theorem_4_4_typed {a b u : Pomega} :
       u = pairSeq (funOf u (ofNat 0)) (funOf u (ofNat 1)) ∧
         typed (funOf u (ofNat 0)) a ∧ typed (funOf u (ofNat 1)) b := by
   sorry
+theorem tensorR_isRetract {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    IsRetract (tensorR a b) := by
+  sorry
+theorem tensorR_isStrict {a b : Pomega} (ha : IsStrict a) (hb : IsStrict b) :
+    IsStrict (tensorR a b) := by
+  sorry
+theorem tensorR_retractLe {a b a' b' : Pomega}
+    (hab : retractLe a a') (hbb : retractLe b b') :
+    retractLe (tensorR a b) (tensorR a' b') := by
+  sorry
 theorem tensorR_functor {a b a' b' f f' : Pomega}
     (_ha : IsRetract a) (_hb : IsRetract b)
     (_ha' : IsRetract a') (_hb' : IsRetract b')
@@ -720,6 +757,10 @@ theorem theorem_4_5_sum {a b : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
         u = botElem ∨ u = topElem ∨
           (∃ x, u = pairSeq (ofNat 0) x ∧ typed x a) ∨
             (∃ y, u = pairSeq (ofNat 1) y ∧ typed y b)) := by
+  sorry
+theorem plusR_retractLe {a b a' b' : Pomega}
+    (hab : retractLe a a') (hbb : retractLe b b') :
+    retractLe (plusR a b) (plusR a' b') := by
   sorry
 theorem plusR_functor {a b a' b' f f' : Pomega}
     (_ha : IsRetract a) (_hb : IsRetract b)
@@ -771,8 +812,17 @@ theorem theorem_5_3_closure {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b)
 theorem theorem_5_4 {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
     IsClosure (boxTensor a b) := by
   sorry
+theorem typed_squarePair_boxTensor (a b x y : Pomega) :
+    typed (squarePair x y) (boxTensor a b) ↔ typed x a ∧ typed y b := by
+  sorry
 theorem theorem_5_4_plus {a b : Pomega} (ha : IsClosure a) (hb : IsClosure b) :
     IsClosure (boxPlus a b) := by
+  sorry
+theorem boxPlus_typed_iff {a b u : Pomega} (ha : IsRetract a) (hb : IsRetract b) :
+    typed u (boxPlus a b) ↔
+      u = botElem ∨ u = topElem ∨
+        (∃ x, u = squarePair x botElem ∧ typed x (boxShift a)) ∨
+          (∃ y, u = squarePair botElem y ∧ typed y (boxShift b)) := by
   sorry
 theorem theorem_5_5_universe :
     IsClosure Vcomb ∧ ∀ a, IsClosure a ↔ typed a Vcomb := by
