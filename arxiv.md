@@ -57,8 +57,9 @@ Continuous maps are encoded as graphs and recovered by application, so the
 function space lives inside $\mathbf{P}\omega$ itself.
 
 LAMBDA is the combinatory language of that encoding. Its interpretation is
-continuous in every free variable (Theorem 2.3), conversion is sound
-(Theorem 2.2), and a continuous map is computable exactly when its graph is
+continuous in every free variable (Theorem 2.3), the compared conversion
+theorem is a conditional semantic congruence (Theorem 2.2), and a continuous
+map is computable exactly when its graph is
 recursively enumerable, equivalently combinatory, equivalently
 LAMBDA-definable (Theorem 2.6). Enumeration then internalizes Gödel numbering:
 `val` enumerates the combinatory subalgebra $\mathbf{RE}$, the second
@@ -360,7 +361,7 @@ Compared numbered theorems and selected companions:
 | Theorem 5.1 | `theorem_5_1`, `theorem_5_1_isolated` | faithful — closure fixed points form an algebraic lattice; compacts are the `a(e n)` |
 | Theorem 5.2 | `theorem_5_2` | faithful — every countable algebraic lattice is order-isomorphic to the range of a closure |
 | Theorem 5.3 | `theorem_5_3`, `theorem_5_3_closure`, `Icomb_subset_arrowR` | faithful |
-| Theorem 5.4 | `theorem_5_4`, `theorem_5_4_plus`, `eq_5_12`, `eq_5_22`, `eq_5_23` | faithful — `⊠` and `⊞` of closures are closures and typed on `V` |
+| Theorem 5.4 | `theorem_5_4`, `typed_squarePair_boxTensor`, `theorem_5_4_plus`, `boxPlus_typed_iff`, `eq_5_12`, `eq_5_22`, `eq_5_23` | faithful — `⊠` and `⊞` of closures are closures; compared typing analogues of Theorems 4.4–4.5 are `typed_squarePair_boxTensor` and `boxPlus_typed_iff` |
 | Theorem 5.5 | `theorem_5_5`, `theorem_5_5_iff`, `theorem_5_5_universe`, `Vcomb`, `eq_5_14`, `eq_5_19`, `eq_5_21` | faithful — `V` is a closure; `V(a)=a` iff `a` is a closure; `(5.14)=(5.15)` |
 | Theorem 5.6 | `theorem_5_6`, `theorem_5_6_iterates`, `eq_5_24` | faithful — `Y(f):V` whenever `f:V∘→V`; `∘→` typed on `V` |
 | (5.25) `d = I ∪ (d∘→d)` | `dEq`, `eq_5_25` | faithful — `Y(λa. I ∪ (a∘→a))`; `d = d∘→d` if `I ⊆ d∘→d` |
@@ -386,7 +387,7 @@ Compared numbered theorems and selected companions:
 | Def. restricted equivalence | `RestrictedEquiv` | faithful |
 | (7.4)–(7.8) `E_a`, `→`, `×`, `+` | `Ea`, `arrowE`, `prodE`, `sumE` | faithful |
 | Theorem 7.1 | `theorem_7_1` | faithful |
-| Theorem 7.2 | `theorem_7_2` | faithful — `E_a` kernel iso, `E_{a∘→b} ≅ E_a → E_b`, `E_{a⊗b} = E_a × E_b`, and the `⊕` identity with `{⊥,⊤}` |
+| Theorem 7.2 | `theorem_7_2` | faithful — `Ea a` is the identity on the range of `a` and is isomorphic to the kernel `kerE a`; `E_{a∘→b} ≅ E_a → E_b`, `E_{a⊗b} = E_a × E_b`, and the `⊕` identity with `{⊥,⊤}` |
 | Theorem 7.3 | `theorem_7_3` | faithful |
 | Theorem 7.4 | `theorem_7_4`, `theorem_7_4_unique` | faithful — `Z_n : (A→A)→(A→A)` for all `A`, and this with `z(f)=z(λx. f(x))` characterizes the iterators |
 | (7.15)–(7.19) iterators | `Z`, `Zcomb`, `sigmaJ`, `eq_7_18_*` | faithful |
@@ -397,8 +398,10 @@ Compared numbered theorems and selected companions:
 
 Theorem 1.1 characterizes continuity by preservation of the finite basis.
 Theorem 1.2 says that $u$ is a graph if and only if $u=\mathrm{graph}(\mathrm{fun}\,u)$.
-Substitution (Theorem 1.3) is used throughout as composition and as finite-arity
-substitution on the diagonal:
+Substitution (Theorem 1.3) is used throughout as composition and as binary
+and ternary substitution on the diagonal (`theorem_1_3_tuple`,
+`theorem_1_3_nary`); the compared forms are not arbitrary finite-arity
+substitution:
 
 ```lean
 theorem theorem_1_3 {f g : Pomega → Pomega}
@@ -466,11 +469,15 @@ combinatory and typed `tree → id`.
 ### 6.4 Theorems 4.1–4.6 — retracts
 
 A retract is an idempotent graph. Theorem 4.1: the fixed points of a
-continuous map form a complete lattice, and the range of a retract is a
-continuous lattice. Theorems 4.3–4.5 package the function-space, product, and
-sum constructors, including the CCC structure `eval`/`curry` and the four
-sum identities. Theorem 4.6 is the inverse-limit theorem used for `int`,
-`tree`, `lamb`, and `exp`:
+continuous map form a complete lattice (`theorem_4_1`); the range of a
+retract has a directed way-below basis of finite images
+(`theorem_4_1_continuous`), which is the compared continuous-lattice half.
+Theorems 4.3–4.5 package the function-space, product, and sum constructors,
+including retractness, strictness, preservation of $\sqsubseteq$, the CCC
+structure `eval`/`curry`, and the four sum identities. Theorem 4.6 is the
+inverse-limit theorem used for `int`, `tree`, `lamb`, and `exp`. The compared
+`theorem_4_6_limit` is an inclusion-preserving bijection with the inverse
+limit (an order isomorphism), not a homeomorphism:
 
 ```lean
 theorem theorem_4_6 {F : Pomega → Pomega}
@@ -582,7 +589,11 @@ closure. Theorem 5.6: $Y$ and $\circ\to$ are typed on $V`.
 
 The classes $\mathfrak{G}$, $\mathfrak{F}$, $\mathfrak{B}$ and their
 $\delta$-refinements are defined by continuous preimages of typical sets
-(Table 3). Theorem 6.7 is the equalizer characterization of $\mathfrak{B}_\delta$:
+(Table 3). Compared `theorem_6_5` is Scott's $\mathfrak{F}\cap\mathfrak{G}_\delta$
+characterization specialized to the representative target
+`succSet topElem`, not the fully parameterized form over every infinite
+proper subset of $\top$. Theorem 6.7 is the equalizer characterization of
+$\mathfrak{B}_\delta$:
 
 ```lean
 theorem theorem_6_7 :
@@ -619,11 +630,38 @@ See `NOTICE` and `sources/README.md` for copyright carve-outs.
 
 Recorded divergences and limitations:
 
+- Comparator selects the 63 theorem declarations and 70 locked definitions
+  named in `comparator.json`. A match establishes those selected statements,
+  not every informal clause of every numbered theorem.
+- Compared substitution is `theorem_1_3` (unary composition),
+  `theorem_1_3_tuple` (binary), and `theorem_1_3_nary` (ternary), not
+  arbitrary finite-arity substitution.
+- `theorem_1_5` proves continuity of `extend f` for every $f$, a
+  strengthening of Scott's hypothesis that $f$ is continuous;
+  `theorem_1_5_extends` restores that hypothesis for agreement on the
+  subspace.
+- Theorem 1.6 concerns countably based $T_0$ topological spaces, not
+  countable partial orders with directed suprema.
+- `theorem_2_2` is a conditional semantic congruence: it assumes the
+  renamed bodies already have equal interpretations and lifts that
+  equality through lambda. It is not source-level $\alpha$-conversion
+  from a freshness hypothesis.
+- `theorem_4_6_limit` is an inclusion-preserving bijection with the
+  inverse limit (an order isomorphism). Comparator does not check a
+  homeomorphism.
+- `theorem_6_5` is the specialization of Scott's parameterized
+  $\mathfrak{F}\cap\mathfrak{G}_\delta$ theorem to the representative
+  target `succSet topElem`.
+- `Ea a` is the identity equivalence on the range of $a$; it is
+  isomorphic to the kernel equivalence `kerE a`. The kernel relation
+  is $\{(x,y)\mid a(x)=a(y)\}$.
+- The locked coproduct `plusR` uses the doubly strict conditional
+  `dcondSet` of (4.4), not the ordinary McCarthy conditional written in
+  displayed (4.10). Mixed tags map to $\top$ rather than the union of
+  the two injections.
 - Theorem 4.5 packages the four numbered sum identities. Scott's informal
   remark that the coproduct mediator is not unique is not a numbered theorem
   and is omitted.
-- Unary `theorem_2_6` is type-locked by Palomar. Finite-arity computability
-  is the separate `theorem_2_6_fin`.
 - No external mathematical review has been performed. Every proof is checked
   by the Lean kernel, but the project remains self-assessed.
 
