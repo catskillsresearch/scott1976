@@ -1,6 +1,11 @@
 # cache and other artifacts produced by Lean's Lake build tool
 .lake/
 
+# Local Palomar preflight: comparator clones, NanoDa, editorial JSON
+.cache/
+# Vendored PalomarPolicy snapshot downloaded by editorial preflight
+vendor/
+
 # Python bytecode
 __pycache__/
 *.pyc
