@@ -5,9 +5,8 @@ paper *Data Types as Lattices* (Technical Monograph PRG-5, September 1976;
 reprinted SIAM J. Comput. 5 (1976), 522–587). It is not a thin wrapper and
 not a reimplementation of an independent formalization.
 
-Dana Scott did not participate in, review, or endorse this formalization.
-The formalization was produced by Lars Warren Ericson without input from
-Scott. The source paper is cited as literature only.
+Dana Scott did not review or endorse this formalization. The source paper
+is cited as literature only.
 
 Sibling formalizations of related Scott papers:
 

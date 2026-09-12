@@ -4,8 +4,8 @@ r"""Convert arxiv_with_code.md to arxiv.tex (arXiv-ready).
 Pipeline:
   1. Drop the GitHub-only navigation preamble (auto-gen note, document map, file index).
   2. Lift the `## Abstract` section into a LaTeX \begin{abstract}.
-  3. Demote the Appendix-A structural headings so LaTeX numbers everything once, then
-     insert \\appendix before the combined Lean-source appendix.
+  3. Demote the Appendix heading so LaTeX numbers everything once, then
+     insert \\appendix before the Palomar-archive source appendix.
   4. Strip manual section numbers (any depth, e.g. `1.`, `1.3`, `5.1`) so LaTeX does
      the numbering and we never get duplicates like "5.1 5.1".
   5. Replace fenced code with \\lstinputlisting blocks (ASCII-sanitized for arXiv pdfLaTeX).
@@ -123,8 +123,14 @@ def drop_github_nav(text: str) -> str:
 
 def normalize_appendix_headings(text: str) -> str:
     text = re.sub(
+        r"^##\s+Appendix\.\s+Lean sources in the Palomar archive\s*$",
+        "## Lean sources in the Palomar archive",
+        text,
+        flags=re.MULTILINE,
+    )
+    text = re.sub(
         r"^#\s+Appendix A: Complete Lean source\s*$",
-        "## Complete Lean source",
+        "## Lean sources in the Palomar archive",
         text,
         flags=re.MULTILINE,
     )
@@ -291,7 +297,12 @@ def cleanup_pandoc_latex(latex: str) -> str:
     )
     latex = re.sub(
         r"\\section\{Appendix A: Complete Lean source\}",
-        r"\\section{Complete Lean source}",
+        r"\\section{Lean sources in the Palomar archive}",
+        latex,
+    )
+    latex = re.sub(
+        r"\\section\{Appendix\. Lean sources in the Palomar archive\}",
+        r"\\section{Lean sources in the Palomar archive}",
         latex,
     )
     latex = re.sub(r"\n{3,}", "\n\n", latex)
@@ -299,7 +310,7 @@ def cleanup_pandoc_latex(latex: str) -> str:
 
 
 def insert_appendix_command(latex: str) -> str:
-    marker = r"\section{Complete Lean source}"
+    marker = r"\section{Lean sources in the Palomar archive}"
     if marker not in latex:
         raise RuntimeError(f"missing {marker!r} in LaTeX output")
     return latex.replace(marker, r"\appendix" + "\n" + marker, 1)

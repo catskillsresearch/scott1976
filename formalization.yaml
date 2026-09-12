@@ -15,7 +15,7 @@ project:
     conditional of (4.4) rather than the ordinary conditional written in
     displayed (4.10). Lean is
     written by AI agents under the direction and review of the author. Dana
-    Scott did not participate in or endorse this formalization. There is no
+    Scott did not review or endorse this formalization. There is no
     sorry outside the deliberate holes in Challenge.lean, no project-defined
     axiom, and Mathlib is the only Lake dependency.
   authors:
@@ -438,11 +438,10 @@ sources:
       Programming Research Group, September 1976; reprinted SIAM Journal on
       Computing, Volume 5, 1976, pages 522–587.
     relationship: formalizes
-    author_endorsement: not-contacted
+    author_endorsement: other
     note: >-
-      Primary source. Dana Scott was not contacted and did not participate
-      in or endorse this formalization. Working PDF:
-      sources/Data_Types_as_Lattices.pdf.
+      Primary source. Dana Scott did not review or endorse this
+      formalization. Working PDF: sources/Data_Types_as_Lattices.pdf.
 
 related_formalizations:
   - id: "https://github.com/catskillsresearch/scott1972"
@@ -489,7 +488,6 @@ automation:
       role: >-
         The author chose the formalization route, reviewed every definition
         and claim, and takes sole responsibility for the mathematical content.
-        Dana Scott was not consulted.
   notes: >-
     Palomar Challenge / Solution / comparator / formalization.yaml packaging
     follows the scott1972 / cardb template.

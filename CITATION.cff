@@ -13,8 +13,7 @@ authors:
 abstract: >-
   Machine-checked Lean 4 formalization of Dana Scott's 1976 paper Data Types
   as Lattices (Technical Monograph PRG-5; SIAM J. Comput. 5 (1976), 522–587).
-  Dana Scott was not contacted and did not participate in, review, or endorse
-  this formalization.
+  Dana Scott did not review or endorse this formalization.
 keywords:
   - Lean 4
   - data types as lattices

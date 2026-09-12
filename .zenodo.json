@@ -4,7 +4,7 @@
   "access_right": "open",
   "language": "eng",
   "version": "0.1.0",
-  "description": "Machine-checked Lean 4 formalization of Dana Scott's 1976 paper Data Types as Lattices (Technical Monograph PRG-5, September 1976; reprinted SIAM J. Comput. 5 (1976), 522–587). Dana Scott was not contacted and did not participate in, review, or endorse this formalization. Primary readable artifact: arxiv.pdf (when published). Source repository: https://github.com/catskillsresearch/scott1976.",
+  "description": "Machine-checked Lean 4 formalization of Dana Scott's 1976 paper Data Types as Lattices (Technical Monograph PRG-5, September 1976; reprinted SIAM J. Comput. 5 (1976), 522–587). Dana Scott did not review or endorse this formalization. Primary readable artifact: arxiv.pdf (when published). Source repository: https://github.com/catskillsresearch/scott1976.",
   "creators": [
     {
       "name": "Ericson, Lars Warren",
