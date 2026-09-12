@@ -778,114 +778,84 @@ below is the copy preserved by Palomar at commit
 https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/tree/2081973122a631d34dc74f83cfc3f7495991415b.
 The working repository is https://github.com/catskillsresearch/scott1976.
 
-### `Scott1976.lean`
+### [`Scott1976.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976.lean)
 
 Root import module. It loads the fourteen `DataTypesAsLattices` modules in
 dependency order so that `import Scott1976` typechecks the complete
 sorry-free development.
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976.lean
-
-### `Scott1976/DataTypesAsLattices/Pomega.lean`
+### [`Scott1976/DataTypesAsLattices/Pomega.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Pomega.lean)
 
 §1 carrier: $\mathbf{P}\omega$ as `Set ℕ`, bottom and top, the finite basis
 $e_n$ from binary expansions, pairing, and the elementary lattice operations.
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Pomega.lean
-
-### `Scott1976/DataTypesAsLattices/Continuous.lean`
+### [`Scott1976/DataTypesAsLattices/Continuous.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Continuous.lean)
 
 §1 Scott topology: basic neighbourhoods $\{x\mid e_n\subseteq x\}$, Scott-open
 sets, continuity $f(x)=\bigcup f(e_n)$ on $e_n\subseteq x$, and Theorem 1.1.
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Continuous.lean
-
-### `Scott1976/DataTypesAsLattices/Graph.lean`
+### [`Scott1976/DataTypesAsLattices/Graph.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Graph.lean)
 
 §1 graphs of continuous maps: `graph` / `funOf`, application in the graph
 model, and Theorem 1.2 ($u$ is a graph iff $u=\mathrm{graph}(\mathrm{fun}\,u)$).
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Graph.lean
-
-### `Scott1976/DataTypesAsLattices/FixedPoint.lean`
+### [`Scott1976/DataTypesAsLattices/FixedPoint.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/FixedPoint.lean)
 
 §1 substitution and least fixed points: Theorems 1.3–1.4, the iterates
 $f^n(\varnothing)$, and the least-fixed-point combinator $Y$.
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/FixedPoint.lean
-
-### `Scott1976/DataTypesAsLattices/Embedding.lean`
+### [`Scott1976/DataTypesAsLattices/Embedding.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Embedding.lean)
 
 §1 extension and embedding: the maximal continuous extension `extend f`
 (Theorem 1.5) and the embedding of countably based $T_0$ spaces into
 $\mathbf{P}\omega$ (Theorem 1.6).
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Embedding.lean
-
-### `Scott1976/DataTypesAsLattices/Lambda.lean`
+### [`Scott1976/DataTypesAsLattices/Lambda.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Lambda.lean)
 
 §2 LAMBDA: Table 1–2, combinators, the inductive syntax and interpretation
 `interp`, displayed equations (2.1)–(2.28), and Theorems 2.1–2.5.
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Lambda.lean
-
-### `Scott1976/DataTypesAsLattices/Computability.lean`
+### [`Scott1976/DataTypesAsLattices/Computability.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Computability.lean)
 
 §2 computability: recursively enumerable graphs, combinatory and closed
 LAMBDA-definable elements, and Theorem 2.6 in unary and $k$-ary form.
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Computability.lean
-
-### `Scott1976/DataTypesAsLattices/Enumeration.lean`
+### [`Scott1976/DataTypesAsLattices/Enumeration.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Enumeration.lean)
 
 §3 enumeration: the combinator $G$, Scott's `val` / `apply` / `op` / `arg`,
 Theorems 3.1–3.7, and the tree evaluator `vaal` of (4.46).
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Enumeration.lean
-
-### `Scott1976/DataTypesAsLattices/FixedLattices.lean`
+### [`Scott1976/DataTypesAsLattices/FixedLattices.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/FixedLattices.lean)
 
 Order-theoretic support used later by retracts and closures: directed sets,
 compactness, and the countable algebraic and continuous lattice interfaces.
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/FixedLattices.lean
-
-### `Scott1976/DataTypesAsLattices/Retracts.lean`
+### [`Scott1976/DataTypesAsLattices/Retracts.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Retracts.lean)
 
 §4 retracts: idempotent graphs, typedness, the constructors
 $\circ\to$/$\otimes$/$\oplus$, Theorems 4.1–4.6, inverse limits, and the
 recursive domains $\mathbf{int}$, $\mathbf{tree}$, $\mathbf{lamb}$, and
 $\mathbf{exp}$.
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Retracts.lean
-
-### `Scott1976/DataTypesAsLattices/Closures.lean`
+### [`Scott1976/DataTypesAsLattices/Closures.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Closures.lean)
 
 §5 closures: $I\subseteq a=a\circ a$, pairing and the boxed product and sum,
 the universe $V$, and Theorems 5.1–5.6.
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Closures.lean
-
-### `Scott1976/DataTypesAsLattices/Classification.lean`
+### [`Scott1976/DataTypesAsLattices/Classification.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Classification.lean)
 
 §6 classification of subsets of $\mathbf{P}\omega$: the classes
 $\mathfrak{G}$, $\mathfrak{F}$, $\mathfrak{B}$ and their $\delta$-refinements,
 Theorems 6.1–6.7, and the typical sets of Table 3.
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Classification.lean
-
-### `Scott1976/DataTypesAsLattices/Functionality.lean`
+### [`Scott1976/DataTypesAsLattices/Functionality.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Functionality.lean)
 
 Remaining §4 identities (typed $\otimes$/$\oplus$, CCC `eval`/`curry`,
 injections), the continuous decoder $\mathcal{H}$ of (4.45), and §7
 restricted equivalences (Theorems 7.1–7.4).
 
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Functionality.lean
-
-### `Scott1976/DataTypesAsLattices/Basic.lean`
+### [`Scott1976/DataTypesAsLattices/Basic.lean`](https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Basic.lean)
 
 Thin library facade. It re-exports `Enumeration`, `Classification`, and
 `Closures` so that `Solution.lean` can import the completed development in
 one step.
-
-https://github.com/PalomarArchive/catskillsresearch--scott1976--4994ad81a666/blob/2081973122a631d34dc74f83cfc3f7495991415b/Scott1976/DataTypesAsLattices/Basic.lean
