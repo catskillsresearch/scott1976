@@ -9,7 +9,7 @@ Pipeline:
   4. Strip manual section numbers (any depth, e.g. `1.`, `1.3`, `5.1`) so LaTeX does
      the numbering and we never get duplicates like "5.1 5.1".
   5. Replace fenced code with \\lstinputlisting blocks (ASCII-sanitized for arXiv pdfLaTeX).
-  5b. Render ```mermaid blocks to vector PDFs via mermaid-cli (mmdc).
+  5b. Render ```mermaid blocks to PNG via mermaid-cli (mmdc).
   6. Inject AI model-card acknowledgements from `scripts/ai_model_cards.py` (before HTML-comment strip).
   7. pandoc → LaTeX, then splice the listing/math/figure placeholders back in.
 """
@@ -62,7 +62,7 @@ def find_chrome() -> str | None:
 def render_mermaid(code: str, idx: int) -> str:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     mmd_path = FIGURES_DIR / f"figure-{idx:03d}.mmd"
-    pdf_path = FIGURES_DIR / f"figure-{idx:03d}.pdf"
+    png_path = FIGURES_DIR / f"figure-{idx:03d}.png"
     mmd_path.write_text(code.strip() + "\n", encoding="utf-8")
 
     mmdc = shutil.which("mmdc")
@@ -75,14 +75,16 @@ def render_mermaid(code: str, idx: int) -> str:
     chrome = find_chrome()
     if chrome:
         env["PUPPETEER_EXECUTABLE_PATH"] = chrome
-    cmd = [mmdc, "-i", str(mmd_path), "-o", str(pdf_path), "--pdfFit", "-b", "transparent"]
+    # Raster PNG for arXiv (embedded PDF figures are rejected). Scale 3 keeps
+    # the diagrams sharp when included at text width.
+    cmd = [mmdc, "-i", str(mmd_path), "-o", str(png_path), "-b", "white", "-s", "3"]
     if PUPPETEER_CONFIG.is_file():
         cmd += ["-p", str(PUPPETEER_CONFIG)]
     proc = subprocess.run(cmd, env=env, capture_output=True, text=True, check=False)
-    if proc.returncode != 0 or not pdf_path.is_file():
+    if proc.returncode != 0 or not png_path.is_file():
         sys.stderr.write(proc.stdout + "\n" + proc.stderr + "\n")
         raise RuntimeError(f"mmdc failed to render figure {idx}")
-    return pdf_path.relative_to(ROOT).as_posix()
+    return png_path.relative_to(ROOT).as_posix()
 
 
 def extract_title() -> str:
@@ -396,7 +398,7 @@ def main() -> int:
     document = preamble + "\n\n" + title_page + "\n\n" + latex_body + "\n\n\\end{document}\n"
     OUT.write_text(document, encoding="utf-8")
     n_listings = sum(1 for p in LISTINGS_DIR.iterdir() if p.is_file())
-    n_figures = sum(1 for p in FIGURES_DIR.glob("*.pdf"))
+    n_figures = sum(1 for p in FIGURES_DIR.glob("*.png"))
     print(
         f"wrote {OUT.relative_to(ROOT)} ({OUT.stat().st_size:,} bytes, "
         f"{n_listings} listings, {n_figures} mermaid figures)"

@@ -30,9 +30,9 @@ if [[ "$lean_count" -eq 0 ]]; then
   echo "error: no listing files in $LISTINGS_DIR" >&2
   missing=1
 fi
-fig_count="$(find "$FIGURES_DIR" -maxdepth 1 -name '*.pdf' 2>/dev/null | wc -l)"
+fig_count="$(find "$FIGURES_DIR" -maxdepth 1 -name '*.png' 2>/dev/null | wc -l)"
 if [[ "$fig_count" -eq 0 ]]; then
-  echo "note: no mermaid figure PDFs in $FIGURES_DIR (ok if the paper has none)"
+  echo "note: no mermaid figure PNGs in $FIGURES_DIR (ok if the paper has none)"
   mkdir -p "$FIGURES_DIR"
 fi
 if [[ "$missing" -ne 0 ]]; then
@@ -50,7 +50,7 @@ from pathlib import Path
 sources = [{"filename": "arxiv.tex", "usage": "toplevel"}]
 for path in sorted(p for p in Path("lean-listings").iterdir() if p.is_file()):
     sources.append({"filename": path.as_posix(), "usage": "include"})
-for path in sorted(Path("figures").glob("*.pdf")):
+for path in sorted(Path("figures").glob("*.png")):
     sources.append({"filename": path.as_posix(), "usage": "include"})
 readme = {"process": {"compiler": "pdflatex"}, "sources": sources}
 Path("00README.json").write_text(json.dumps(readme, indent=2) + "\n")
@@ -62,14 +62,14 @@ zip -r "$ZIP" \
   00README.json \
   "$TEX" \
   "$LISTINGS_DIR" \
-  "$FIGURES_DIR"/*.pdf
+  "$FIGURES_DIR"/*.png
 
 echo "wrote $ZIP ($(du -h "$ZIP" | cut -f1))"
 echo "Contents:"
 zipinfo -1 "$ZIP" | sed 's/^/  /' | head -40
 echo
 echo "Upload $ZIP to arXiv (pdfLaTeX; UTF-8 Lean listings render via the listings literate"
-echo "table; mermaid diagrams ship as pre-rendered figures/*.pdf since AutoTeX cannot run mmdc)."
+echo "table; mermaid diagrams ship as pre-rendered figures/*.png since AutoTeX cannot run mmdc)."
 echo "On arXiv Add Files: Delete All before uploading (uploads merge, they do not replace)."
-echo "On arXiv Review Files: if any lean-listings/*.lean or figures/*.pdf are marked for"
+echo "On arXiv Review Files: if any lean-listings/*.lean or figures/*.png are marked for"
 echo "deletion, UNCHECK them."

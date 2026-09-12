@@ -55,6 +55,10 @@
     {Σ}{{\ensuremath{\Sigma}}}1
     {α}{{\ensuremath{\alpha}}}1
     {β}{{\ensuremath{\beta}}}1
+    {δ}{{\ensuremath{\delta}}}1
+    {η}{{\ensuremath{\eta}}}1
+    {μ}{{\ensuremath{\mu}}}1
+    {ξ}{{\ensuremath{\xi}}}1
     {λ}{{\ensuremath{\lambda}}}1
     {σ}{{\ensuremath{\sigma}}}1
     {τ}{{\ensuremath{\tau}}}1
@@ -89,8 +93,12 @@
     {ˢ}{{\textsuperscript{s}}}1
     {⦃}{{\textbraceleft\textbraceleft}}2
     {⦄}{{\textbraceright\textbraceright}}2
+    {ℋ}{{\ensuremath{\mathcal{H}}}}1
     {𝒵}{{\ensuremath{\mathcal{Z}}}}1
     {𝓕}{{\ensuremath{\mathcal{F}}}}1
+    {𝔅}{{\ensuremath{\mathfrak{B}}}}1
+    {𝔉}{{\ensuremath{\mathfrak{F}}}}1
+    {𝔊}{{\ensuremath{\mathfrak{G}}}}1
     {ℕ}{{\ensuremath{\mathbb{N}}}}1
     {←}{{\ensuremath{\leftarrow}}}1
     {↑}{{\ensuremath{\uparrow}}}1
@@ -118,6 +126,7 @@
     {∞}{{\ensuremath{\infty}}}1
     {⋂}{{\ensuremath{\bigcap}}}1
     {⋃}{{\ensuremath{\bigcup}}}1
+    {⋯}{{\ensuremath{\cdots}}}1
     {∧}{{\ensuremath{\wedge}}}1
     {∨}{{\ensuremath{\vee}}}1
     {∪}{{\ensuremath{\cup}}}1
@@ -128,10 +137,15 @@
     {≪}{{\ensuremath{\ll}}}1
     {≃}{{\ensuremath{\simeq}}}1
     {≅}{{\ensuremath{\cong}}}1
+    {⊃}{{\ensuremath{\supset}}}1
     {⊆}{{\ensuremath{\subseteq}}}1
+    {⊐}{{\ensuremath{\sqsupset}}}1
     {⊑}{{\ensuremath{\sqsubseteq}}}1
     {⊔}{{\ensuremath{\sqcup}}}1
     {⊓}{{\ensuremath{\sqcap}}}1
+    {⊗}{{\ensuremath{\otimes}}}1
+    {⊞}{{\ensuremath{\boxplus}}}1
+    {⊠}{{\ensuremath{\boxtimes}}}1
     {⊢}{{\ensuremath{\vdash}}}1
     {⊣}{{\ensuremath{\dashv}}}1
     {⊤}{{\ensuremath{\top}}}1
@@ -160,6 +174,10 @@
 % Greek
 \newunicodechar{α}{\ensuremath{\alpha}}
 \newunicodechar{β}{\ensuremath{\beta}}
+\newunicodechar{δ}{\ensuremath{\delta}}
+\newunicodechar{η}{\ensuremath{\eta}}
+\newunicodechar{μ}{\ensuremath{\mu}}
+\newunicodechar{ξ}{\ensuremath{\xi}}
 \newunicodechar{σ}{\ensuremath{\sigma}}
 \newunicodechar{φ}{\ensuremath{\varphi}}
 \newunicodechar{χ}{\ensuremath{\chi}}
@@ -194,12 +212,19 @@
 \newunicodechar{≈}{\ensuremath{\approx}}
 \newunicodechar{≅}{\ensuremath{\cong}}
 \newunicodechar{≪}{\ensuremath{\ll}}
+\newunicodechar{⊃}{\ensuremath{\supset}}
 \newunicodechar{⊆}{\ensuremath{\subseteq}}
 \newunicodechar{⊇}{\ensuremath{\supseteq}}
 \newunicodechar{⊋}{\ensuremath{\supsetneq}}
+\newunicodechar{⊐}{\ensuremath{\sqsupset}}
 \newunicodechar{⊑}{\ensuremath{\sqsubseteq}}
 \newunicodechar{⊔}{\ensuremath{\sqcup}}
 \newunicodechar{⊓}{\ensuremath{\sqcap}}
+\newunicodechar{⊗}{\ensuremath{\otimes}}
+\newunicodechar{⊞}{\ensuremath{\boxplus}}
+\newunicodechar{⊠}{\ensuremath{\boxtimes}}
+\newunicodechar{⋃}{\ensuremath{\bigcup}}
+\newunicodechar{⋯}{\ensuremath{\cdots}}
 \newunicodechar{⊤}{\ensuremath{\top}}
 \newunicodechar{⊥}{\ensuremath{\bot}}
 \newunicodechar{⊣}{\ensuremath{\dashv}}
@@ -268,14 +293,26 @@
 \newunicodechar{⨅}{\ensuremath{\bigcap}}
 \newunicodechar{◁}{\ensuremath{\triangleleft}}
 \newunicodechar{▸}{\ensuremath{\blacktriangleright}}
+\newunicodechar{ℋ}{\ensuremath{\mathcal{H}}}
+\newunicodechar{𝒵}{\ensuremath{\mathcal{Z}}}
 \newunicodechar{𝓕}{\ensuremath{\mathcal{F}}}
+\newunicodechar{𝔅}{\ensuremath{\mathfrak{B}}}
+\newunicodechar{𝔉}{\ensuremath{\mathfrak{F}}}
+\newunicodechar{𝔊}{\ensuremath{\mathfrak{G}}}
 \newunicodechar{─}{\-}
 \newunicodechar{└}{\textasciigrave{}|}
 \newunicodechar{├}{\textbar{}}
 % Latin extended
 \newunicodechar{ē}{\={e}}
+\newunicodechar{ū}{\={u}}
 \newunicodechar{ń}{\'{n}}
 \newunicodechar{ḡ}{\={g}}
+\newunicodechar{ˢ}{\textsuperscript{s}}
+\newunicodechar{⦃}{\ensuremath{\{\!\{}}
+\newunicodechar{⦄}{\ensuremath{\}\!\}}}
+% Combining accents (do not use TeX prefix accents: Unicode is postfix)
+\newunicodechar{̂}{\ensuremath{^{\wedge}}}
+\newunicodechar{̄}{\ensuremath{^{-}}}
 % Punctuation / misc
 \newunicodechar{·}{\textperiodcentered{}}
 \newunicodechar{—}{\textemdash{}}
