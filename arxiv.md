@@ -11,11 +11,11 @@ September 1976; reprinted SIAM J. Comput. 5 (1976), 522–587.
 ## Abstract
 
 This note records a Lean 4 / mathlib formalization of Dana Scott's 1976 paper
-*Data Types as Lattices*. Scott develops the graph model of the λ-calculus
+Data Types as Lattices. Scott develops the graph model of the $\lambda$-calculus
 inside the complete lattice $\mathbf{P}\omega$ of subsets of the natural
 numbers, then uses retracts of that lattice as data types. The Lean
 development is a 1:1 onto translation of every numbered definition, theorem,
-displayed equation used as a definition or example, and Tables 1–3.
+displayed equation used as a definition or example, and Tables 1-3.
 
 The sorry-free library consists of approximately 17,000 lines in 15 files
 under `Scott1976/` (the root import plus fourteen modules). Palomar Challenge
@@ -146,8 +146,10 @@ are developed here.
 
 ## 4. Proof dependency structure
 
-The published development is one lattice-theoretic core and six applications.
+The published development is one lattice-theoretic core and six applications
+(Figure 1).
 
+<!-- figure: Dependency of the lattice-theoretic core and its six applications. -->
 ```mermaid
 flowchart LR
   Pw["Pω · continuity<br/><i>Pomega · Continuous · Graph</i>"]
@@ -170,8 +172,10 @@ flowchart LR
 Section 4's domain examples depend on the retract constructors and on the
 fixed-point theorem. The continuous decoder $\mathcal{H}$ of (4.45) is the
 least fixed point of a syntax-directed operator, then retracted onto
-$\mathbf{exp}\circ\to(\mathbf{env}\circ\to\mathbf{lamb})$:
+$\mathbf{exp}\circ\to(\mathbf{env}\circ\to\mathbf{lamb})$
+(Figure 2):
 
+<!-- figure: Proof dependencies for the continuous decoder $\mathcal{H}$ of (4.45). -->
 ```mermaid
 flowchart TD
   T13["Theorem 1.3 substitution"]
@@ -201,8 +205,9 @@ flowchart TD
 ```
 
 Enumeration and the tree evaluator (4.46) are a parallel use of the same
-fixed-point pattern:
+fixed-point pattern (Figure 3):
 
+<!-- figure: Enumeration and the tree evaluator (4.46). -->
 ```mermaid
 flowchart TD
   G["G combinator"]
@@ -223,8 +228,9 @@ flowchart TD
   T14n["Theorem 1.4"] --> Vaal
 ```
 
-Closures reuse retracts but add $I\subseteq a$:
+Closures reuse retracts but add $I\subseteq a$ (Figure 4):
 
+<!-- figure: Closures, $V$, and the classification theorems. -->
 ```mermaid
 flowchart TD
   IR["IsRetract"]

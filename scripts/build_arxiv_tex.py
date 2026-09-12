@@ -102,6 +102,7 @@ FENCE_RE = re.compile(r"^```([^\n]*)\n(.*?)^```\s*$", re.MULTILINE | re.DOTALL)
 MANUAL_SECTION_NUM = re.compile(r"^(#{1,6})[ \t]+\d+(?:\.\d+)*\.?[ \t]+", re.MULTILINE)
 NARRATIVE_MARKER = "# Narrative (from arxiv.md)"
 LEAN_MODULE_RE = re.compile(r"^###\s+(Scott1976(?:\.lean|/[^\s{]+))\s*$", re.MULTILINE)
+FIGURE_CAPTION_RE = re.compile(r"^<!--\s*figure:\s*(.*?)\s*-->$")
 
 
 def github_math_to_tex(text: str) -> str:
@@ -187,6 +188,32 @@ def lean_block_latex(code: str, listing_name: str) -> str:
     return "".join(parts)
 
 
+def extract_mermaid_captions(text: str) -> list[str]:
+    """Read ``<!-- figure: ... -->`` immediately above each mermaid fence."""
+    captions: list[str] = []
+    for m in re.finditer(r"^```mermaid\s*$", text, re.MULTILINE):
+        prefix = text[: m.start()].rstrip()
+        last = prefix.splitlines()[-1] if prefix.splitlines() else ""
+        cm = FIGURE_CAPTION_RE.match(last.strip())
+        if cm:
+            captions.append(cm.group(1))
+        else:
+            captions.append(f"Dependency diagram {len(captions) + 1}.")
+    return captions
+
+
+def figure_latex(rel_path: str, caption: str, label: str) -> str:
+    return (
+        "\\begin{figure}[htbp]\n"
+        "\\centering\n"
+        f"\\includegraphics[max width=\\linewidth,"
+        f"max totalheight=0.85\\textheight,keepaspectratio]{{{rel_path}}}\n"
+        f"\\caption{{{caption}}}\n"
+        f"\\label{{{label}}}\n"
+        "\\end{figure}\n"
+    )
+
+
 def extract_lean_titles(text: str) -> dict[str, str]:
     titles: dict[str, str] = {}
     lean_starts = [m.start() for m in re.finditer(r"^```lean\s*$", text, re.MULTILINE)]
@@ -202,14 +229,15 @@ def extract_lean_titles(text: str) -> dict[str, str]:
     return titles
 
 
-def replace_fences(text: str) -> tuple[str, dict[str, str]]:
+def replace_fences(text: str, mermaid_captions: list[str]) -> tuple[str, dict[str, str]]:
     lean_titles = extract_lean_titles(text)
     placeholders: dict[str, str] = {}
     lean_idx = 0
     other_idx = 0
+    mermaid_idx = 0
 
     def repl(match: re.Match[str]) -> str:
-        nonlocal lean_idx, other_idx
+        nonlocal lean_idx, other_idx, mermaid_idx
         lang = match.group(1).strip().lower()
         body = match.group(2)
         if lang == "lean":
@@ -228,14 +256,16 @@ def replace_fences(text: str) -> tuple[str, dict[str, str]]:
             return f"\n\n{key}\n\n"
         if lang == "mermaid":
             key = f"FIGINCLUDE{other_idx:03d}"
-            rel_path = render_mermaid(body, other_idx)
-            other_idx += 1
-            placeholders[key] = (
-                "\\begin{center}\n"
-                f"\\includegraphics[max width=\\linewidth,"
-                f"max totalheight=0.85\\textheight,keepaspectratio]{{{rel_path}}}\n"
-                "\\end{center}\n"
+            rel_path = render_mermaid(body, mermaid_idx)
+            caption = (
+                mermaid_captions[mermaid_idx]
+                if mermaid_idx < len(mermaid_captions)
+                else f"Dependency diagram {mermaid_idx + 1}."
             )
+            label = f"fig:dep-{mermaid_idx + 1}"
+            mermaid_idx += 1
+            other_idx += 1
+            placeholders[key] = figure_latex(rel_path, caption, label)
             return f"\n\n{key}\n\n"
         key = f"CODEINCLUDE{other_idx:03d}"
         rel_path, _ = write_listing(body, f"snippet-{other_idx:03d}.txt")
@@ -377,13 +407,14 @@ def main() -> int:
 
     raw = SRC.read_text(encoding="utf-8")
     body = drop_github_nav(raw)
+    mermaid_captions = extract_mermaid_captions(body)
     body = inject_model_cards(body)
     body = strip_html_comments(body)
     body = normalize_appendix_headings(body)
     abstract_md, body = extract_abstract(body)
     body = strip_manual_section_numbers(body)
     body = github_math_to_tex(body)
-    body, placeholders = replace_fences(body)
+    body, placeholders = replace_fences(body, mermaid_captions)
 
     latex_body = pandoc_to_latex(body, shift=True)
     latex_body = inject_placeholders(latex_body, placeholders)
